@@ -2,6 +2,11 @@ Point2 :: struct {
     x, y: s32;
 }
 
+Rect :: struct {
+    x, y:          float32;
+    width, height: float32;
+}
+
 Recti :: struct {
     x, y:          s32;
     width, height: s32;
