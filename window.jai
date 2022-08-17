@@ -4,6 +4,7 @@ WindowFlags :: enum_flags {
     Fullscreen;
     Centered;
     VSync;
+    FpsInTitle;
 }
 
 init :: () -> SF_Result {
@@ -11,6 +12,12 @@ init :: () -> SF_Result {
     if !glfwInit() {
         return .FailedToInitGLFW;
     }
+	#if OS == .WINDOWS {
+        Win32 :: #import "Windows";
+		Win32.SetProcessDPIAware();
+        Win32.timeBeginPeriod(1);
+	}
+
     initialized = true;
     return .Ok;
 }
@@ -24,13 +31,10 @@ create_window :: (title: string, width: s32, height: s32, flags := WindowFlags.N
 
     window.size.width  = width;
     window.size.height = height;
-
-    window_title: *u8 = talloc(title.count + 1);
-    memcpy(window_title, title.data, title.count);
-    window_title[title.count] = 0;
+    window.name = title;
 
     // @Todo(sushi): do settings file stuff so i can get fullscreen mode
-	window.handle = glfwCreateWindow(width, height, window_title, null, null);
+	window.handle = glfwCreateWindow(width, height, temp_c_string(title), null, null);
 	if window.handle == null {
 		return .FailedToCreateWindow;
 	}
@@ -47,6 +51,9 @@ create_window :: (title: string, width: s32, height: s32, flags := WindowFlags.N
         if flags & .Maximized {
             glfwMaximizeWindow(window.handle);
         }
+    }
+    if flags & .FpsInTitle {
+        window.time.fps_in_title = true;
     }
 
     glfwSetWindowSizeCallback(window.handle, glfw_window_size);
@@ -86,11 +93,29 @@ should_exit :: () -> bool {
 
     new_time := get_time();
     window.time.delta = new_time - window.time.last;
+    {
+        using window.time;
+        if (new_time - fps_last) > TRACK_FPS_STEP {
+            fps_last = new_time;
+            fps_average -= fps_buffer[fps_index];
+            fps_buffer[fps_index] = delta / TRACK_FPS_SAMPLES;
+            fps_average += fps_buffer[fps_index];
+            fps_index = (fps_index + 1) % TRACK_FPS_SAMPLES;
 
-    if !window.time.vsync && window.time.target_fps > 0 && window.time.delta > 0{
-        desired_sleep_time := max(window.time.target_delta - (window.time.delta * 1000.0), 0.0);
+            if fps_in_title && (fps_index % 20) == 0{
+                new_title := tprint("% | FPS:%\0", window.name, 1.0 / fps_average);
+                glfwSetWindowTitle(window.handle, new_title.data);
+            }
+        }
+    }
+
+    if !window.time.vsync && window.time.target_fps > 0 && window.time.delta > 0 {
+        desired_sleep_time := max(
+            (1_000_000.0 / window.time.target_fps)
+          - (window.time.delta * 1_000_000.0), 0.0
+        );
         if desired_sleep_time > 0 {
-            sleep_milliseconds(cast(s32) desired_sleep_time);
+            usleep(cast(s64) desired_sleep_time, new_time + (1.0 / window.time.target_fps));
         }
     }
     window.time.last = new_time;
@@ -147,11 +172,6 @@ get_target_fps :: () -> float {
 
 set_target_fps :: (value: float) {
     window.time.target_fps = value;
-    if value > 0 {
-        window.time.target_delta = 1000.0 / value;
-    } else {
-        window.time.target_delta = 0;
-    }
 }
 
 get_window_mode :: () -> WindowFlags {
@@ -236,8 +256,15 @@ clear :: inline (color: Color8) {
 #scope_module
 
 initialized: bool;
+
+TRACK_FPS_SAMPLES         :: 120;
+TRACK_FPS_SAMPLE_DURATION :: 4.0;
+TRACK_FPS_STEP            :: TRACK_FPS_SAMPLE_DURATION / TRACK_FPS_SAMPLES;
+
 window: struct {
     handle: *GLFWwindow;
+    name:   string;
+
     size: struct {
         width:       s32;
         height:      s32;
@@ -252,7 +279,12 @@ window: struct {
 
         vsync:        bool;
         target_fps:   float;
-        target_delta: float;
+
+        fps_in_title: bool;
+        fps_buffer:   [TRACK_FPS_SAMPLES] float64;
+        fps_last:     float64;
+        fps_index:    int;
+        fps_average:  float64;
     }
 }
 
