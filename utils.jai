@@ -1,4 +1,5 @@
 LogType :: enum {
+    None;
     Core;
     Render;
     Audio;
@@ -18,25 +19,45 @@ log :: ($log_type: LogType, $log_level: LogLevel, fmt: string, args: .. Any, fla
         path := parse_path(loc.fully_pathed_filename);
         partial_path := path.words[path.words.count-1];
         #if log_level == .ERROR || log_level == .DEBUG {
+            #if log_type == .None    log(tprint("[SF       ][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
             #if log_type == .Core    log(tprint("[SF:Core  ][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
             #if log_type == .Render  log(tprint("[SF:Render][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
             #if log_type == .Audio   log(tprint("[SF:Audio ][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
         } else {
+            #if log_type == .None    log(tprint("[SF       ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
             #if log_type == .Core    log(tprint("[SF:Core  ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
             #if log_type == .Render  log(tprint("[SF:Render][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
             #if log_type == .Audio   log(tprint("[SF:Audio ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
         }
     } else {
         #if log_level == .ERROR || log_level == .DEBUG {
+            #if log_type == .None    log(tprint("[SF       ][%] %\n", log_level, fmt), ..args, flags = flags);
             #if log_type == .Core    log(tprint("[SF:Core  ][%] %\n", log_level, fmt), ..args, flags = flags);
             #if log_type == .Render  log(tprint("[SF:Render][%] %\n", log_level, fmt), ..args, flags = flags);
             #if log_type == .Audio   log(tprint("[SF:Audio ][%] %\n", log_level, fmt), ..args, flags = flags);
         } else {
+            #if log_type == .None    log(tprint("[SF       ][% ] %\n", log_level, fmt), ..args, flags = flags);
             #if log_type == .Core    log(tprint("[SF:Core  ][% ] %\n", log_level, fmt), ..args, flags = flags);
             #if log_type == .Render  log(tprint("[SF:Render][% ] %\n", log_level, fmt), ..args, flags = flags);
             #if log_type == .Audio   log(tprint("[SF:Audio ][% ] %\n", log_level, fmt), ..args, flags = flags);
         }
     }
+}
+
+debug :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+    log(.None, .DEBUG, fmt, ..args, flags = flags, loc = loc);
+}
+
+info :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+    log(.None, .INFO, fmt, ..args, flags = flags, loc = loc);
+}
+
+warn :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+    log(.None, .WARN, fmt, ..args, flags = flags | .WARNING, loc = loc);
+}
+
+error :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+    log(.None, .ERROR, fmt, ..args, flags = flags | .ERROR, loc = loc);
 }
 
 debug :: ($log_type: LogType, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
