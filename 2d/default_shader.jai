@@ -19,6 +19,7 @@ void main() {
     fUV         = vUV;
     fColor      = vColor;
 }
+
 ___glsl
 
 FRAG_SHADER_TEXTURED_RECT :: #string ___glsl
@@ -34,6 +35,7 @@ uniform sampler2D Tex;
 void main() {
     glFragColor = texture(Tex, fUV) * fColor;
 }
+
 ___glsl
 
 FRAG_SHADER_COLORED_RECT :: #string ___glsl
@@ -47,4 +49,5 @@ out vec4 glFragColor;
 void main() {
     glFragColor = fColor;
 }
+
 ___glsl
