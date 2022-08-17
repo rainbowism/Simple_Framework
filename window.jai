@@ -73,7 +73,7 @@ create_window :: (title: string, width: s32, height: s32, flags := WindowFlags.N
     glfwShowWindow(window.handle);
     init_time();
 
-    window.time.last = get_time();
+    time.last = get_time();
 
     return .Ok;
 }
@@ -92,13 +92,13 @@ should_exit :: () -> bool {
     }
 
     new_time := get_time();
-    window.time.delta = new_time - window.time.last;
+    time.delta = new_time - time.last;
     {
         using window.time;
         if (new_time - fps_last) > TRACK_FPS_STEP {
             fps_last = new_time;
             fps_average -= fps_buffer[fps_index];
-            fps_buffer[fps_index] = delta / TRACK_FPS_SAMPLES;
+            fps_buffer[fps_index] = time.delta / TRACK_FPS_SAMPLES;
             fps_average += fps_buffer[fps_index];
             fps_index = (fps_index + 1) % TRACK_FPS_SAMPLES;
 
@@ -109,16 +109,16 @@ should_exit :: () -> bool {
         }
     }
 
-    if !window.time.vsync && window.time.target_fps > 0 && window.time.delta > 0 {
+    if !window.time.vsync && window.time.target_fps > 0 && time.delta > 0 {
         desired_sleep_time := max(
             (1_000_000.0 / window.time.target_fps)
-          - (window.time.delta * 1_000_000.0), 0.0
+          - (time.delta * 1_000_000.0), 0.0
         );
         if desired_sleep_time > 0 {
             usleep(cast(s64) desired_sleep_time, new_time + (1.0 / window.time.target_fps));
         }
     }
-    window.time.last = new_time;
+    time.last = new_time;
 
     return exit;
 }
@@ -244,6 +244,12 @@ set_depth_test :: (enable: bool) {
     }
 }
 
+time: struct {
+    total: float64;
+    last:  float64;
+    delta: float64;
+}
+
 #scope_module
 
 initialized: bool;
@@ -265,10 +271,6 @@ window: struct {
     }
 
     time: struct {
-        total: float64;
-        last:  float64;
-        delta: float64;
-
         vsync:        bool;
         target_fps:   float;
 
