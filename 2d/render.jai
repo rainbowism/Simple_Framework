@@ -1,6 +1,7 @@
 render_init :: (max_renderables := 8192) {
     init_render_buffers(max_renderables);
     create_default_shaders();
+    // @Todo(sushi): if this is -1, the first draw call gets clipped?
     render_ctx.state.current_depth = -0.99999999;
 }
 
@@ -27,7 +28,6 @@ create_default_shaders :: () {
 
 batch_start :: ($type: RenderType) {
     #if type == .Texture {
-        if !check_render_limit()  render_ctx.draw_counter += 1;
         if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
     }
 }
@@ -36,7 +36,6 @@ batch_end :: ($type: RenderType) {
     DEPTH_OFFSET : float32 : 1.0 / 20000.0;
     render_ctx.state.current_depth += DEPTH_OFFSET;
     #if type == .Texture {
-        if !check_render_limit()  render_ctx.draw_counter += 1;
         if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
     }
 }
@@ -100,6 +99,10 @@ batch_draw :: () {
     render_ctx.state.current_depth = -0.999;
 }
 
+push_model_view_identity :: () {
+    render_ctx.state.model_view = Matrix4_Identity;
+}
+
 push_layer :: (clear: bool, one_minus_alpha := false) {
     render_ctx.layers.index += 1;
     if render_ctx.layers.index > render_ctx.layers.count {
@@ -113,7 +116,7 @@ push_vertex :: ($type: RenderType, pos: Vector3) {
     #if type == .Line     using render_ctx.lines;
 
     if index >= vertices.count {
-        warn(.Render, "Vertex buffer overflow.");
+        warn(.Render, "% vertex buffer overflow.", type);
         return;
     }
 
@@ -150,22 +153,10 @@ push_color :: (color: Color) {
 set_texture :: (texture_id: TextureId) {
     if texture_id == 0  return;
     if render_ctx.draws[render_ctx.draw_counter].texture_id == texture_id  return;
-    if !check_render_limit()  render_ctx.draw_counter += 1;
+    render_ctx.draw_counter += 1;
     if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
     render_ctx.draws[render_ctx.draw_counter].texture_id = texture_id;
     render_ctx.draws[render_ctx.draw_counter].count      = 0;
-}
-
-check_render_limit :: () -> bool {
-    using render_ctx.tex_rects;
-    if (index + 4) < vertices.count  return true;
-
-    current_texture := render_ctx.draws[render_ctx.draw_counter].texture_id;
-    batch_draw();
-    // restore the last state to continue drawing
-    render_ctx.draws[render_ctx.draw_counter].texture_id = current_texture;
-
-    return false;
 }
 
 RenderType :: enum {
@@ -180,7 +171,6 @@ update_viewport :: (width: s32, height: s32) {
     glViewport(0, 0, xx width, xx height);
     render_ctx.state.projection = orthographic_projection_matrix(0, xx width, xx height, 0, 0, 1);
     render_ctx.state.projection = transpose(render_ctx.state.projection);
-    render_ctx.state.model_view = Matrix4_Identity;
 }
 
 #scope_file

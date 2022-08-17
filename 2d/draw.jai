@@ -1,6 +1,6 @@
 
 draw_begin :: () {
-    // load identity
+    push_model_view_identity();
 }
 
 draw_end :: () {
@@ -41,16 +41,9 @@ draw_line :: (a: Vector2, b: Vector2, tints: .. Color) {
     batch_end(.Line);
 }
 
-draw_rect :: (rect: Rect, tint := Colors.White) {
+draw_rect :: (rect: Rect, tint := Colors.White, origin := Vector2.{0, 0}, rotation: float32 = 0.0) {
     tl, tr, bl, br: Vector2;
-    tl.x = rect.x;
-    tl.y = rect.y;
-    tr.x = rect.x + rect.width;
-    tr.y = rect.y;
-    bl.x = rect.x;
-    bl.y = rect.y + rect.height;
-    br.x = tr.x;
-    br.y = bl.y;
+    rotate_quad();
 
     batch_start(.Rect);
     {
@@ -63,16 +56,9 @@ draw_rect :: (rect: Rect, tint := Colors.White) {
     batch_end(.Rect);
 }
 
-draw_rect :: (rect: Rect, tints: .. Color) {
+draw_rect :: (dest: Rect, tints: .. Color, origin := Vector2.{0, 0}, rotation: float32 = 0.0) {
     tl, tr, bl, br: Vector2;
-    tl.x = rect.x;
-    tl.y = rect.y;
-    tr.x = rect.x + rect.width;
-    tr.y = rect.y;
-    bl.x = rect.x;
-    bl.y = rect.y + rect.height;
-    br.x = tr.x;
-    br.y = bl.y;
+    rotate_quad();
 
     batch_start(.Rect);
     {
@@ -98,7 +84,10 @@ draw_rect :: (rect: Rect, tints: .. Color) {
 
 draw_texture :: (
     texture: Texture,
-    pos: Vector2
+    pos: Vector2,
+    tint := Colors.White,
+    origin := Vector2.{0, 0},
+    rotation: float32 = 0.0
 ) {
     source, dest: Rect;
     source.width  = xx texture.width;
@@ -107,16 +96,21 @@ draw_texture :: (
     dest.y        = pos.y;
     dest.width    = source.width;
     dest.height   = source.height;
-    draw_texture(texture, source, dest);
+    draw_texture(
+        texture, source, dest,
+        origin = origin,
+        rotation = rotation,
+        tint = tint
+    );
 }
 
 draw_texture :: (
     texture: Texture,
     source: Rect,
     dest: Rect,
+    tint := Colors.White,
     origin := Vector2.{0, 0},
     rotation: float32 = 0.0,
-    tint := Colors.White,
     flip_x := false
 ) {
     if texture.id == 0  return;
@@ -125,38 +119,8 @@ draw_texture :: (
     height: float32 = xx texture.height;
 
     tl, tr, bl, br: Vector2;
+    rotate_quad();
 
-    if rotation == 0 {
-        x := dest.x - origin.x;
-        y := dest.y - origin.y;
-
-        tl.x = x;
-        tl.y = y;
-        tr.x = x + dest.width;
-        tr.y = y;
-        bl.x = x;
-        bl.y = y + dest.height;
-        br.x = tr.x;
-        br.y = bl.y;
-    } else {
-        theta_sin := sin(rotation);
-        theta_cos := cos(rotation);
-        x := dest.x;
-        y := dest.y;
-        dx := -origin.x;
-        dy := -origin.y;
-
-        tl.x = x + dx * theta_cos - dy * theta_sin;
-        tl.y = y + dx * theta_sin + dy * theta_cos;
-        tr.x = x + (dx + dest.width) * theta_cos - dy * theta_sin;
-        tr.y = y + (dx + dest.width) * theta_sin + dy * theta_cos;
-        bl.x = x + dx * theta_cos - (dy + dest.height) * theta_sin;
-        bl.y = y + dx * theta_sin + (dy + dest.height) * theta_cos;
-        br.x = x + (dx + dest.width) * theta_cos - (dy + dest.height) * theta_sin;
-        br.y = y + (dx + dest.width) * theta_sin + (dy + dest.height) * theta_cos;
-    }
-
-    check_render_limit();
     set_texture(texture.id);
     batch_start(.Texture);
     {
@@ -165,25 +129,19 @@ draw_texture :: (
         if flip_x {
             push_uv((source.x + source.width) / width, source.y / height);
             push_vertex(.Texture, tl);
-
             push_uv((source.x + source.width) / width, (source.y + source.height) / height);
             push_vertex(.Texture, bl);
-
             push_uv(source.x / width, (source.y + source.height) / height);
             push_vertex(.Texture, br);
-
             push_uv(source.x / width, source.y / height);
             push_vertex(.Texture, tr);
         } else {
             push_uv(source.x / width, source.y / height);
             push_vertex(.Texture, tl);
-
             push_uv(source.x / width, (source.y + source.height) / height);
             push_vertex(.Texture, bl);
-
             push_uv((source.x + source.width) / width, (source.y + source.height) / height);
             push_vertex(.Texture, br);
-
             push_uv((source.x + source.width) / width, source.y / height);
             push_vertex(.Texture, tr);
         }
@@ -192,5 +150,37 @@ draw_texture :: (
 }
 
 #scope_file
+
+rotate_quad :: () #expand {
+    if `rotation == 0 {
+        x := `dest.x - `origin.x;
+        y := `dest.y - `origin.y;
+
+        `tl.x = x;
+        `tl.y = y;
+        `tr.x = x + `dest.width;
+        `tr.y = y;
+        `bl.x = x;
+        `bl.y = y + `dest.height;
+        `br.x = `tr.x;
+        `br.y = `bl.y;
+    } else {
+        theta_sin := sin(`rotation);
+        theta_cos := cos(`rotation);
+        x := `dest.x;
+        y := `dest.y;
+        dx := -`origin.x;
+        dy := -`origin.y;
+
+        `tl.x = x + dx * theta_cos - dy * theta_sin;
+        `tl.y = y + dx * theta_sin + dy * theta_cos;
+        `tr.x = x + (dx + `dest.width) * theta_cos - dy * theta_sin;
+        `tr.y = y + (dx + `dest.width) * theta_sin + dy * theta_cos;
+        `bl.x = x + dx * theta_cos - (dy + `dest.height) * theta_sin;
+        `bl.y = y + dx * theta_sin + (dy + `dest.height) * theta_cos;
+        `br.x = x + (dx + `dest.width) * theta_cos - (dy + `dest.height) * theta_sin;
+        `br.y = y + (dx + `dest.width) * theta_sin + (dy + `dest.height) * theta_cos;
+    }
+}
 
 #import "Math";
