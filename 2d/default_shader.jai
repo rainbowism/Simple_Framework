@@ -12,7 +12,8 @@ in vec4 vColor;
 out vec2 fUV;
 out vec4 fColor;
 
-uniform mat4 mvpMatrix;
+// @Todo(sushi): make this not static
+layout(location = 0) uniform mat4 mvpMatrix;
 
 void main() {
     gl_Position = mvpMatrix * vec4(vPos, 1.0);

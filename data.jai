@@ -25,6 +25,14 @@ Color8 :: struct {
     r, g, b, a: u8;
 }
 
+Colors: struct {
+    White :: Color.{1, 1, 1, 1};
+    Black :: Color.{0, 0, 0, 1};
+    Red   :: Color.{1, 0, 0, 1};
+    Green :: Color.{0, 1, 0, 1};
+    Blue  :: Color.{0, 0, 1, 1};
+}
+
 ONE_OVER_255 : float32 : 1.0 / 255;
 
 alloc_color :: (r: float32, g: float32, b: float32, a: float32) -> Color {

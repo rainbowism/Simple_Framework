@@ -55,7 +55,7 @@ load_texture :: (
     path := temp_c_string(filepath);
 
     texture: Texture;
-    image_data := stbi_load(path, *texture.width, *texture.height, *texture.format, PixelFormat.RGBA);
+    image_data := stbi_load(path, *texture.width, *texture.height, xx *texture.format, xx PixelFormat.RGBA);
     defer stbi_image_free(image_data);
 
     glGenTextures(1, *texture.id);  assert(texture.id != 0);
@@ -63,23 +63,24 @@ load_texture :: (
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    if (image.width * image.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8); else
-    if (image.width * image.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4); else
-    if (image.width * image.height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
-    else                                      glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8); else
+    if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4); else
+    if (texture.width * texture.height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
+    else glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     gl_format: GLenum;
-    if image.format == {
-    case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RED , GL_UNSIGNED_BYTE, image_data);
-    case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RG  , GL_UNSIGNED_BYTE, image_data);
-    case .RGB;       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGB , GL_UNSIGNED_BYTE, image_data);
-    case .RGBA;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    if texture.format == {
+    case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx texture.width, xx texture.height, 0, GL_RED , GL_UNSIGNED_BYTE, image_data);
+    case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx texture.width, xx texture.height, 0, GL_RG  , GL_UNSIGNED_BYTE, image_data);
+    case .RGB;       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx texture.width, xx texture.height, 0, GL_RGB , GL_UNSIGNED_BYTE, image_data);
+    case .RGBA;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx texture.width, xx texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     case;
         warn(.Render, "Parsed invalid texture format for file: %", filepath);
         return .{};
     }
 
     glGenerateMipmap(GL_TEXTURE_2D);
+    return texture;
 }
 
 free :: (image: Image) {

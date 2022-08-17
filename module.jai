@@ -16,4 +16,6 @@ SF_Result :: enum {
 #load "2d/font.jai";
 #load "2d/render.jai";
 #load "2d/render_layer.jai";
+#load "2d/shader.jai";
 #load "2d/default_shader.jai";
+#load "2d/draw.jai";

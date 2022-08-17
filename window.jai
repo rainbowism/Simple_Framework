@@ -17,7 +17,7 @@ init :: () -> SF_Result {
 		Win32.SetProcessDPIAware();
         Win32.timeBeginPeriod(1);
 	}
-
+    window.ctx = context;
     initialized = true;
     return .Ok;
 }
@@ -62,11 +62,11 @@ create_window :: (title: string, width: s32, height: s32, flags := WindowFlags.N
 
     set_vsync(flags & .VSync > 0);
 
-    glViewport(0, 0, xx width, xx height);
+    update_viewport(width, height);
 
     glEnable(GL_BLEND);
     glEnable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glFrontFace(GL_CCW);
 
@@ -86,7 +86,7 @@ should_exit :: () -> bool {
     exit := glfwWindowShouldClose(window.handle) == GLFW_TRUE;
 
     if window.size.width != window.size.last_width || window.size.height != window.size.last_height {
-        glViewport(0, 0, xx window.size.width, xx window.size.height);
+        update_viewport(window.size.width, window.size.height);
         window.size.last_width  = window.size.width;
         window.size.last_height = window.size.height;
     }
@@ -244,15 +244,6 @@ set_depth_test :: (enable: bool) {
     }
 }
 
-clear :: inline (color: Color) {
-    glClearColor(color.r, color.g, color.b, color.a);
-    glClear(GL_COLOR_BUFFER_BIT);
-}
-
-clear :: inline (color: Color8) {
-    clear(to_color(color));
-}
-
 #scope_module
 
 initialized: bool;
@@ -262,6 +253,7 @@ TRACK_FPS_SAMPLE_DURATION :: 4.0;
 TRACK_FPS_STEP            :: TRACK_FPS_SAMPLE_DURATION / TRACK_FPS_SAMPLES;
 
 window: struct {
+    ctx:    Context;
     handle: *GLFWwindow;
     name:   string;
 
@@ -291,8 +283,7 @@ window: struct {
 #scope_file
 
 glfw_error_callback :: (error: s32, description: *u8) #c_call {
-    new_context: Context;
-    push_context new_context {
+    push_context window.ctx {
         print("GLFW error %: %\n", error, to_string(description));
     }
 }
@@ -300,6 +291,9 @@ glfw_error_callback :: (error: s32, description: *u8) #c_call {
 glfw_window_size :: (handle: *GLFWwindow, width: s32, height: s32) #c_call {
     window.size.width  = width;
     window.size.height = height;
+    push_context window.ctx {
+        update_viewport(width, height);
+    }
 }
 
 #import "Basic";
