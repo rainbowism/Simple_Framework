@@ -56,9 +56,13 @@ create_window :: (title: string, width: s32, height: s32, flags := WindowFlags.N
         window.time.fps_in_title = true;
     }
 
-    glfwSetWindowSizeCallback(window.handle, glfw_window_size);
     glfwSetInputMode(window.handle, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
     glfwSetInputMode(window.handle, GLFW_STICKY_KEYS, GLFW_TRUE);
+    glfwSetWindowSizeCallback (window.handle, glfw_window_size);
+	glfwSetKeyCallback        (window.handle, glfw_key_callback);
+	glfwSetMouseButtonCallback(window.handle, glfw_mouse_callback);
+	glfwSetCharCallback       (window.handle, glfw_text_callback);
+	glfwSetScrollCallback     (window.handle, glfw_scroll_callback);
 
     set_vsync(flags & .VSync > 0);
 
@@ -244,6 +248,35 @@ set_depth_test :: (enable: bool) {
     }
 }
 
+set_key_callback :: (callback: Key_Callback) {
+    window.callback.key = callback;
+}
+
+set_mouse_callback :: (callback: Mouse_Callback) {
+    window.callback.mouse = callback;
+}
+
+set_text_callback :: (callback: Text_Callback) {
+    window.callback.text = callback;
+}
+
+set_scroll_callback :: (callback: Scroll_Callback) {
+    window.callback.scroll = callback;
+}
+
+draw_clear :: inline (color: Color) {
+    glClearColor(color.r, color.g, color.b, color.a);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+draw_clear :: (color: Color8) #expand {
+    draw_clear(to_color(color));
+}
+
+draw_clear :: () #expand {
+    draw_clear(Colors.Black);
+}
+
 time: struct {
     total: float64;
     last:  float64;
@@ -252,11 +285,24 @@ time: struct {
 
 #scope_module
 
+update_viewport :: (width: s32, height: s32) {
+    glViewport(0, 0, xx width, xx height);
+    #if !DISABLE_RENDER {
+        render_ctx.state.projection = orthographic_projection_matrix(0, xx width, xx height, 0, 0, 1);
+        render_ctx.state.projection = transpose(render_ctx.state.projection);
+    }
+}
+
 initialized: bool;
 
 TRACK_FPS_SAMPLES         :: 120;
 TRACK_FPS_SAMPLE_DURATION :: 4.0;
 TRACK_FPS_STEP            :: TRACK_FPS_SAMPLE_DURATION / TRACK_FPS_SAMPLES;
+
+Key_Callback    :: #type (window: *GLFWwindow, key: s32, scancode: s32, action: s32, mods: s32);
+Mouse_Callback  :: #type (window: *GLFWwindow, button: s32, action: s32, mods: s32);
+Text_Callback   :: #type (window: *GLFWwindow, codepoint: u32);
+Scroll_Callback :: #type (window: *GLFWwindow, x_offset: float64, y_offset: float64);
 
 window: struct {
     ctx:    Context;
@@ -280,6 +326,13 @@ window: struct {
         fps_index:    int;
         fps_average:  float64;
     }
+
+    callbacks: struct {
+        key: Key_Callback;
+        mouse: Mouse_Callback;
+        text: Text_Callback;
+        scroll: Scroll_Callback;
+    }
 }
 
 #scope_file
@@ -296,6 +349,34 @@ glfw_window_size :: (handle: *GLFWwindow, width: s32, height: s32) #c_call {
     push_context window.ctx {
         update_viewport(width, height);
     }
+}
+
+glfw_key_callback :: (glfw_win: *GLFWwindow, key: s32, scancode: s32, action: s32, mods: s32) #c_call {
+	#if !DISABLE_IMGUI  ImGui_Impl_KeyCallback(key, scancode, action, mods);
+    push_context window.ctx {
+        if window.callbacks.key != null  window.callbacks.key(glfw_win, key, scancode, action, mods);
+	}
+}
+
+glfw_mouse_callback :: (glfw_win: *GLFWwindow, button: s32, action: s32, mods: s32) #c_call {
+	#if !DISABLE_IMGUI  ImGui_Impl_MouseCallback(button, action, mods);
+    push_context window.ctx {
+        if window.callbacks.mouse != null  window.callbacks.mouse(glfw_win, button, action, mods);
+	}
+}
+
+glfw_text_callback :: (glfw_win: *GLFWwindow, codepoint: u32) #c_call {
+    #if !DISABLE_IMGUI  ImGui_Impl_TextCallback(codepoint);
+    push_context window.ctx {
+        if window.callbacks.text != null  window.callbacks.text(glfw_win, codepoint);
+	}
+}
+
+glfw_scroll_callback :: (glfw_win: *GLFWwindow, x_offset: float64, y_offset: float64) #c_call {
+    #if !DISABLE_IMGUI  ImGui_Impl_ScrollCallback(x_offset, y_offset);
+    push_context window.ctx {
+        if window.callbacks.scroll != null  window.callbacks.scroll(glfw_win, x_offset, y_offset);
+	}
 }
 
 #import "Basic";

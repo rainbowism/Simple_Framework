@@ -7,19 +7,6 @@ draw_end :: () {
     batch_draw();
 }
 
-draw_clear :: inline (color: Color) {
-    glClearColor(color.r, color.g, color.b, color.a);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
-draw_clear :: (color: Color8) #expand {
-    draw_clear(to_color(color));
-}
-
-draw_clear :: () #expand {
-    draw_clear(Colors.Black);
-}
-
 draw_line :: (a: Vector2, b: Vector2, tint := Colors.White) {
     batch_start(.Line);
     {

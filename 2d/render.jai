@@ -165,14 +165,6 @@ RenderType :: enum {
     Line;
 }
 
-#scope_module
-
-update_viewport :: (width: s32, height: s32) {
-    glViewport(0, 0, xx width, xx height);
-    render_ctx.state.projection = orthographic_projection_matrix(0, xx width, xx height, 0, 0, 1);
-    render_ctx.state.projection = transpose(render_ctx.state.projection);
-}
-
 #scope_file
 
 init_render_buffers :: (max_renderables: s64) #expand {
@@ -195,7 +187,7 @@ init_vertex_buffer :: inline (
     indices.count  = max_renderables * index_count;
     vertices.data  = alloc(size_of(Vector3) * vertices.count);
     #if type == .Texture {
-        uvs.data       = alloc(size_of(Vector2) * uvs.count);
+        uvs.data = alloc(size_of(Vector2) * uvs.count);
     }
     colors.data    = alloc(size_of(Color)   * colors.count);
     indices.data   = alloc(size_of(GLuint)  * indices.count);
