@@ -84,7 +84,7 @@ create_window :: (title: string, width: s32, height: s32, flags := WindowFlags.N
 
 should_exit :: () -> bool {
     reset_temporary_storage();
-    glfwSwapBuffers(window.handle);
+    #if !MANUALLY_SWAP_BUFFER  glfwSwapBuffers(window.handle);
     glfwPollEvents();
 
     exit := glfwWindowShouldClose(window.handle) == GLFW_TRUE;
@@ -125,6 +125,10 @@ should_exit :: () -> bool {
     time.last = new_time;
 
     return exit;
+}
+
+swap_buffers :: () {
+    glfwSwapBuffers(window.handle);
 }
 
 exit :: () {

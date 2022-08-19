@@ -1,11 +1,12 @@
 #module_parameters(
-    DEBUG          := false,
-    LOG_LEVEL      := LogLevel.INFO,
-    LOG_FILE_PATH  := true,
-    DISABLE_RENDER := false,
-    DISABLE_AUDIO  := false,
-    DISABLE_IMGUI  := false,
-    DISABLE_SIMD   := false
+    DEBUG                := false,
+    LOG_LEVEL            := LogLevel.INFO,
+    LOG_FILE_PATH        := true,
+    MANUALLY_SWAP_BUFFER := false,
+    DISABLE_RENDER       := false,
+    DISABLE_AUDIO        := false,
+    DISABLE_IMGUI        := false,
+    DISABLE_SIMD         := false
 );
 
 SF_Result :: enum {
@@ -31,6 +32,5 @@ SF_Result :: enum {
 }
 
 #if !DISABLE_IMGUI {
-    #load "imgui/ImGui_Impl_GLFW.jai";
     #load "imgui/imgui.jai";
 }
