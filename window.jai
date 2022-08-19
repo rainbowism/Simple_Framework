@@ -58,7 +58,8 @@ create_window :: (title: string, width: s32, height: s32, flags := WindowFlags.N
 
     glfwSetInputMode(window.handle, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
     glfwSetInputMode(window.handle, GLFW_STICKY_KEYS, GLFW_TRUE);
-    glfwSetWindowSizeCallback (window.handle, glfw_window_size);
+    glfwSetWindowSizeCallback (window.handle, glfw_window_size_callback);
+    glfwSetWindowFocusCallback(window.handle, glfw_window_focus_callback);
 	glfwSetKeyCallback        (window.handle, glfw_key_callback);
 	glfwSetMouseButtonCallback(window.handle, glfw_mouse_callback);
 	glfwSetCharCallback       (window.handle, glfw_text_callback);
@@ -252,6 +253,14 @@ set_depth_test :: (enable: bool) {
     }
 }
 
+get_window_focused :: () -> bool {
+    return window.focused;
+}
+
+set_window_focused :: () {
+    glfwFocusWindow(window.handle);
+}
+
 set_key_callback :: (callback: Key_Callback) {
     window.callback.key = callback;
 }
@@ -313,6 +322,7 @@ window: struct {
     handle: *GLFWwindow;
     name:   string;
 
+    focused: bool;
     size: struct {
         width:       s32;
         height:      s32;
@@ -347,12 +357,16 @@ glfw_error_callback :: (error: s32, description: *u8) #c_call {
     }
 }
 
-glfw_window_size :: (handle: *GLFWwindow, width: s32, height: s32) #c_call {
+glfw_window_size_callback :: (handle: *GLFWwindow, width: s32, height: s32) #c_call {
     window.size.width  = width;
     window.size.height = height;
     push_context window.ctx {
         update_viewport(width, height);
     }
+}
+
+glfw_window_focus_callback :: (handle: *GLFWwindow, focused: s32) #c_call {
+    window.focused = focused >= 1;
 }
 
 glfw_key_callback :: (glfw_win: *GLFWwindow, key: s32, scancode: s32, action: s32, mods: s32) #c_call {

@@ -9,9 +9,6 @@ imgui_force_frame :: () {
 }
 
 imgui_request_frame :: () -> bool {
-
-
-    // Setup inputs
     using ui;
     mx, my: float64;
     glfwGetCursorPos(handle, *mx, *my);
@@ -27,8 +24,8 @@ imgui_request_frame :: () -> bool {
     return true;
 }
 
-imgui_begin :: () {
-    ImGui_Impl_NewFrame(window.handle, window.size.width, window.size.height, time.delta);
+imgui_begin :: ($frame_requested := false) {
+    ImGui_Impl_NewFrame(window.handle, window.size.width, window.size.height, time.delta, frame_requested);
 }
 
 imgui_end :: ($should_render := true) {
@@ -270,12 +267,24 @@ ImGui_Impl_InvalidateDeviceObjects :: () {
     }
 }
 
-ImGui_Impl_NewFrame :: (native_window_handle: *void, display_width: s32, display_height: s32, delta: float64) {
+ImGui_Impl_NewFrame :: (native_window_handle: *void, display_width: s32, display_height: s32, delta: float64, $frame_requested := false) {
     using ui;
 
     // Setup display size (every frame to accommodate for window resizing)
     io.DisplaySize = make_vector2(xx display_width, xx display_height);
     io.DisplayFramebufferScale = make_vector2(1, 1);
+
+    #if !frame_requested {
+        // Setup inputs
+        mx, my: float64;
+        glfwGetCursorPos(handle, *mx, *my);
+        dx := mx - io.MousePos.x;
+        dy := my - io.MousePos.y;
+        if (dx * dx + dy * dy) > 1 {
+            requested_frames += 1;
+            io.MousePos = make_vector2(xx mx, xx my);
+        }
+    }
 
     // Setup time step
     io.DeltaTime = xx delta;
