@@ -405,7 +405,7 @@ ImGui_Impl_RenderDrawData :: (draw_data: *ImGui.ImDrawData) {
 
 #scope_file
 
-UIState :: struct {
+UI_State :: struct {
     ctx:         *ImGui.Context;
     io:          *ImGui.IO;
     handle:      *GLFWwindow;
@@ -427,8 +427,7 @@ UIState :: struct {
     vao_handle:                 GLuint  = 0;
     elements_handle:            GLuint  = 0;
 };
-
-ui: UIState;
+ui: UI_State;
 
 _imgui_context: Context;
 

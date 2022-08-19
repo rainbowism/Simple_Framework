@@ -1,18 +1,18 @@
-LogType :: enum {
+Log_Type :: enum {
     None;
     Core;
     Render;
     Audio;
 }
 
-LogLevel :: enum {
+Log_Level :: enum {
     DEBUG;
     INFO;
     WARN;
     ERROR;
 }
 
-log :: ($log_type: LogType, $log_level: LogLevel, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+log :: ($log_type: Log_Type, $log_level: Log_Level, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
     #if log_level < LOG_LEVEL  return;
     // @Note(sushi): doing it lazily because there's no padding on string formatting
     #if LOG_FILE_PATH {
@@ -60,19 +60,19 @@ error :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_loc
     log(.None, .ERROR, fmt, ..args, flags = flags | .ERROR, loc = loc);
 }
 
-debug :: ($log_type: LogType, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+debug :: ($log_type: Log_Type, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
     log(log_type, .DEBUG, fmt, ..args, flags = flags, loc = loc);
 }
 
-info :: ($log_type: LogType, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+info :: ($log_type: Log_Type, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
     log(log_type, .INFO, fmt, ..args, flags = flags, loc = loc);
 }
 
-warn :: ($log_type: LogType, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+warn :: ($log_type: Log_Type, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
     log(log_type, .WARN, fmt, ..args, flags = flags | .WARNING, loc = loc);
 }
 
-error :: ($log_type: LogType, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+error :: ($log_type: Log_Type, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
     log(log_type, .ERROR, fmt, ..args, flags = flags | .ERROR, loc = loc);
 }
 

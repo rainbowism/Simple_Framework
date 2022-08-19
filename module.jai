@@ -1,6 +1,6 @@
 #module_parameters(
     DEBUG                := false,
-    LOG_LEVEL            := LogLevel.INFO,
+    LOG_LEVEL            := Log_Level.INFO,
     LOG_FILE_PATH        := true,
     MANUALLY_SWAP_BUFFER := false,
     DISABLE_RENDER       := false,

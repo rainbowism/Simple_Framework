@@ -1,4 +1,3 @@
-
 draw_begin :: () {
     push_model_view_identity();
 }

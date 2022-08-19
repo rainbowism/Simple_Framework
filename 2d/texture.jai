@@ -1,7 +1,6 @@
+Texture_Id :: GLuint;
 
-TextureId :: GLuint;
-
-PixelFormat :: enum s32 {
+Pixel_Format :: enum s32 {
     None      :: 0;
     Gray      :: 1;
     GrayAlpha :: 2;
@@ -13,17 +12,17 @@ Image :: struct {
     pixels: *u8;
     width:  s32;
     height: s32;
-    format: PixelFormat;
+    format: Pixel_Format;
 }
 
 Texture :: struct {
     id:     TextureId;
     width:  s32;
     height: s32;
-    format: PixelFormat;
+    format: Pixel_Format;
 }
 
-SamplingMode :: enum GLenum {
+Sampling_Mode :: enum GLenum {
     Nearest         :: GL_NEAREST;
     Linear          :: GL_LINEAR;
     NearestMipmap   :: GL_NEAREST_MIPMAP_NEAREST;
@@ -32,7 +31,7 @@ SamplingMode :: enum GLenum {
     TrilinearMipmap :: GL_LINEAR_MIPMAP_LINEAR;
 }
 
-WrapMode :: enum GLenum {
+Wrap_Mode :: enum GLenum {
     Repeat         :: GL_REPEAT;
     MirroredRepeat :: GL_MIRRORED_REPEAT;
     ClampToEdge    :: GL_CLAMP_TO_EDGE;

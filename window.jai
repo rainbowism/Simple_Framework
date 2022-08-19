@@ -1,4 +1,4 @@
-WindowFlags :: enum_flags {
+Window_Flags :: enum_flags {
     None;
     Maximized;
     Fullscreen;
@@ -22,7 +22,7 @@ init :: () -> SF_Result {
     return .Ok;
 }
 
-create_window :: (title: string, width: s32, height: s32, flags := WindowFlags.None) -> SF_Result {
+create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.None) -> SF_Result {
     glfwDefaultWindowHints();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -183,13 +183,8 @@ set_target_fps :: (value: float) {
     window.time.target_fps = value;
 }
 
-get_window_mode :: () -> WindowFlags {
-    if get_fullscreen() {
-        return .Fullscreen;
-    }
-    // else if get_windowed_fullscreen() {
-    //     return .WindowedFullscreen;
-    // }
+get_window_mode :: () -> Window_Flags {
+    if get_fullscreen()  return .Fullscreen;
     return .None;
 }
 
@@ -317,7 +312,7 @@ Mouse_Callback  :: #type (window: *GLFWwindow, button: s32, action: s32, mods: s
 Text_Callback   :: #type (window: *GLFWwindow, codepoint: u32);
 Scroll_Callback :: #type (window: *GLFWwindow, x_offset: float64, y_offset: float64);
 
-window: struct {
+Window_Context :: struct {
     ctx:    Context;
     handle: *GLFWwindow;
     name:   string;
@@ -348,6 +343,7 @@ window: struct {
         scroll: Scroll_Callback;
     }
 }
+window: Window_Context;
 
 #scope_file
 

@@ -283,7 +283,7 @@ DEFAULT_SHADER_TEXTURED :: 0;
 DEFAULT_SHADER_COLORED  :: 1;
 
 // @Todo(sushi): are SoAs in yet? should i convert this?
-VertexBuffer :: struct {
+Vertex_Buffer :: struct {
     index:    s64;
     count:    s64;
     vertices: []  Vector3;
@@ -294,8 +294,8 @@ VertexBuffer :: struct {
     vbo:      [4] GLuint;
 }
 
-DrawCall :: struct {
-    texture_id: TextureId;
+Draw_Call :: struct {
+    texture_id: Texture_Id;
     count:      s32;
 }
 
@@ -320,8 +320,8 @@ render_ctx: struct {
     }
 
     draw_counter: s64;
-    draws:        [DEFAULT_MAX_DRAWCALLS] DrawCall;
-    tex_rects:    VertexBuffer = ---;
-    rects:        VertexBuffer = ---;
-    lines:        VertexBuffer = ---;
+    draws:        [DEFAULT_MAX_DRAWCALLS] Draw_Call;
+    tex_rects:    Vertex_Buffer = ---;
+    rects:        Vertex_Buffer = ---;
+    lines:        Vertex_Buffer = ---;
 }
