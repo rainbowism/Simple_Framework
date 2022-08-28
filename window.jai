@@ -4,13 +4,13 @@ Window_Flags :: enum_flags {
     Fullscreen;
     Centered;
     VSync;
-    FpsInTitle;
+    Fps_In_Title;
 }
 
 init :: () -> SF_Result {
     glfwSetErrorCallback(glfw_error_callback);
     if !glfwInit() {
-        return .FailedToInitGLFW;
+        return .Failed_To_Init_GLFW;
     }
 	#if OS == .WINDOWS {
         Win32 :: #import "Windows";
@@ -36,7 +36,7 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     // @Todo(sushi): do settings file stuff so i can get fullscreen mode
 	window.handle = glfwCreateWindow(width, height, temp_c_string(title), null, null);
 	if window.handle == null {
-		return .FailedToCreateWindow;
+		return .Failed_To_Create_Window;
 	}
 	glfwMakeContextCurrent(window.handle);
 	gl_load(*gl, glfwGetProcAddress);
@@ -52,7 +52,7 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
             glfwMaximizeWindow(window.handle);
         }
     }
-    if flags & .FpsInTitle {
+    if flags & .Fps_In_Title {
         window.time.fps_in_title = true;
     }
 

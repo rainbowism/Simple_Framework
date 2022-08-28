@@ -16,26 +16,26 @@ Image :: struct {
 }
 
 Texture :: struct {
-    id:     TextureId;
+    id:     Texture_Id;
     width:  s32;
     height: s32;
     format: Pixel_Format;
 }
 
 Sampling_Mode :: enum GLenum {
-    Nearest         :: GL_NEAREST;
-    Linear          :: GL_LINEAR;
-    NearestMipmap   :: GL_NEAREST_MIPMAP_NEAREST;
-    LinearMipmap    :: GL_NEAREST_MIPMAP_LINEAR;
-    BilinearMipmap  :: GL_LINEAR_MIPMAP_NEAREST;
-    TrilinearMipmap :: GL_LINEAR_MIPMAP_LINEAR;
+    Nearest          :: GL_NEAREST;
+    Linear           :: GL_LINEAR;
+    Nearest_Mipmap   :: GL_NEAREST_MIPMAP_NEAREST;
+    Linear_Mipmap    :: GL_NEAREST_MIPMAP_LINEAR;
+    Bilinear_Mipmap  :: GL_LINEAR_MIPMAP_NEAREST;
+    Trilinear_Mipmap :: GL_LINEAR_MIPMAP_LINEAR;
 }
 
 Wrap_Mode :: enum GLenum {
-    Repeat         :: GL_REPEAT;
-    MirroredRepeat :: GL_MIRRORED_REPEAT;
-    ClampToEdge    :: GL_CLAMP_TO_EDGE;
-    ClampToBorder  :: GL_CLAMP_TO_BORDER;
+    Repeat          :: GL_REPEAT;
+    Mirrored_Repeat :: GL_MIRRORED_REPEAT;
+    Clamp_To_Edge   :: GL_CLAMP_TO_EDGE;
+    Clamp_To_Border :: GL_CLAMP_TO_BORDER;
 }
 
 // create_image_from_file :: (filepath: string) -> Image {
@@ -47,14 +47,14 @@ Wrap_Mode :: enum GLenum {
 
 load_texture :: (
     filepath: string,
-    min_sampling := SamplingMode.TrilinearMipmap,
-    mag_sampling := SamplingMode.Nearest,
-    wrap_mode    := WrapMode.ClampToEdge
+    min_sampling := Sampling_Mode.Trilinear_Mipmap,
+    mag_sampling := Sampling_Mode.Nearest,
+    wrap_mode    := Wrap_Mode.Clamp_To_Edge
 ) -> Texture {
     path := temp_c_string(filepath);
 
     texture: Texture;
-    image_data := stbi_load(path, *texture.width, *texture.height, xx *texture.format, xx PixelFormat.RGBA);
+    image_data := stbi_load(path, *texture.width, *texture.height, xx *texture.format, xx Pixel_Format.RGBA);
     defer stbi_image_free(image_data);
 
     glGenTextures(1, *texture.id);  assert(texture.id != 0);

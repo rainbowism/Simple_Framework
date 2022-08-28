@@ -11,8 +11,8 @@
 
 SF_Result :: enum {
     Ok;
-    FailedToInitGLFW;
-    FailedToCreateWindow;
+    Failed_To_Init_GLFW;
+    Failed_To_Create_Window;
 }
 
 #load "utils.jai";

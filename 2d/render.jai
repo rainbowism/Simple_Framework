@@ -26,13 +26,13 @@ create_default_shaders :: () {
     glBindAttribLocation(colored_shader.gl_id,  DEFAULT_SHADER_VERTEX_COLOR, "vColor");
 }
 
-batch_start :: ($type: RenderType) {
+batch_start :: ($type: Render_Type) {
     #if type == .Texture {
         if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
     }
 }
 
-batch_end :: ($type: RenderType) {
+batch_end :: ($type: Render_Type) {
     DEPTH_OFFSET : float32 : 1.0 / 20000.0;
     render_ctx.state.current_depth += DEPTH_OFFSET;
     #if type == .Texture {
@@ -110,7 +110,7 @@ push_layer :: (clear: bool, one_minus_alpha := false) {
     }
 }
 
-push_vertex :: ($type: RenderType, pos: Vector3) {
+push_vertex :: ($type: Render_Type, pos: Vector3) {
     #if type == .Texture  using render_ctx.tex_rects; else
     #if type == .Rect     using render_ctx.rects; else
     #if type == .Line     using render_ctx.lines;
@@ -129,7 +129,7 @@ push_vertex :: ($type: RenderType, pos: Vector3) {
     index += 1;
 }
 
-push_vertex :: inline ($type: RenderType, pos: Vector2) {
+push_vertex :: inline ($type: Render_Type, pos: Vector2) {
     v: Vector3;
     v.x = pos.x;
     v.y = pos.y;
@@ -150,7 +150,7 @@ push_color :: (color: Color) {
     render_ctx.state.color = color;
 }
 
-set_texture :: (texture_id: TextureId) {
+set_texture :: (texture_id: Texture_Id) {
     if texture_id == 0  return;
     if render_ctx.draws[render_ctx.draw_counter].texture_id == texture_id  return;
     render_ctx.draw_counter += 1;
@@ -159,10 +159,39 @@ set_texture :: (texture_id: TextureId) {
     render_ctx.draws[render_ctx.draw_counter].count      = 0;
 }
 
-RenderType :: enum {
+Render_Type :: enum {
     Texture;
     Rect;
     Line;
+}
+
+#scope_module
+
+render_ctx: struct {
+    shaders: struct {
+        data:  [DEFAULT_MAX_SHADERS] Shader;
+        count: s64;
+    }
+
+    layers: struct {
+        index: int;
+        count: int;
+    }
+
+    state: struct {
+        current_depth: float32;
+        uv:            Vector2;
+        color:         Color;
+
+        projection:  Matrix4;
+        model_view:  Matrix4;
+    }
+
+    draw_counter: s64;
+    draws:        [DEFAULT_MAX_DRAWCALLS] Draw_Call;
+    tex_rects:    Vertex_Buffer = ---;
+    rects:        Vertex_Buffer = ---;
+    lines:        Vertex_Buffer = ---;
 }
 
 #scope_file
@@ -174,8 +203,8 @@ init_render_buffers :: (max_renderables: s64) #expand {
 }
 
 init_vertex_buffer :: inline (
-    $type:           RenderType,
-    using buffer:    *VertexBuffer,
+    $type:           Render_Type,
+    using buffer:    *Vertex_Buffer,
     max_renderables: s64,
     $vertex_count:   s64,
     $index_count:    s64
@@ -244,7 +273,7 @@ init_vertex_buffer :: inline (
     glBindVertexArray(0);
 }
 
-buffer_sub_data :: inline ($type: RenderType) {{}
+buffer_sub_data :: inline ($type: Render_Type) {{}
     #if type == .Texture {
         using render_ctx.tex_rects;
     } else #if type == .Rect {
@@ -297,31 +326,4 @@ Vertex_Buffer :: struct {
 Draw_Call :: struct {
     texture_id: Texture_Id;
     count:      s32;
-}
-
-render_ctx: struct {
-    shaders: struct {
-        data:  [DEFAULT_MAX_SHADERS] Shader;
-        count: s64;
-    }
-
-    layers: struct {
-        index: int;
-        count: int;
-    }
-
-    state: struct {
-        current_depth: float32;
-        uv:            Vector2;
-        color:         Color;
-
-        projection:  Matrix4;
-        model_view:  Matrix4;
-    }
-
-    draw_counter: s64;
-    draws:        [DEFAULT_MAX_DRAWCALLS] Draw_Call;
-    tex_rects:    Vertex_Buffer = ---;
-    rects:        Vertex_Buffer = ---;
-    lines:        Vertex_Buffer = ---;
 }
