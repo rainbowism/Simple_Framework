@@ -37,7 +37,28 @@ imgui_load_font :: (filepath: string, font_size: float) -> *ImGui.ImFont {
     font := ImGui.ImFontAtlas.AddFontFromFileTTF(ui.io.Fonts, temp_c_string(filepath), font_size);
     ImGui.ImFontAtlas.Build(ui.io.Fonts);
     ImGui_Impl_CreateFontsTexture();
+    ui.io.FontDefault = font;
     return font;
+}
+
+imgui_shift :: () -> bool {
+    return ui.io.KeyShift;
+}
+
+imgui_ctrl :: () -> bool {
+    return ui.io.KeyCtrl;
+}
+
+imgui_alt :: () -> bool {
+    return ui.io.KeyAlt;
+}
+
+imgui_filename :: (filename: string) {
+    if filename.count == 0 {
+        ui.io.IniFilename = null;
+        return;
+    }
+    ui.io.IniFilename = filename.data;
 }
 
 ImGui_Impl_KeyCallback :: (key: s32, scancode: s32, action: s32, mods: s32) #c_call {
