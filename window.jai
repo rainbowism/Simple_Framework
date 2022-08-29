@@ -174,6 +174,10 @@ center_window :: () {
     }
 }
 
+get_window_size :: () -> Point2 {
+    return xy(window.size.width, window.size.height);
+}
+
 get_vsync :: () -> bool {
     return window.time.vsync;
 }

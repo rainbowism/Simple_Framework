@@ -2,6 +2,20 @@ Point2 :: struct {
     x, y: s32;
 }
 
+xy :: make_point2;
+make_point2 :: (x: s32) -> Point2 {
+    p: Point2 = ---;
+    p.x = x;
+    p.y = x;
+    return p;
+}
+make_point2 :: (x: s32, y: s32) -> Point2 {
+    p: Point2 = ---;
+    p.x = x;
+    p.y = y;
+    return p;
+}
+
 Rect :: struct {
     x, y:          float32;
     width, height: float32;
