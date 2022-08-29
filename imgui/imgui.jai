@@ -1,4 +1,4 @@
-init_imgui :: () {
+imgui_init :: () {
     ImGui_Impl_CreateContext();
     ImGui.StyleColorsDark();
     ImGui_Impl_Init(window.handle);
