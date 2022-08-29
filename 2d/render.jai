@@ -167,32 +167,7 @@ Render_Type :: enum {
 
 #scope_module
 
-render_ctx: struct {
-    shaders: struct {
-        data:  [DEFAULT_MAX_SHADERS] Shader;
-        count: s64;
-    }
-
-    layers: struct {
-        index: int;
-        count: int;
-    }
-
-    state: struct {
-        current_depth: float32;
-        uv:            Vector2;
-        color:         Color;
-
-        projection:  Matrix4;
-        model_view:  Matrix4;
-    }
-
-    draw_counter: s64;
-    draws:        [DEFAULT_MAX_DRAWCALLS] Draw_Call;
-    tex_rects:    Vertex_Buffer = ---;
-    rects:        Vertex_Buffer = ---;
-    lines:        Vertex_Buffer = ---;
-}
+render_ctx: Render_Context;
 
 #scope_file
 
@@ -326,4 +301,31 @@ Vertex_Buffer :: struct {
 Draw_Call :: struct {
     texture_id: Texture_Id;
     count:      s32;
+}
+
+Render_Context :: struct {
+    shaders: struct {
+        data:  [DEFAULT_MAX_SHADERS] Shader;
+        count: s64;
+    }
+
+    layers: struct {
+        index: int;
+        count: int;
+    }
+
+    state: struct {
+        current_depth: float32;
+        uv:            Vector2;
+        color:         Color;
+
+        projection:  Matrix4;
+        model_view:  Matrix4;
+    }
+
+    draw_counter: s64;
+    draws:        [DEFAULT_MAX_DRAWCALLS] Draw_Call;
+    tex_rects:    Vertex_Buffer = ---;
+    rects:        Vertex_Buffer = ---;
+    lines:        Vertex_Buffer = ---;
 }
