@@ -11,15 +11,16 @@
 
 SF_Result :: enum {
     Ok;
+
     Failed_To_Init_GLFW;
     Failed_To_Create_Window;
+
+    Failed_To_Init_Miniaudio;
 }
 
 #load "utils.jai";
 #load "data.jai";
 #load "window.jai";
-
-#if !DISABLE_AUDIO  #load "audio.jai";
 
 #if !DISABLE_RENDER {
     #load "2d/texture.jai";
@@ -29,6 +30,11 @@ SF_Result :: enum {
     #load "2d/shader.jai";
     #load "2d/default_shader.jai";
     #load "2d/draw.jai";
+}
+
+#if !DISABLE_AUDIO {
+    #load "audio/audio.jai";
+    #load "audio/sound.jai";
 }
 
 #if !DISABLE_IMGUI {

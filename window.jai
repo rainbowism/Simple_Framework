@@ -1,3 +1,11 @@
+Module_Types :: enum_flags {
+    Render;
+    Audio;
+    ImGui;
+
+    All :: Module_Types.Render | .Audio | .ImGui;
+}
+
 Window_Flags :: enum_flags {
     None;
     Maximized;
@@ -22,7 +30,7 @@ init :: () -> SF_Result {
     return .Ok;
 }
 
-create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.None) -> SF_Result {
+create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.None, modules_to_init: Module_Types) -> SF_Result {
     glfwDefaultWindowHints();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -77,6 +85,10 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 
     glfwShowWindow(window.handle);
     init_time();
+
+    #if !DISABLE_RENDER { if modules_to_init & .Render  render_init(); }
+    #if !DISABLE_AUDIO  { if modules_to_init & .Audio   audio_init();  }
+    #if !DISABLE_IMGUI  { if modules_to_init & .ImGui   imgui_init();  }
 
     time.last = get_time();
 
