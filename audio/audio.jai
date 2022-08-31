@@ -38,16 +38,16 @@ audio_init :: () -> SF_Result {
     return .Ok;
 }
 
-create_sound_channel :: (parent: *Sound_Channel = null) -> *Sound_Channel, bool {
+create_sound_channel :: (parent: *Sound_Channel = null) -> *Sound_Channel {
     assert(audio_ctx.is_ready, "Tried to create a sound channel before initializing the audio module.");
 
     sound_channel := New(Sound_Channel);
     result := ma_sound_group_init(*audio_ctx.engine, 0, parent, sound_channel);
     if result != ma_result.SUCCESS {
         free(sound_channel);
-        return null, false;
+        return null;
     }
-    return sound_channel, true;
+    return sound_channel;
 }
 
 free_sound_channel :: (sound_channel: *Sound_Channel) #expand {
