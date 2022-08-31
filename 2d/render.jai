@@ -290,10 +290,10 @@ DEFAULT_SHADER_COLORED  :: 1;
 Vertex_Buffer :: struct {
     index:    s64;
     count:    s64;
-    vertices: []  Vector3;
-    uvs:      []  Vector2;
-    colors:   []  Color;
-    indices:  []  GLuint;
+    vertices: [] Vector3;
+    uvs:      [] Vector2;
+    colors:   [] Color;
+    indices:  [] GLuint;
     vao:      GLuint;
     vbo:      [4] GLuint;
 }

@@ -301,6 +301,18 @@ draw_clear :: () #expand {
     draw_clear(Colors.Black);
 }
 
+wait_for_events :: () #expand {
+    glfwWaitEvents();
+}
+
+wait_for_events :: (time: float) #expand {
+    glfwWaitEventsTimeout(time);
+}
+
+post_empty_event :: () #expand {
+    glfwPostEmptyEvent();
+}
+
 time: struct {
     total: float64;
     last:  float64;
