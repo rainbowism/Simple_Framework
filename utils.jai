@@ -1,5 +1,5 @@
 Log_Type :: enum {
-    None;
+    Game;
     Core;
     Render;
     Audio;
@@ -19,24 +19,24 @@ log :: ($log_type: Log_Type, $log_level: Log_Level, fmt: string, args: .. Any, f
         path := parse_path(loc.fully_pathed_filename);
         partial_path := path.words[path.words.count-1];
         #if log_level == .ERROR || log_level == .DEBUG {
-            #if log_type == .None    log(tprint("[SF       ][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
+            #if log_type == .Game    log(tprint("[SF:Game  ][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
             #if log_type == .Core    log(tprint("[SF:Core  ][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
             #if log_type == .Render  log(tprint("[SF:Render][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
             #if log_type == .Audio   log(tprint("[SF:Audio ][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
         } else {
-            #if log_type == .None    log(tprint("[SF       ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
+            #if log_type == .Game    log(tprint("[SF:Game  ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
             #if log_type == .Core    log(tprint("[SF:Core  ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
             #if log_type == .Render  log(tprint("[SF:Render][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
             #if log_type == .Audio   log(tprint("[SF:Audio ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
         }
     } else {
         #if log_level == .ERROR || log_level == .DEBUG {
-            #if log_type == .None    log(tprint("[SF       ][%] %\n", log_level, fmt), ..args, flags = flags);
+            #if log_type == .Game    log(tprint("[SF:Game  ][%] %\n", log_level, fmt), ..args, flags = flags);
             #if log_type == .Core    log(tprint("[SF:Core  ][%] %\n", log_level, fmt), ..args, flags = flags);
             #if log_type == .Render  log(tprint("[SF:Render][%] %\n", log_level, fmt), ..args, flags = flags);
             #if log_type == .Audio   log(tprint("[SF:Audio ][%] %\n", log_level, fmt), ..args, flags = flags);
         } else {
-            #if log_type == .None    log(tprint("[SF       ][% ] %\n", log_level, fmt), ..args, flags = flags);
+            #if log_type == .Game    log(tprint("[SF:Game  ][% ] %\n", log_level, fmt), ..args, flags = flags);
             #if log_type == .Core    log(tprint("[SF:Core  ][% ] %\n", log_level, fmt), ..args, flags = flags);
             #if log_type == .Render  log(tprint("[SF:Render][% ] %\n", log_level, fmt), ..args, flags = flags);
             #if log_type == .Audio   log(tprint("[SF:Audio ][% ] %\n", log_level, fmt), ..args, flags = flags);
@@ -45,19 +45,19 @@ log :: ($log_type: Log_Type, $log_level: Log_Level, fmt: string, args: .. Any, f
 }
 
 debug :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
-    log(.None, .DEBUG, fmt, ..args, flags = flags, loc = loc);
+    log(.Game, .DEBUG, fmt, ..args, flags = flags, loc = loc);
 }
 
 info :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
-    log(.None, .INFO, fmt, ..args, flags = flags, loc = loc);
+    log(.Game, .INFO, fmt, ..args, flags = flags, loc = loc);
 }
 
 warn :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
-    log(.None, .WARN, fmt, ..args, flags = flags | .WARNING, loc = loc);
+    log(.Game, .WARN, fmt, ..args, flags = flags | .WARNING, loc = loc);
 }
 
 error :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
-    log(.None, .ERROR, fmt, ..args, flags = flags | .ERROR, loc = loc);
+    log(.Game, .ERROR, fmt, ..args, flags = flags | .ERROR, loc = loc);
 }
 
 debug :: ($log_type: Log_Type, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
