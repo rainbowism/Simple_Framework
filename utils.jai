@@ -6,6 +6,7 @@ Log_Type :: enum {
 }
 
 Log_Level :: enum {
+    TRACE;
     DEBUG;
     INFO;
     WARN;
@@ -44,6 +45,10 @@ log :: ($log_type: Log_Type, $log_level: Log_Level, fmt: string, args: .. Any, f
     }
 }
 
+trace :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+    log(.Game, .TRACE, fmt, ..args, flags = flags, loc = loc);
+}
+
 debug :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
     log(.Game, .DEBUG, fmt, ..args, flags = flags, loc = loc);
 }
@@ -58,6 +63,10 @@ warn :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_loca
 
 error :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
     log(.Game, .ERROR, fmt, ..args, flags = flags | .ERROR, loc = loc);
+}
+
+trace :: ($log_type: Log_Type, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+    log(log_type, .TRACE, fmt, ..args, flags = flags, loc = loc);
 }
 
 debug :: ($log_type: Log_Type, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
