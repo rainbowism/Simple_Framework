@@ -86,6 +86,13 @@ error :: ($log_type: Log_Type, fmt: string, args: .. Any, flags := Log_Flags.NON
     log(log_type, .ERROR, fmt, ..args, flags = flags | .ERROR, loc = loc);
 }
 
+temp_c_string :: (s: string) -> *u8 {
+    result: *u8 = talloc(s.count + 1);
+    memcpy(result, s.data, s.count);
+    result[s.count] = 0;
+    return result;
+}
+
 #scope_module
 
 to_string :: (c_string: *u8, count: $T) -> string
@@ -97,13 +104,6 @@ to_string :: (c_string: *u8, count: $T) -> string
     s.data  = c_string;
     s.count = count;
     return s;
-}
-
-temp_c_string :: (s: string) -> *u8 {
-    result: *u8 = talloc(s.count + 1);
-    memcpy(result, s.data, s.count);
-    result[s.count] = 0;
-    return result;
 }
 
 count_newlines :: (s: string) -> s64 #no_abc {

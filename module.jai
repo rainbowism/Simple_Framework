@@ -1,7 +1,7 @@
 #module_parameters(
     DEBUG                := false,
     LOG_LEVEL            := Log_Level.INFO,
-    LOG_FILE_PATH        := true,
+    LOG_FILE_PATH        := false,
     MANUALLY_SWAP_BUFFER := false,
     DISABLE_RENDER       := false,
     DISABLE_AUDIO        := false,
