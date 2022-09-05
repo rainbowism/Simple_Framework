@@ -6,41 +6,42 @@ Log_Type :: enum {
 }
 
 Log_Level :: enum {
-    TRACE;
-    DEBUG;
-    INFO;
-    WARN;
-    ERROR;
+    TRACE :: 0;
+    DEBUG :: 1;
+    INFO  :: 2;
+    WARN  :: 3;
+    ERROR :: 4;
 }
 
 log :: ($log_type: Log_Type, $log_level: Log_Level, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
-    #if log_level < LOG_LEVEL  return;
-    // @Note(sushi): doing it lazily because there's no padding on string formatting
-    #if LOG_FILE_PATH {
-        path := parse_path(loc.fully_pathed_filename);
-        partial_path := path.words[path.words.count-1];
-        #if log_level == .ERROR || log_level == .DEBUG {
-            #if log_type == .Game    log(tprint("[SF:Game  ][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
-            #if log_type == .Core    log(tprint("[SF:Core  ][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
-            #if log_type == .Render  log(tprint("[SF:Render][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
-            #if log_type == .Audio   log(tprint("[SF:Audio ][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
+    #if log_level >= LOG_LEVEL {
+        // @Note(sushi): doing it lazily because there's no padding on string formatting
+        #if LOG_FILE_PATH {
+            path := parse_path(loc.fully_pathed_filename);
+            partial_path := path.words[path.words.count-1];
+            #if log_level == .INFO || log_level == .WARN {
+                #if log_type == .Game    log(tprint("[SF:Game  ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
+                #if log_type == .Core    log(tprint("[SF:Core  ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
+                #if log_type == .Render  log(tprint("[SF:Render][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
+                #if log_type == .Audio   log(tprint("[SF:Audio ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
+            } else {
+                #if log_type == .Game    log(tprint("[SF:Game  ][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
+                #if log_type == .Core    log(tprint("[SF:Core  ][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
+                #if log_type == .Render  log(tprint("[SF:Render][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
+                #if log_type == .Audio   log(tprint("[SF:Audio ][%][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
+            }
         } else {
-            #if log_type == .Game    log(tprint("[SF:Game  ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
-            #if log_type == .Core    log(tprint("[SF:Core  ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
-            #if log_type == .Render  log(tprint("[SF:Render][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
-            #if log_type == .Audio   log(tprint("[SF:Audio ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
-        }
-    } else {
-        #if log_level == .ERROR || log_level == .DEBUG {
-            #if log_type == .Game    log(tprint("[SF:Game  ][%] %\n", log_level, fmt), ..args, flags = flags);
-            #if log_type == .Core    log(tprint("[SF:Core  ][%] %\n", log_level, fmt), ..args, flags = flags);
-            #if log_type == .Render  log(tprint("[SF:Render][%] %\n", log_level, fmt), ..args, flags = flags);
-            #if log_type == .Audio   log(tprint("[SF:Audio ][%] %\n", log_level, fmt), ..args, flags = flags);
-        } else {
-            #if log_type == .Game    log(tprint("[SF:Game  ][% ] %\n", log_level, fmt), ..args, flags = flags);
-            #if log_type == .Core    log(tprint("[SF:Core  ][% ] %\n", log_level, fmt), ..args, flags = flags);
-            #if log_type == .Render  log(tprint("[SF:Render][% ] %\n", log_level, fmt), ..args, flags = flags);
-            #if log_type == .Audio   log(tprint("[SF:Audio ][% ] %\n", log_level, fmt), ..args, flags = flags);
+            #if log_level == .INFO || log_level == .WARN {
+                #if log_type == .Game    log(tprint("[SF:Game  ][% ] %\n", log_level, fmt), ..args, flags = flags);
+                #if log_type == .Core    log(tprint("[SF:Core  ][% ] %\n", log_level, fmt), ..args, flags = flags);
+                #if log_type == .Render  log(tprint("[SF:Render][% ] %\n", log_level, fmt), ..args, flags = flags);
+                #if log_type == .Audio   log(tprint("[SF:Audio ][% ] %\n", log_level, fmt), ..args, flags = flags);
+            } else {
+                #if log_type == .Game    log(tprint("[SF:Game  ][%] %\n", log_level, fmt), ..args, flags = flags);
+                #if log_type == .Core    log(tprint("[SF:Core  ][%] %\n", log_level, fmt), ..args, flags = flags);
+                #if log_type == .Render  log(tprint("[SF:Render][%] %\n", log_level, fmt), ..args, flags = flags);
+                #if log_type == .Audio   log(tprint("[SF:Audio ][%] %\n", log_level, fmt), ..args, flags = flags);
+            }
         }
     }
 }
