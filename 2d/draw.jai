@@ -16,7 +16,7 @@ draw_line :: (a: Vector2, b: Vector2, tint := Colors.White) {
     batch_end(.Line);
 }
 
-draw_line :: (a: Vector2, b: Vector2, tints: .. Color) {
+draw_line :: (a: Vector2, b: Vector2, tints: [2] Color) {
     batch_start(.Line);
     {
         push_color(tints[0]);
@@ -27,8 +27,35 @@ draw_line :: (a: Vector2, b: Vector2, tints: .. Color) {
     batch_end(.Line);
 }
 
+draw_poly :: (using polygon: *Polygon($N), tint := Colors.White) {
+    batch_start(.Line);
+    {
+        push_color(tint);
+        for 0..N-2 {
+            push_vertex(.Line, points[it]);
+            push_color(tint);
+            push_vertex(.Line, points[it+1]);
+        }
+        push_vertex(.Line, points[N-1]);
+        push_vertex(.Line, points[0]);
+    }
+    batch_end(.Line);
+}
+
+draw_rect :: (using obb: *OBB, tint := Colors.White) {
+    batch_start(.Rect);
+    {
+        push_color(tint);
+        push_vertex(.Rect, points[0]);
+        push_vertex(.Rect, points[1]);
+        push_vertex(.Rect, points[2]);
+        push_vertex(.Rect, points[3]);
+    }
+    batch_end(.Rect);
+}
+
 draw_rect :: (rect: Rect, tint := Colors.White, origin := Vector2.{0, 0}, rotation: float32 = 0.0) {
-    tl, tr, bl, br: Vector2;
+    tl, tr, bl, br: Vector2 = ---;
     rotate_quad();
 
     batch_start(.Rect);
@@ -42,28 +69,20 @@ draw_rect :: (rect: Rect, tint := Colors.White, origin := Vector2.{0, 0}, rotati
     batch_end(.Rect);
 }
 
-draw_rect :: (dest: Rect, tints: .. Color, origin := Vector2.{0, 0}, rotation: float32 = 0.0) {
-    tl, tr, bl, br: Vector2;
+draw_rect :: (dest: Rect, tints: [4] Color, origin := Vector2.{0, 0}, rotation: float32 = 0.0) {
+    tl, tr, bl, br: Vector2 = ---;
     rotate_quad();
 
     batch_start(.Rect);
     {
-        if tints.count < 4 {
-            push_color(tints[0]);
-            push_vertex(.Rect, tl);
-            push_vertex(.Rect, bl);
-            push_vertex(.Rect, br);
-            push_vertex(.Rect, tr);
-        } else {
-            push_color(tints[0]);
-            push_vertex(.Rect, tl);
-            push_color(tints[1]);
-            push_vertex(.Rect, bl);
-            push_color(tints[2]);
-            push_vertex(.Rect, br);
-            push_color(tints[3]);
-            push_vertex(.Rect, tr);
-        }
+        push_color(tints[0]);
+        push_vertex(.Rect, tl);
+        push_color(tints[1]);
+        push_vertex(.Rect, bl);
+        push_color(tints[2]);
+        push_vertex(.Rect, br);
+        push_color(tints[3]);
+        push_vertex(.Rect, tr);
     }
     batch_end(.Rect);
 }
@@ -104,7 +123,7 @@ draw_texture :: (
     width:  float32 = xx texture.width;
     height: float32 = xx texture.height;
 
-    tl, tr, bl, br: Vector2;
+    tl, tr, bl, br: Vector2 = ---;
     rotate_quad();
 
     set_texture(texture.id);

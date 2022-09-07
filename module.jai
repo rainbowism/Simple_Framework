@@ -21,6 +21,7 @@ SF_Result :: enum {
 #load "utils.jai";
 #load "data.jai";
 #load "window.jai";
+#load "math/linalg.jai";
 
 #if !DISABLE_RENDER {
     #load "2d/texture.jai";

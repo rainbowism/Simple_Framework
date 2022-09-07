@@ -1,8 +1,8 @@
 render_init :: (max_renderables := 8192) {
     init_render_buffers(max_renderables);
     create_default_shaders();
-    // @Todo(sushi): if this is -1, the first draw call gets clipped?
-    render_ctx.state.current_depth = -0.99999999;
+    // @Fix(sushi): If this is -1, the first draw call gets clipped?
+    render_ctx.state.current_depth = -0.5;
 }
 
 create_shader :: (vert_code: string, frag_code: string) -> *Shader {
@@ -96,7 +96,7 @@ batch_draw :: () {
         render_ctx.draw_counter = 0;
     }
 
-    render_ctx.state.current_depth = -0.999;
+    render_ctx.state.current_depth = -0.5;
 }
 
 push_model_view_identity :: () {
@@ -248,14 +248,10 @@ init_vertex_buffer :: inline (
     glBindVertexArray(0);
 }
 
-buffer_sub_data :: inline ($type: Render_Type) {{}
-    #if type == .Texture {
-        using render_ctx.tex_rects;
-    } else #if type == .Rect {
-        using render_ctx.rects;
-    } else #if type == .Line {
-        using render_ctx.lines;
-    }
+buffer_sub_data :: inline ($type: Render_Type) {
+    #if type == .Texture  using render_ctx.tex_rects; else
+    #if type == .Rect     using render_ctx.rects; else
+    #if type == .Line     using render_ctx.lines;
 
     if index == 0 {
         return;
@@ -268,10 +264,12 @@ buffer_sub_data :: inline ($type: Render_Type) {{}
     glVertexAttribPointer(DEFAULT_SHADER_VERTEX_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
     glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_POS);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector2), uvs.data);
-    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_UV1, 2, GL_FLOAT, GL_FALSE, 0, null);
-    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_UV1);
+    #if type == .Texture {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector2), uvs.data);
+        glVertexAttribPointer(DEFAULT_SHADER_VERTEX_UV1, 2, GL_FLOAT, GL_FALSE, 0, null);
+        glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_UV1);
+    }
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
     glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Color), colors.data);

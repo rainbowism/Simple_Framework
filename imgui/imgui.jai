@@ -10,13 +10,12 @@ imgui_force_frame :: () {
 
 imgui_request_frame :: () -> bool {
     using ui;
-    mx, my: float64;
-    glfwGetCursorPos(handle, *mx, *my);
-    dx := mx - io.MousePos.x;
-    dy := my - io.MousePos.y;
+    mx, my: float;
+    dx := mouse_pos.x - io.MousePos.x;
+    dy := mouse_pos.y - io.MousePos.y;
     if (dx * dx + dy * dy) > 1 {
         requested_frames += 1;
-        io.MousePos = make_vector2(xx mx, xx my);
+        io.MousePos = mouse_pos;
     }
 
     if requested_frames == 0  return false;
@@ -297,13 +296,11 @@ ImGui_Impl_NewFrame :: (native_window_handle: *void, display_width: s32, display
 
     #if !frame_requested {
         // Setup inputs
-        mx, my: float64;
-        glfwGetCursorPos(handle, *mx, *my);
-        dx := mx - io.MousePos.x;
-        dy := my - io.MousePos.y;
+        dx := mouse_pos.x - io.MousePos.x;
+        dy := mouse_pos.y - io.MousePos.y;
         if (dx * dx + dy * dy) > 1 {
             requested_frames += 1;
-            io.MousePos = make_vector2(xx mx, xx my);
+            io.MousePos = mouse_pos;
         }
     }
 

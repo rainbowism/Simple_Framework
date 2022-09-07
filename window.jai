@@ -72,6 +72,7 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 	glfwSetMouseButtonCallback(window.handle, glfw_mouse_callback);
 	glfwSetCharCallback       (window.handle, glfw_text_callback);
 	glfwSetScrollCallback     (window.handle, glfw_scroll_callback);
+    glfwSetCursorPosCallback  (window.handle, glfw_cursor_position_callback);
 
     set_vsync(flags & .VSync > 0);
 
@@ -109,7 +110,8 @@ should_exit :: () -> bool {
     }
 
     new_time := get_time();
-    time.delta = new_time - time.last;
+    time.delta64 = new_time - time.last;
+    time.delta   = xx time.delta64;
     {
         using window.time;
         if (new_time - fps_last) > TRACK_FPS_STEP {
@@ -314,10 +316,13 @@ post_empty_event :: () #expand {
 }
 
 time: struct {
-    total: float64;
-    last:  float64;
-    delta: float64;
+    total:   float64;
+    last:    float64;
+    delta64: float64;
+    delta:   float;
 }
+
+mouse_pos: Vector2;
 
 #scope_module
 
@@ -419,6 +424,11 @@ glfw_scroll_callback :: (glfw_win: *GLFWwindow, x_offset: float64, y_offset: flo
     push_context window.ctx {
         if window.callbacks.scroll != null  window.callbacks.scroll(glfw_win, x_offset, y_offset);
 	}
+}
+
+glfw_cursor_position_callback :: (glfw_win: *GLFWwindow, x: float64, y: float64) #c_call {
+    mouse_pos.x = xx x;
+    mouse_pos.y = xx y;
 }
 
 #import "Basic";
