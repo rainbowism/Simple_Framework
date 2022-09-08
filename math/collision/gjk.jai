@@ -16,10 +16,11 @@ support :: (using circle: *Circle, direction: Vector2) -> Vector2 #must {
 }
 
 support :: (using polygon: *Polygon($N), direction: Vector2) -> Vector2 #must #no_abc {
-    max_product := dot(direction, points[0]);
+    max_product := dot(direction, position + points[0]);
+    product: float = ---;
     index: int;
     for 1..N-1 {
-        product := dot(direction, points[it]);
+        product = dot(direction, position + points[it]);
         if product > max_product {
             max_product = product;
             index = it;
@@ -33,7 +34,7 @@ gjk :: (shape_a: $A, shape_b: $B) -> bool #must #no_abc {
     a, b, c, direction, ao, ab, ac, ab_perp, ac_perp: Vector2 = ---;
     simplex: [3] Vector2;
 
-    direction = shape_a.position - shape_b.position;
+    direction = shape_b.position - shape_a.position;
 
     if direction.x == 0 && direction.y == 0  direction.x = 1.0;
 
@@ -44,9 +45,9 @@ gjk :: (shape_a: $A, shape_b: $B) -> bool #must #no_abc {
     direction = -a;
 
     while true {
-        index += 1;
         a = support(shape_a, shape_b, direction);
         if dot(a, direction) <= 0  return false;
+        index += 1;
         simplex[index] = a;
         ao = -a;
 
@@ -81,7 +82,7 @@ gjk :: (shape_a: $A, shape_b: $B) -> bool #must #no_abc {
     return false;
 }
 
-gjk_epa :: (shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0.000_001) -> Vector2, bool #must #no_abc {
+gjk_epa :: (shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0.000_1) -> Vector2, bool #must #no_abc {
     index: int;
     a, b, c, direction, ao, ab, ac, ab_perp, ac_perp: Vector2 = ---;
     simplex: [3] Vector2;
@@ -137,6 +138,14 @@ gjk_epa :: (shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0.000_0
 
     if !collided  return .{}, false;
 
+    return epa(simplex, shape_a, shape_b, max_iterations, epsilon), true;
+}
+
+epa :: (simplex: [] Vector2, shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0.000_1) -> Vector2 {
+    // @Cleanup(sushi): This is REALLY SLOW!
+    polytope: [..] Vector2;
+    array_copy(*polytope, simplex);
+
     winding: Polygon_Winding = ---;
     if (simplex[1].x - simplex[0].x) * (simplex[1].y - simplex[0].y)
      + (simplex[2].x - simplex[1].x) * (simplex[2].y - simplex[1].y)
@@ -146,34 +155,47 @@ gjk_epa :: (shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0.000_0
         winding = .Counter_Clockwise;
     }
 
-    edge:     Edge  = ---;
-    distance: float = ---;
-    for 0..max_iterations-1 {
-        if winding == {
-        case .Clockwise;         edge = epa(simplex, .Clockwise);
-        case .Counter_Clockwise; edge = epa(simplex, .Counter_Clockwise);
-        }
-        a        = support(shape_a, shape_b, edge.normal);
-        distance = dot(a, edge.normal);
+    supp:     Vector2 = ---;
+    edge:     Edge    = ---;
+    distance: float   = ---;
+    if winding == {
+    case .Clockwise;
+        for 0..max_iterations-1 {
+            edge     = find_closest_edge(polytope, .Clockwise);
+            supp     = support(shape_a, shape_b, edge.normal);
+            distance = dot(supp, edge.normal);
 
-        if abs(distance - edge.distance) <= epsilon {
-            return edge.normal * (distance + epsilon), true;
-        } else {
-            simplex[edge.index] = a;
+            if abs(distance - edge.distance) <= epsilon {
+                return edge.normal * (distance + epsilon);
+            } else {
+                array_insert_at(*polytope, supp, edge.index);
+            }
+        }
+    case .Counter_Clockwise;
+        for 0..max_iterations-1 {
+            edge     = find_closest_edge(polytope, .Counter_Clockwise);
+            supp     = support(shape_a, shape_b, edge.normal);
+            distance = dot(supp, edge.normal);
+
+            if abs(distance - edge.distance) <= epsilon {
+                return edge.normal * (distance + epsilon);
+            } else {
+                array_insert_at(*polytope, supp, edge.index);
+            }
         }
     }
 
-    return edge.normal * (distance + epsilon), true;
+    return edge.normal * (distance + epsilon);
 }
 
-epa :: (simplex: [$N] Vector2, $winding: Polygon_Winding) -> Edge {
+find_closest_edge :: (polytope: [] Vector2, $winding: Polygon_Winding) -> Edge {
     closest_edge: Edge    = ---;
     closest_edge.distance = FLOAT32_INFINITY;
     line:         Vector2 = ---;
     normal:       Vector2 = ---;
     distance:     float   = ---;
-    for 0..N-1 {
-        line = simplex[it] - simplex[(it + 1) % N];
+    for 0..polytope.count-1 {
+        line = polytope[it] - polytope[(it + 1) % polytope.count];
         #if winding == .Clockwise {
             normal.x =  line.y;
             normal.y = -line.x;
@@ -182,12 +204,12 @@ epa :: (simplex: [$N] Vector2, $winding: Polygon_Winding) -> Edge {
             normal.y =  line.x;
         }
         normalize_or_zero(*normal);
-        distance = dot(normal, simplex[it]);
+        distance = dot(normal, polytope[it]);
 
         if distance < closest_edge.distance {
             closest_edge.distance = distance;
             closest_edge.normal   = normal;
-            closest_edge.index    = (it + 1) % N;
+            closest_edge.index    = (it + 1) % polytope.count;
         }
     }
     return closest_edge;
