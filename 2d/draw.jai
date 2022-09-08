@@ -32,12 +32,11 @@ draw_poly :: (using polygon: *Polygon($N), tint := Colors.White) {
     {
         push_color(tint);
         for 0..N-2 {
-            push_vertex(.Line, points[it]);
-            push_color(tint);
-            push_vertex(.Line, points[it+1]);
+            push_vertex(.Line, position + points[it]);
+            push_vertex(.Line, position + points[it+1]);
         }
-        push_vertex(.Line, points[N-1]);
-        push_vertex(.Line, points[0]);
+        push_vertex(.Line, position + points[N-1]);
+        push_vertex(.Line, position + points[0]);
     }
     batch_end(.Line);
 }
@@ -46,15 +45,15 @@ draw_rect :: (using obb: *OBB, tint := Colors.White) {
     batch_start(.Rect);
     {
         push_color(tint);
-        push_vertex(.Rect, points[0]);
-        push_vertex(.Rect, points[1]);
-        push_vertex(.Rect, points[2]);
-        push_vertex(.Rect, points[3]);
+        push_vertex(.Rect, position + points[0]);
+        push_vertex(.Rect, position + points[1]);
+        push_vertex(.Rect, position + points[2]);
+        push_vertex(.Rect, position + points[3]);
     }
     batch_end(.Rect);
 }
 
-draw_rect :: (rect: Rect, tint := Colors.White, origin := Vector2.{0, 0}, rotation: float32 = 0.0) {
+draw_rect :: (dest: Rect, tint := Colors.White, origin := Vector2.{0, 0}, rotation: float32 = 0.0) {
     tl, tr, bl, br: Vector2 = ---;
     rotate_quad();
 

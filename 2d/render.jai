@@ -2,7 +2,7 @@ render_init :: (max_renderables := 8192) {
     init_render_buffers(max_renderables);
     create_default_shaders();
     // @Fix(sushi): If this is -1, the first draw call gets clipped?
-    render_ctx.state.current_depth = -0.5;
+    render_ctx.state.current_depth = -0.999999;
 }
 
 create_shader :: (vert_code: string, frag_code: string) -> *Shader {
@@ -55,7 +55,7 @@ batch_draw :: () {
         glBindVertexArray(render_ctx.rects.vao);
         glDrawElements(GL_TRIANGLES, xx (render_ctx.rects.index / 4 * 6), GL_UNSIGNED_INT, null);
         glBindVertexArray(render_ctx.lines.vao);
-        glDrawElements(GL_LINES,     xx render_ctx.rects.index,           GL_UNSIGNED_INT, null);
+        glDrawElements(GL_LINES,     xx render_ctx.lines.index,           GL_UNSIGNED_INT, null);
         glBindVertexArray(0);
         glUseProgram(0);
 
@@ -96,7 +96,7 @@ batch_draw :: () {
         render_ctx.draw_counter = 0;
     }
 
-    render_ctx.state.current_depth = -0.5;
+    render_ctx.state.current_depth = -0.999999;
 }
 
 push_model_view_identity :: () {
@@ -129,12 +129,28 @@ push_vertex :: ($type: Render_Type, pos: Vector3) {
     index += 1;
 }
 
-push_vertex :: inline ($type: Render_Type, pos: Vector2) {
-    v: Vector3;
+push_vertex :: ($type: Render_Type, pos: Vector2) {
+    #if type == .Texture  using render_ctx.tex_rects; else
+    #if type == .Rect     using render_ctx.rects; else
+    #if type == .Line     using render_ctx.lines;
+
+    if index >= vertices.count {
+        warn(.Render, "% vertex buffer overflow.", type);
+        return;
+    }
+
+    v: Vector3 = ---;
     v.x = pos.x;
     v.y = pos.y;
     v.z = render_ctx.state.current_depth;
-    push_vertex(type, v);
+
+    vertices[index] = v;
+    colors[index]   = render_ctx.state.color;
+    #if type == .Texture {
+        uvs[index] = render_ctx.state.uv;
+        render_ctx.draws[render_ctx.draw_counter].count += 1;
+    }
+    index += 1;
 }
 
 push_uv :: (uv: Vector2) {
