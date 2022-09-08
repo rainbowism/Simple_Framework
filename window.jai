@@ -111,6 +111,7 @@ should_exit :: () -> bool {
 
     new_time := get_time();
     time.delta64 = new_time - time.last;
+    if time.delta64 > MAX_DELTA_TIME  time.delta64 = MAX_DELTA_TIME;
     time.delta   = xx time.delta64;
     {
         using window.time;
@@ -335,6 +336,8 @@ update_viewport :: (width: s32, height: s32) {
 }
 
 initialized: bool;
+
+MAX_DELTA_TIME :: 0.25;
 
 TRACK_FPS_SAMPLES         :: 120;
 TRACK_FPS_SAMPLE_DURATION :: 4.0;
