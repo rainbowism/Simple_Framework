@@ -13,6 +13,7 @@ Polygon :: struct (N: int) {
 
 Triangle :: Polygon(3);
 OBB      :: Polygon(4);
+Pentagon :: Polygon(5);
 
 Polygon_Winding :: enum {
     Clockwise;
@@ -30,13 +31,27 @@ create_obb :: (position: Vector2, extents: Vector2, angle: float = 0) -> OBB {
     obb: OBB = ---;
     obb.position = position;
     obb.angle    = angle;
-    obb.vertices[0].x = position.x - extents.x; obb.vertices[0].y = position.y - extents.y;
-    obb.vertices[1].x = position.x + extents.x; obb.vertices[1].y = position.y - extents.y;
-    obb.vertices[2].x = position.x + extents.x; obb.vertices[2].y = position.y + extents.y;
-    obb.vertices[3].x = position.x - extents.x; obb.vertices[3].y = position.y + extents.y;
-    info("%", obb.vertices.count);
+    obb.vertices[0].x = -extents.x; obb.vertices[0].y = -extents.y;
+    obb.vertices[1].x = -extents.x; obb.vertices[1].y = +extents.y;
+    obb.vertices[2].x = +extents.x; obb.vertices[2].y = +extents.y;
+    obb.vertices[3].x = +extents.x; obb.vertices[3].y = -extents.y;
     memcpy(obb.points.data, obb.vertices.data, obb.vertices.count * size_of(Vector2));
     return obb;
+}
+
+create_regular_pentagon :: (position: Vector2, radius: float, angle: float = 0, rotation: float = 0) -> Pentagon {
+    TAU_OVER_5 :: TAU / 5;
+    pentagon: Pentagon;
+    pentagon.position = position;
+    pentagon.angle    = angle;
+    current_rotation := rotation + PI;
+    for 0..4 {
+        pentagon.vertices[it].x = sin(current_rotation) * radius;
+        pentagon.vertices[it].y = cos(current_rotation) * radius;
+        current_rotation += TAU_OVER_5;
+    }
+    memcpy(pentagon.points.data, pentagon.vertices.data, pentagon.vertices.count * size_of(Vector2));
+    return pentagon;
 }
 
 #import "Math";

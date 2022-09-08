@@ -25,36 +25,36 @@ support :: (using polygon: *Polygon($N), direction: Vector2) -> Vector2 #must #n
             index = it;
         }
     }
-    return points[index];
+    return position + points[index];
 }
 
 gjk :: (shape_a: $A, shape_b: $B) -> bool #must #no_abc {
     index: int;
-    a, b, c, d, ao, ab, ac, ab_perp, ac_perp: Vector2 = ---;
+    a, b, c, direction, ao, ab, ac, ab_perp, ac_perp: Vector2 = ---;
     simplex: [3] Vector2;
 
-    d = shape_a.position - shape_b.position;
+    direction = shape_a.position - shape_b.position;
 
-    if d.x == 0 && d.y == 0  d.x = 1.0;
+    if direction.x == 0 && direction.y == 0  direction.x = 1.0;
 
-    a = support(shape_a, shape_b, d);
-    if dot(a, d) <= 0  return false;
+    a = support(shape_a, shape_b, direction);
+    if dot(a, direction) <= 0  return false;
     simplex[0] = a;
 
-    d = -a;
+    direction = -a;
 
     while true {
         index += 1;
-        a = support(shape_a, shape_b, d);
-        if dot(a, d) <= 0  return false;
+        a = support(shape_a, shape_b, direction);
+        if dot(a, direction) <= 0  return false;
         simplex[index] = a;
         ao = -a;
 
         if index < 2 {
-            b = simplex[0];
-            ab = b - a;                     // from point A to B
-            d = triple_product(ab, ao, ab); // normal to AB towards origin
-            if length_squared(d) == 0  d = perpendicular(ab);
+            b  = simplex[0];
+            ab = b - a; // from point A to B
+            direction = triple_product(ab, ao, ab); // normal to AB towards origin
+            if length_squared(direction) == 0  direction = perpendicular(ab);
             continue;
         }
 
@@ -65,13 +65,13 @@ gjk :: (shape_a: $A, shape_b: $B) -> bool #must #no_abc {
 
         ac_perp = triple_product(ab, ac, ac);
         if dot(ac_perp, ao) >= 0 {
-            d = ac_perp;
+            direction = ac_perp;
         } else {
             ab_perp = triple_product(ac, ab, ab);
             if dot(ab_perp, ao) < 0  return true;
 
             simplex[0] = simplex[1];
-            d = ab_perp;
+            direction = ab_perp;
         }
 
         simplex[1] = simplex[2];
@@ -81,7 +81,7 @@ gjk :: (shape_a: $A, shape_b: $B) -> bool #must #no_abc {
     return false;
 }
 
-gjk_intersect :: (shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0.000_001) -> Vector2, bool #must #no_abc {
+gjk_epa :: (shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0.000_001) -> Vector2, bool #must #no_abc {
     index: int;
     a, b, c, direction, ao, ab, ac, ab_perp, ac_perp: Vector2 = ---;
     simplex: [3] Vector2;
@@ -105,7 +105,7 @@ gjk_intersect :: (shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0
         ao = -a;
 
         if index < 2 {
-            b = simplex[0];
+            b  = simplex[0];
             ab = b - a; // from point A to B
             direction = triple_product(ab, ao, ab); // normal to AB towards origin
             if length_squared(direction) == 0  direction = perpendicular(ab);
@@ -119,7 +119,7 @@ gjk_intersect :: (shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0
 
         ac_perp = triple_product(ab, ac, ac);
         if dot(ac_perp, ao) >= 0 {
-            direction = ac_perp;
+            direction = ac_perp; // new direction is the normal of AC towards the origin
         } else {
             ab_perp = triple_product(ac, ab, ab);
             if dot(ab_perp, ao) < 0 {
@@ -137,12 +137,10 @@ gjk_intersect :: (shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0
 
     if !collided  return .{}, false;
 
-    epa0 := (simplex[1].x - simplex[0].x) * (simplex[1].y - simplex[0].y);
-    epa1 := (simplex[2].x - simplex[1].x) * (simplex[2].y - simplex[1].y);
-    epa2 := (simplex[0].x - simplex[2].x) * (simplex[0].y - simplex[2].y);
-
     winding: Polygon_Winding = ---;
-    if epa0 + epa1 + epa2 >= 0 {
+    if (simplex[1].x - simplex[0].x) * (simplex[1].y - simplex[0].y)
+     + (simplex[2].x - simplex[1].x) * (simplex[2].y - simplex[1].y)
+     + (simplex[0].x - simplex[2].x) * (simplex[0].y - simplex[2].y) >= 0 {
         winding = .Clockwise;
     } else {
         winding = .Counter_Clockwise;
@@ -152,29 +150,30 @@ gjk_intersect :: (shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0
     distance: float = ---;
     for 0..max_iterations-1 {
         if winding == {
-        case .Clockwise;         edge = find_closest_edge(simplex, .Clockwise);
-        case .Counter_Clockwise; edge = find_closest_edge(simplex, .Counter_Clockwise);
+        case .Clockwise;         edge = epa(simplex, .Clockwise);
+        case .Counter_Clockwise; edge = epa(simplex, .Counter_Clockwise);
         }
         a        = support(shape_a, shape_b, edge.normal);
         distance = dot(a, edge.normal);
 
         if abs(distance - edge.distance) <= epsilon {
-            return edge.normal * distance, true;
+            return edge.normal * (distance + epsilon), true;
         } else {
             simplex[edge.index] = a;
         }
     }
 
-    return .{}, false;
+    return edge.normal * (distance + epsilon), true;
 }
 
-find_closest_edge :: inline (simplex: [$N] Vector2, $winding: Polygon_Winding) -> Edge {
-    closest_edge: Edge = ---;
+epa :: (simplex: [$N] Vector2, $winding: Polygon_Winding) -> Edge {
+    closest_edge: Edge    = ---;
+    closest_edge.distance = FLOAT32_INFINITY;
     line:         Vector2 = ---;
     normal:       Vector2 = ---;
     distance:     float   = ---;
     for 0..N-1 {
-        line = simplex[it % N] - simplex[it];
+        line = simplex[it] - simplex[(it + 1) % N];
         #if winding == .Clockwise {
             normal.x =  line.y;
             normal.y = -line.x;
@@ -183,12 +182,12 @@ find_closest_edge :: inline (simplex: [$N] Vector2, $winding: Polygon_Winding) -
             normal.y =  line.x;
         }
         normalize_or_zero(*normal);
+        distance = dot(normal, simplex[it]);
 
-        distance = dot(normal, simplex[0]);
         if distance < closest_edge.distance {
             closest_edge.distance = distance;
             closest_edge.normal   = normal;
-            closest_edge.index    = it;
+            closest_edge.index    = (it + 1) % N;
         }
     }
     return closest_edge;
