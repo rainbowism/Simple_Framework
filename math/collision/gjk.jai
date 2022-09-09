@@ -30,115 +30,130 @@ support :: (using polygon: *Polygon($N), direction: Vector2) -> Vector2 #must #n
 }
 
 gjk :: (shape_a: $A, shape_b: $B) -> bool #must #no_abc {
-    index: int;
-    a, b, c, direction, ao, ab, ac, ab_perp, ac_perp: Vector2 = ---;
-    simplex: [3] Vector2;
+    #if A == Circle && B == Circle {
+        return length_squared(shape_b.position - shape_a.position) <= (shape_a.radius + shape_b.radius) * (shape_a.radius + shape_b.radius);
+    } else {
+        index: int;
+        a, b, c, direction, ao, ab, ac, ab_perp, ac_perp: Vector2 = ---;
+        simplex: [3] Vector2;
 
-    direction = shape_b.position - shape_a.position;
+        direction = shape_b.position - shape_a.position;
 
-    if direction.x == 0 && direction.y == 0  direction.x = 1.0;
+        if direction.x == 0 && direction.y == 0  direction.x = 1.0;
 
-    a = support(shape_a, shape_b, direction);
-    if dot(a, direction) <= 0  return false;
-    simplex[0] = a;
-
-    direction = -a;
-
-    while true {
         a = support(shape_a, shape_b, direction);
         if dot(a, direction) <= 0  return false;
-        index += 1;
-        simplex[index] = a;
-        ao = -a;
+        simplex[0] = a;
 
-        if index < 2 {
-            b  = simplex[0];
+        direction = -a;
+
+        while true {
+            a = support(shape_a, shape_b, direction);
+            if dot(a, direction) <= 0  return false;
+            index += 1;
+            simplex[index] = a;
+            ao = -a;
+
+            if index < 2 {
+                b  = simplex[0];
+                ab = b - a; // from point A to B
+                direction = triple_product(ab, ao, ab); // normal to AB towards origin
+                if length_squared(direction) == 0  direction = perpendicular(ab);
+                continue;
+            }
+
+            b  = simplex[1];
+            c  = simplex[0];
             ab = b - a; // from point A to B
-            direction = triple_product(ab, ao, ab); // normal to AB towards origin
-            if length_squared(direction) == 0  direction = perpendicular(ab);
-            continue;
+            ac = c - a; // from point A to C
+
+            ac_perp = triple_product(ab, ac, ac);
+            if dot(ac_perp, ao) >= 0 {
+                direction = ac_perp;
+            } else {
+                ab_perp = triple_product(ac, ab, ab);
+                if dot(ab_perp, ao) < 0  return true;
+
+                simplex[0] = simplex[1];
+                direction = ab_perp;
+            }
+
+            simplex[1] = simplex[2];
+            index -= 1;
         }
 
-        b  = simplex[1];
-        c  = simplex[0];
-        ab = b - a; // from point A to B
-        ac = c - a; // from point A to C
-
-        ac_perp = triple_product(ab, ac, ac);
-        if dot(ac_perp, ao) >= 0 {
-            direction = ac_perp;
-        } else {
-            ab_perp = triple_product(ac, ab, ab);
-            if dot(ab_perp, ao) < 0  return true;
-
-            simplex[0] = simplex[1];
-            direction = ab_perp;
-        }
-
-        simplex[1] = simplex[2];
-        index -= 1;
+        return false;
     }
-
-    return false;
 }
 
 gjk_epa :: (shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0.000_1) -> Vector2, bool #must #no_abc {
-    index: int;
-    a, b, c, direction, ao, ab, ac, ab_perp, ac_perp: Vector2 = ---;
-    simplex: [3] Vector2;
+    #if A == Circle && B == Circle {
+        v := shape_b.position - shape_a.position;
+        radii := shape_a.radius + shape_b.radius;
+        dist_squared := length_squared(v);
 
-    direction = shape_a.position - shape_b.position;
+        if dist_squared > radii * radii  return .{}, false;
 
-    if direction.x == 0 && direction.y == 0  direction.x = 1.0;
+        normalize_or_zero(*v);
+        return v * sqrt(dist_squared), true;
+    } else {
+        index: int;
+        a, b, c, direction, ao, ab, ac, ab_perp, ac_perp: Vector2 = ---;
+        simplex: [3] Vector2;
 
-    a = support(shape_a, shape_b, direction);
-    if dot(a, direction) <= 0  return .{}, false;
-    simplex[0] = a;
+        direction = shape_a.position - shape_b.position;
 
-    direction = -a;
+        if direction.x == 0 && direction.y == 0  direction.x = 1.0;
 
-    collided: bool;
-    while true {
-        index += 1;
         a = support(shape_a, shape_b, direction);
         if dot(a, direction) <= 0  return .{}, false;
-        simplex[index] = a;
-        ao = -a;
+        simplex[0] = a;
 
-        if index < 2 {
-            b  = simplex[0];
-            ab = b - a; // from point A to B
-            direction = triple_product(ab, ao, ab); // normal to AB towards origin
-            if length_squared(direction) == 0  direction = perpendicular(ab);
-            continue;
-        }
+        direction = -a;
 
-        b  = simplex[1];
-        c  = simplex[0];
-        ab = b - a; // from point A to B
-        ac = c - a; // from point A to C
+        collided: bool;
+        while true {
+            index += 1;
+            a = support(shape_a, shape_b, direction);
+            if dot(a, direction) <= 0  return .{}, false;
+            simplex[index] = a;
+            ao = -a;
 
-        ac_perp = triple_product(ab, ac, ac);
-        if dot(ac_perp, ao) >= 0 {
-            direction = ac_perp; // new direction is the normal of AC towards the origin
-        } else {
-            ab_perp = triple_product(ac, ab, ab);
-            if dot(ab_perp, ao) < 0 {
-                collided = true;
-                break;
+            if index < 2 {
+                b  = simplex[0];
+                ab = b - a; // from point A to B
+                direction = triple_product(ab, ao, ab); // normal to AB towards origin
+                if length_squared(direction) == 0  direction = perpendicular(ab);
+                continue;
             }
 
-            simplex[0] = simplex[1];
-            direction = ab_perp;
+            b  = simplex[1];
+            c  = simplex[0];
+            ab = b - a; // from point A to B
+            ac = c - a; // from point A to C
+
+            ac_perp = triple_product(ab, ac, ac);
+            if dot(ac_perp, ao) >= 0 {
+                direction = ac_perp; // new direction is the normal of AC towards the origin
+            } else {
+                ab_perp = triple_product(ac, ab, ab);
+                if dot(ab_perp, ao) < 0 {
+                    collided = true;
+                    break;
+                }
+
+                simplex[0] = simplex[1];
+                direction = ab_perp;
+            }
+
+            simplex[1] = simplex[2];
+            index -= 1;
         }
 
-        simplex[1] = simplex[2];
-        index -= 1;
+        if !collided  return .{}, false;
+
+        return epa(simplex, shape_a, shape_b, max_iterations, epsilon), true;
     }
-
-    if !collided  return .{}, false;
-
-    return epa(simplex, shape_a, shape_b, max_iterations, epsilon), true;
 }
 
 epa :: (simplex: [] Vector2, shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0.000_1) -> Vector2 {
