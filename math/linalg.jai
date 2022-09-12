@@ -1,6 +1,42 @@
+intersect_line :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool, Vector2 {
+    ab := b - a; // direction of a to b
+    cd := d - c; // direction of c to d
+
+    determinant := cross(ab, cd);
+    if determinant == 0  return false, .{};   // lines are collinear
+
+    determinant = 1.0 / determinant; // cache `1.0 / determinant` for below
+    ca         := c - a;             // direction of a to c
+
+    u := cross(ca, ab) * determinant;
+    t := cross(ca, cd) * determinant;
+    if u < 0 || u > 1 || t < 0 || t > 1  return false, .{}; // segments aren't intersecting
+
+    cd.x = a.x + t * ab.x;
+    cd.y = a.y + t * ab.y;
+    return true, cd;
+}
+
+// returns the time of impact of a ray
+intersect_line_toi :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> float {
+    ab := b - a; // direction of a to b
+    cd := d - c; // direction of c to d
+
+    determinant := cross(ab, cd);
+    if determinant == 0  return 1; // lines are collinear
+
+    determinant = 1.0 / determinant; // cache `1.0 / determinant` for below
+    ca         := c - a;             // direction of c to a
+
+    u := cross(ca, ab) * determinant;
+    t := cross(ca, cd) * determinant;
+    if u < 0 || u > 1 || determinant < 0 || determinant > 1  return 1; // segments aren't intersecting
+
+    return determinant;
+}
+
 Circle :: struct {
     using position: Vector2;
-    angle:          Vector2;
     radius:         float;
 }
 
@@ -14,6 +50,9 @@ Polygon :: struct (N: int) {
 Triangle :: Polygon(3);
 OBB      :: Polygon(4);
 Pentagon :: Polygon(5);
+Hexagon  :: Polygon(6);
+Septagon :: Polygon(7);
+Octagon  :: Polygon(8);
 
 Polygon_Winding :: enum {
     Clockwise;
