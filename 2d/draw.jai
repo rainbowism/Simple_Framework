@@ -27,9 +27,8 @@ draw_line :: (a: Vector2, b: Vector2, tints: [2] Color) {
     batch_end(.Line);
 }
 
-draw_circle :: (using circle: *Circle, tint := Colors.White) {
-    SEGMENTS  :: 32;
-    INCREMENT :: TAU / SEGMENTS;
+draw_circle :: (using circle: *Circle, tint := Colors.White, $segments: int = 32) {
+    INCREMENT :: TAU / segments;
 
     last: Vector2 = ---;
     theta: float;
@@ -40,7 +39,7 @@ draw_circle :: (using circle: *Circle, tint := Colors.White) {
         last.x = cos(0) * radius + position.x;
         last.y = sin(0) * radius + position.y;
 
-        for 0..SEGMENTS {
+        for 0..segments {
             theta += INCREMENT;
             push_vertex(.Line, last);
             last.x = cos(theta) * radius + position.x;
@@ -51,9 +50,8 @@ draw_circle :: (using circle: *Circle, tint := Colors.White) {
     batch_end(.Line);
 }
 
-draw_circle :: (position: Vector2, radius: float, tint := Colors.White) {
-    SEGMENTS  :: 32;
-    INCREMENT :: TAU / SEGMENTS;
+draw_circle :: (position: Vector2, radius: float, tint := Colors.White, $segments: int = 32) {
+    INCREMENT :: TAU / segments;
 
     last: Vector2 = ---;
     theta: float;
@@ -64,7 +62,7 @@ draw_circle :: (position: Vector2, radius: float, tint := Colors.White) {
         last.x = cos(0) * radius + position.x;
         last.y = sin(0) * radius + position.y;
 
-        for 0..SEGMENTS {
+        for 0..segments {
             theta += INCREMENT;
             push_vertex(.Line, last);
             last.x = cos(theta) * radius + position.x;
