@@ -1,150 +1,202 @@
+// @Todo(sushi): Add key modifier support
+
+swap_input_buffers :: () {
+    memcpy(input_state.key_last.data,   input_state.key_cur.data,   GLFW_KEY_LAST + 1);
+    memcpy(input_state.mouse_last.data, input_state.mouse_cur.data, GLFW_MOUSE_BUTTON_LAST + 1);
+}
+
 is_key_pressed :: (key: Key) -> bool {
-    return input_state.cur[key];
+    return input_state.key_cur[key];
 }
 
 is_key_released :: (key: Key) -> bool {
-    return !input_state.cur[key];
+    return !input_state.key_cur[key];
 }
 
 is_key_just_pressed :: (key: Key) -> bool {
-    return input_state.cur[key] && !input_state.last[key];
+    return input_state.key_cur[key] && !input_state.key_last[key];
 }
 
 is_key_just_released :: (key: Key) -> bool {
-    return !input_state.cur[key] && input_state.last[key];
+    return !input_state.key_cur[key] && input_state.key_last[key];
 }
 
+is_mouse_pressed :: (mouse: Mouse) -> bool {
+    return input_state.mouse_cur[mouse];
+}
+
+is_mouse_released :: (mouse: Mouse) -> bool {
+    return !input_state.mouse_cur[mouse];
+}
+
+is_mouse_just_pressed :: (mouse: Mouse) -> bool {
+    return input_state.mouse_cur[mouse] && !input_state.mouse_last[mouse];
+}
+
+is_mouse_just_released :: (mouse: Mouse) -> bool {
+    return !input_state.mouse_cur[mouse] && input_state.mouse_last[mouse];
+}
+
+mouse_pos: Vector2;
+
 Key :: enum {
-    Unknown       :: -1;
-    Space         :: 32;
-    Apostrophe    :: 39;  /* ' */
-    Comma         :: 44;  /* , */
-    Minus         :: 45;  /* - */
-    Period        :: 46;  /* . */
-    Slash         :: 47;  /* / */
-    _0            :: 48;
-    _1            :: 49;
-    _2            :: 50;
-    _3            :: 51;
-    _4            :: 52;
-    _5            :: 53;
-    _6            :: 54;
-    _7            :: 55;
-    _8            :: 56;
-    _9            :: 57;
-    Semicolon     :: 59;  /* ; */
-    Equal         :: 61;  /* = */
-    A             :: 65;
-    B             :: 66;
-    C             :: 67;
-    D             :: 68;
-    E             :: 69;
-    F             :: 70;
-    G             :: 71;
-    H             :: 72;
-    I             :: 73;
-    J             :: 74;
-    K             :: 75;
-    L             :: 76;
-    M             :: 77;
-    N             :: 78;
-    O             :: 79;
-    P             :: 80;
-    Q             :: 81;
-    R             :: 82;
-    S             :: 83;
-    T             :: 84;
-    U             :: 85;
-    V             :: 86;
-    W             :: 87;
-    X             :: 88;
-    Y             :: 89;
-    Z             :: 90;
-    Left_Bracket  :: 91;  /* [ */
-    Backslash     :: 92;  /* \ */
-    Right_Bracket :: 93;  /* ] */
-    Grave_Accent  :: 96;  /* ` */
-    World_1       :: 161; /* non-US #1 */
-    World_2       :: 162; /* non-US #2 */
-    Escape        :: 256;
-    Enter         :: 257;
-    Tab           :: 258;
-    Backspace     :: 259;
-    Insert        :: 260;
-    Delete        :: 261;
-    Right         :: 262;
-    Left          :: 263;
-    Down          :: 264;
-    Up            :: 265;
-    Page_Up       :: 266;
-    Page_Down     :: 267;
-    Home          :: 268;
-    End           :: 269;
-    Caps_Lock     :: 280;
-    Scroll_Lock   :: 281;
-    Num_Lock      :: 282;
-    Print_Screen  :: 283;
-    Pause         :: 284;
-    F1            :: 290;
-    F2            :: 291;
-    F3            :: 292;
-    F4            :: 293;
-    F5            :: 294;
-    F6            :: 295;
-    F7            :: 296;
-    F8            :: 297;
-    F9            :: 298;
-    F10           :: 299;
-    F11           :: 300;
-    F12           :: 301;
-    F13           :: 302;
-    F14           :: 303;
-    F15           :: 304;
-    F16           :: 305;
-    F17           :: 306;
-    F18           :: 307;
-    F19           :: 308;
-    F20           :: 309;
-    F21           :: 310;
-    F22           :: 311;
-    F23           :: 312;
-    F24           :: 313;
-    F25           :: 314;
-    Kp_0          :: 320;
-    Kp_1          :: 321;
-    Kp_2          :: 322;
-    Kp_3          :: 323;
-    Kp_4          :: 324;
-    Kp_5          :: 325;
-    Kp_6          :: 326;
-    Kp_7          :: 327;
-    Kp_8          :: 328;
-    Kp_9          :: 329;
-    Kp_Decimal    :: 330;
-    Kp_Divide     :: 331;
-    Kp_Multiply   :: 332;
-    Kp_Subtract   :: 333;
-    Kp_Add        :: 334;
-    Kp_Enter      :: 335;
-    Kp_Equal      :: 336;
-    Left_Shift    :: 340;
-    Left_Control  :: 341;
-    Left_Alt      :: 342;
-    Left_Super    :: 343;
-    Right_Shift   :: 344;
-    Right_Control :: 345;
-    Right_Alt     :: 346;
-    Right_Super   :: 347;
-    Menu          :: 348;
+    Unknown       :: GLFW_KEY_UNKNOWN;
+    Space         :: GLFW_KEY_SPACE;
+    Apostrophe    :: GLFW_KEY_APOSTROPHE;  /* ' */
+    Comma         :: GLFW_KEY_COMMA;  /* , */
+    Minus         :: GLFW_KEY_MINUS;  /* - */
+    Period        :: GLFW_KEY_PERIOD;  /* . */
+    Slash         :: GLFW_KEY_SLASH;  /* / */
+    _0            :: GLFW_KEY_0;
+    _1            :: GLFW_KEY_1;
+    _2            :: GLFW_KEY_2;
+    _3            :: GLFW_KEY_3;
+    _4            :: GLFW_KEY_4;
+    _5            :: GLFW_KEY_5;
+    _6            :: GLFW_KEY_6;
+    _7            :: GLFW_KEY_7;
+    _8            :: GLFW_KEY_8;
+    _9            :: GLFW_KEY_9;
+    Semicolon     :: GLFW_KEY_SEMICOLON;  /* ; */
+    Equal         :: GLFW_KEY_EQUAL;  /* = */
+    A             :: GLFW_KEY_A;
+    B             :: GLFW_KEY_B;
+    C             :: GLFW_KEY_C;
+    D             :: GLFW_KEY_D;
+    E             :: GLFW_KEY_E;
+    F             :: GLFW_KEY_F;
+    G             :: GLFW_KEY_G;
+    H             :: GLFW_KEY_H;
+    I             :: GLFW_KEY_I;
+    J             :: GLFW_KEY_J;
+    K             :: GLFW_KEY_K;
+    L             :: GLFW_KEY_L;
+    M             :: GLFW_KEY_M;
+    N             :: GLFW_KEY_N;
+    O             :: GLFW_KEY_O;
+    P             :: GLFW_KEY_P;
+    Q             :: GLFW_KEY_Q;
+    R             :: GLFW_KEY_R;
+    S             :: GLFW_KEY_S;
+    T             :: GLFW_KEY_T;
+    U             :: GLFW_KEY_U;
+    V             :: GLFW_KEY_V;
+    W             :: GLFW_KEY_W;
+    X             :: GLFW_KEY_X;
+    Y             :: GLFW_KEY_Y;
+    Z             :: GLFW_KEY_Z;
+    Left_Bracket  :: GLFW_KEY_LEFT_BRACKET;  /* [ */
+    Backslash     :: GLFW_KEY_BACKSLASH;  /* \ */
+    Right_Bracket :: GLFW_KEY_RIGHT_BRACKET;  /* ] */
+    Grave_Accent  :: GLFW_KEY_GRAVE_ACCENT;  /* ` */
+    World_1       :: GLFW_KEY_WORLD_1; /* non-US #1 */
+    World_2       :: GLFW_KEY_WORLD_2; /* non-US #2 */
+    Escape        :: GLFW_KEY_ESCAPE;
+    Enter         :: GLFW_KEY_ENTER;
+    Tab           :: GLFW_KEY_TAB;
+    Backspace     :: GLFW_KEY_BACKSPACE;
+    Insert        :: GLFW_KEY_INSERT;
+    Delete        :: GLFW_KEY_DELETE;
+    Right         :: GLFW_KEY_RIGHT;
+    Left          :: GLFW_KEY_LEFT;
+    Down          :: GLFW_KEY_DOWN;
+    Up            :: GLFW_KEY_UP;
+    Page_Up       :: GLFW_KEY_PAGE_UP;
+    Page_Down     :: GLFW_KEY_PAGE_DOWN;
+    Home          :: GLFW_KEY_HOME;
+    End           :: GLFW_KEY_END;
+    Caps_Lock     :: GLFW_KEY_CAPS_LOCK;
+    Scroll_Lock   :: GLFW_KEY_SCROLL_LOCK;
+    Num_Lock      :: GLFW_KEY_NUM_LOCK;
+    Print_Screen  :: GLFW_KEY_PRINT_SCREEN;
+    Pause         :: GLFW_KEY_PAUSE;
+    F1            :: GLFW_KEY_F1;
+    F2            :: GLFW_KEY_F2;
+    F3            :: GLFW_KEY_F3;
+    F4            :: GLFW_KEY_F4;
+    F5            :: GLFW_KEY_F5;
+    F6            :: GLFW_KEY_F6;
+    F7            :: GLFW_KEY_F7;
+    F8            :: GLFW_KEY_F8;
+    F9            :: GLFW_KEY_F9;
+    F10           :: GLFW_KEY_F10;
+    F11           :: GLFW_KEY_F11;
+    F12           :: GLFW_KEY_F12;
+    F13           :: GLFW_KEY_F13;
+    F14           :: GLFW_KEY_F14;
+    F15           :: GLFW_KEY_F15;
+    F16           :: GLFW_KEY_F16;
+    F17           :: GLFW_KEY_F17;
+    F18           :: GLFW_KEY_F18;
+    F19           :: GLFW_KEY_F19;
+    F20           :: GLFW_KEY_F20;
+    F21           :: GLFW_KEY_F21;
+    F22           :: GLFW_KEY_F22;
+    F23           :: GLFW_KEY_F23;
+    F24           :: GLFW_KEY_F24;
+    F25           :: GLFW_KEY_F25;
+    Kp_0          :: GLFW_KEY_KP_0;
+    Kp_1          :: GLFW_KEY_KP_1;
+    Kp_2          :: GLFW_KEY_KP_2;
+    Kp_3          :: GLFW_KEY_KP_3;
+    Kp_4          :: GLFW_KEY_KP_4;
+    Kp_5          :: GLFW_KEY_KP_5;
+    Kp_6          :: GLFW_KEY_KP_6;
+    Kp_7          :: GLFW_KEY_KP_7;
+    Kp_8          :: GLFW_KEY_KP_8;
+    Kp_9          :: GLFW_KEY_KP_9;
+    Kp_Decimal    :: GLFW_KEY_KP_DECIMAL;
+    Kp_Divide     :: GLFW_KEY_KP_DIVIDE;
+    Kp_Multiply   :: GLFW_KEY_KP_MULTIPLY;
+    Kp_Subtract   :: GLFW_KEY_KP_SUBTRACT;
+    Kp_Add        :: GLFW_KEY_KP_ADD;
+    Kp_Enter      :: GLFW_KEY_KP_ENTER;
+    Kp_Equal      :: GLFW_KEY_KP_EQUAL;
+    Left_Shift    :: GLFW_KEY_LEFT_SHIFT;
+    Left_Control  :: GLFW_KEY_LEFT_CONTROL;
+    Left_Alt      :: GLFW_KEY_LEFT_ALT;
+    Left_Super    :: GLFW_KEY_LEFT_SUPER;
+    Right_Shift   :: GLFW_KEY_RIGHT_SHIFT;
+    Right_Control :: GLFW_KEY_RIGHT_CONTROL;
+    Right_Alt     :: GLFW_KEY_RIGHT_ALT;
+    Right_Super   :: GLFW_KEY_RIGHT_SUPER;
+    Menu          :: GLFW_KEY_MENU;
+    Last          :: GLFW_KEY_LAST;
+}
+
+Mouse :: enum {
+    Button_1      :: GLFW_MOUSE_BUTTON_1;
+    Button_2      :: GLFW_MOUSE_BUTTON_2;
+    Button_3      :: GLFW_MOUSE_BUTTON_3;
+    Button_4      :: GLFW_MOUSE_BUTTON_4;
+    Button_5      :: GLFW_MOUSE_BUTTON_5;
+    Button_6      :: GLFW_MOUSE_BUTTON_6;
+    Button_7      :: GLFW_MOUSE_BUTTON_7;
+    Button_8      :: GLFW_MOUSE_BUTTON_8;
+    Button_Last   :: GLFW_MOUSE_BUTTON_LAST;
+    Button_Left   :: GLFW_MOUSE_BUTTON_LEFT;
+    Button_Right  :: GLFW_MOUSE_BUTTON_RIGHT;
+    Button_Middle :: GLFW_MOUSE_BUTTON_MIDDLE;
+
+    _1     :: GLFW_MOUSE_BUTTON_1;
+    _2     :: GLFW_MOUSE_BUTTON_2;
+    _3     :: GLFW_MOUSE_BUTTON_3;
+    _4     :: GLFW_MOUSE_BUTTON_4;
+    _5     :: GLFW_MOUSE_BUTTON_5;
+    _6     :: GLFW_MOUSE_BUTTON_6;
+    _7     :: GLFW_MOUSE_BUTTON_7;
+    _8     :: GLFW_MOUSE_BUTTON_8;
+    Last   :: GLFW_MOUSE_BUTTON_LAST;
+    Left   :: GLFW_MOUSE_BUTTON_LEFT;
+    Right  :: GLFW_MOUSE_BUTTON_RIGHT;
+    Middle :: GLFW_MOUSE_BUTTON_MIDDLE;
 }
 
 #scope_module
 
-copy_key_buffer :: () {
-    memcpy(input_state.last.data, input_state.cur.data, GLFW_KEY_LAST + 1);
-}
-
 input_state: struct {
-    cur:  [GLFW_KEY_LAST + 1] bool;
-    last: [GLFW_KEY_LAST + 1] bool;
+    key_cur:    [GLFW_KEY_LAST + 1] bool;
+    key_last:   [GLFW_KEY_LAST + 1] bool;
+    mouse_cur:  [GLFW_MOUSE_BUTTON_LAST + 1] bool;
+    mouse_last: [GLFW_MOUSE_BUTTON_LAST + 1] bool;
 }

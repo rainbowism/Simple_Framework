@@ -99,7 +99,6 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 should_exit :: () -> bool {
     reset_temporary_storage();
     #if !MANUALLY_SWAP_BUFFER  glfwSwapBuffers(window.handle);
-    copy_key_buffer();
     glfwPollEvents();
 
     exit := glfwWindowShouldClose(window.handle) == GLFW_TRUE;
@@ -324,8 +323,6 @@ time: struct {
     delta:   float;
 }
 
-mouse_pos: Vector2;
-
 #scope_module
 
 update_viewport :: (width: s32, height: s32) {
@@ -404,7 +401,7 @@ glfw_window_focus_callback :: (handle: *GLFWwindow, focused: s32) #c_call {
 
 glfw_key_callback :: (glfw_win: *GLFWwindow, key: s32, scancode: s32, action: s32, mods: s32) #c_call {
 	#if !DISABLE_IMGUI  ImGui_Impl_KeyCallback(key, scancode, action, mods);
-    input_state.cur[key] = action != GLFW_RELEASE;
+    input_state.key_cur[key] = action != GLFW_RELEASE;
     push_context window.ctx {
         if window.callbacks.key != null  window.callbacks.key(glfw_win, key, scancode, action, mods);
 	}
@@ -412,6 +409,7 @@ glfw_key_callback :: (glfw_win: *GLFWwindow, key: s32, scancode: s32, action: s3
 
 glfw_mouse_callback :: (glfw_win: *GLFWwindow, button: s32, action: s32, mods: s32) #c_call {
 	#if !DISABLE_IMGUI  ImGui_Impl_MouseCallback(button, action, mods);
+    input_state.mouse_cur[button] = action != GLFW_RELEASE;
     push_context window.ctx {
         if window.callbacks.mouse != null  window.callbacks.mouse(glfw_win, button, action, mods);
 	}
