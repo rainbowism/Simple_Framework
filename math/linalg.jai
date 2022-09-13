@@ -1,15 +1,28 @@
-intersect_line :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool, Vector2 {
+intersect_line :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool {
     ab := b - a; // direction of a to b
     cd := d - c; // direction of c to d
 
     determinant := cross(ab, cd);
-    if determinant == 0  return false, .{};   // lines are collinear
+    if determinant == 0  return false; // lines are collinear
 
-    determinant = 1.0 / determinant; // cache `1.0 / determinant` for below
-    ca         := c - a;             // direction of a to c
+    ac          := c - a;             // direction of a to c
+    determinant  = 1.0 / determinant; // cache `1.0 / determinant` for below
+    u := cross(ac, ab) * determinant;
+    t := cross(ac, cd) * determinant;
+    return u >= 0 && u <= 1 && t >= 0 && t <= 1; // all true if segments are intersecting
+}
 
-    u := cross(ca, ab) * determinant;
-    t := cross(ca, cd) * determinant;
+intersect_line_pos :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool, Vector2 {
+    ab := b - a; // direction of a to b
+    cd := d - c; // direction of c to d
+
+    determinant := cross(ab, cd);
+    if determinant == 0  return false, .{}; // lines are collinear
+
+    ac          := c - a;             // direction of a to c
+    determinant  = 1.0 / determinant; // cache `1.0 / determinant` for below
+    u := cross(ac, ab) * determinant;
+    t := cross(ac, cd) * determinant;
     if u < 0 || u > 1 || t < 0 || t > 1  return false, .{}; // segments aren't intersecting
 
     cd.x = a.x + t * ab.x;
@@ -25,14 +38,13 @@ intersect_line_toi :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> float 
     determinant := cross(ab, cd);
     if determinant == 0  return 1; // lines are collinear
 
-    determinant = 1.0 / determinant; // cache `1.0 / determinant` for below
-    ca         := c - a;             // direction of c to a
+    ac          := c - a;             // direction of a to c
+    determinant  = 1.0 / determinant; // cache `1.0 / determinant` for below
+    u := cross(ac, ab) * determinant;
+    t := cross(ac, cd) * determinant;
+    if u < 0 || u > 1 || t < 0 || t > 1  return 1; // segments aren't intersecting
 
-    u := cross(ca, ab) * determinant;
-    t := cross(ca, cd) * determinant;
-    if u < 0 || u > 1 || determinant < 0 || determinant > 1  return 1; // segments aren't intersecting
-
-    return determinant;
+    return t;
 }
 
 Circle :: struct {
