@@ -1,50 +1,52 @@
-intersect_line :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool {
+// @Note(sushi): The determinant in all intersect_line procedures are the
+//  winding direction of the collision.
+intersect_line :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool, float {
     ab := b - a; // direction of a to b
     cd := d - c; // direction of c to d
 
     determinant := cross(ab, cd);
-    if determinant == 0  return false; // lines are collinear
+    if determinant == 0  return false, 0; // lines are collinear
 
     ac          := c - a;             // direction of a to c
     determinant  = 1.0 / determinant; // cache `1.0 / determinant` for below
     u := cross(ac, ab) * determinant;
     t := cross(ac, cd) * determinant;
-    return u >= 0 && u <= 1 && t >= 0 && t <= 1; // all true if segments are intersecting
+    return u >= 0 && u <= 1 && t >= 0 && t <= 1, determinant; // all true if segments are intersecting
 }
 
-intersect_line_pos :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool, Vector2 {
+intersect_line_pos :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool, Vector2, float {
     ab := b - a; // direction of a to b
     cd := d - c; // direction of c to d
 
     determinant := cross(ab, cd);
-    if determinant == 0  return false, .{}; // lines are collinear
+    if determinant == 0  return false, .{}, 0; // lines are collinear
 
     ac          := c - a;             // direction of a to c
     determinant  = 1.0 / determinant; // cache `1.0 / determinant` for below
     u := cross(ac, ab) * determinant;
     t := cross(ac, cd) * determinant;
-    if u < 0 || u > 1 || t < 0 || t > 1  return false, .{}; // segments aren't intersecting
+    if u < 0 || u > 1 || t < 0 || t > 1  return false, .{}, 0; // segments aren't intersecting
 
     cd.x = a.x + t * ab.x;
     cd.y = a.y + t * ab.y;
-    return true, cd;
+    return true, cd, determinant;
 }
 
 // returns the time of impact of a ray
-intersect_line_toi :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> float {
+intersect_line_toi :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> float, float {
     ab := b - a; // direction of a to b
     cd := d - c; // direction of c to d
 
     determinant := cross(ab, cd);
-    if determinant == 0  return 1; // lines are collinear
+    if determinant == 0  return 1, 0; // lines are collinear
 
     ac          := c - a;             // direction of a to c
     determinant  = 1.0 / determinant; // cache `1.0 / determinant` for below
     u := cross(ac, ab) * determinant;
     t := cross(ac, cd) * determinant;
-    if u < 0 || u > 1 || t < 0 || t > 1  return 1; // segments aren't intersecting
+    if u < 0 || u > 1 || t < 0 || t > 1  return 1, 0; // segments aren't intersecting
 
-    return t;
+    return t, determinant;
 }
 
 Circle :: struct {
