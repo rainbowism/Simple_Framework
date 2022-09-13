@@ -99,6 +99,7 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 should_exit :: () -> bool {
     reset_temporary_storage();
     #if !MANUALLY_SWAP_BUFFER  glfwSwapBuffers(window.handle);
+    copy_key_buffer();
     glfwPollEvents();
 
     exit := glfwWindowShouldClose(window.handle) == GLFW_TRUE;
@@ -403,6 +404,7 @@ glfw_window_focus_callback :: (handle: *GLFWwindow, focused: s32) #c_call {
 
 glfw_key_callback :: (glfw_win: *GLFWwindow, key: s32, scancode: s32, action: s32, mods: s32) #c_call {
 	#if !DISABLE_IMGUI  ImGui_Impl_KeyCallback(key, scancode, action, mods);
+    input_state.cur[key] = action != GLFW_RELEASE;
     push_context window.ctx {
         if window.callbacks.key != null  window.callbacks.key(glfw_win, key, scancode, action, mods);
 	}
