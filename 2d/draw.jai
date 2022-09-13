@@ -99,6 +99,30 @@ draw_rect :: (using obb: *OBB, tint := Colors.White) {
     batch_end(.Rect);
 }
 
+draw_rect_bottom_center :: (position: Vector2, size: Vector2, tint := Colors.White, rotation: float32 = 0.0) {
+    x := position.x - size.x * 0.5;
+    y := position.y - size.y;
+    tl, tr, bl, br: Vector2 = ---;
+    tl.x = x;
+    tl.y = y;
+    tr.x = x + size.x;
+    tr.y = y;
+    bl.x = x;
+    bl.y = y + size.y;
+    br.x = tr.x;
+    br.y = bl.y;
+
+    batch_start(.Rect);
+    {
+        push_color(tint);
+        push_vertex(.Rect, tl);
+        push_vertex(.Rect, bl);
+        push_vertex(.Rect, br);
+        push_vertex(.Rect, tr);
+    }
+    batch_end(.Rect);
+}
+
 draw_rect :: (dest: Rect, tint := Colors.White, origin := Vector2.{0, 0}, rotation: float32 = 0.0) {
     tl, tr, bl, br: Vector2 = ---;
     rotate_quad();
