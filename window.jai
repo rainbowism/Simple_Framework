@@ -177,8 +177,8 @@ center_window :: () {
     }
 }
 
-get_window_size :: () -> Point2 {
-    return xy(window.size.width, window.size.height);
+get_window_size :: inline () -> Vector2 {
+    return make_vector2(xx window.size.width, xx window.size.height);
 }
 
 get_vsync :: () -> bool {
@@ -329,7 +329,7 @@ update_viewport :: (width: s32, height: s32) {
     glViewport(0, 0, xx width, xx height);
     #if !DISABLE_RENDER {
         render_ctx.state.projection = orthographic_projection_matrix(0, xx width, xx height, 0, 0, 1);
-        render_ctx.state.projection = transpose(render_ctx.state.projection);
+        // render_ctx.state.projection = transpose(render_ctx.state.projection);
     }
 }
 

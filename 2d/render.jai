@@ -2,7 +2,7 @@ render_init :: (max_renderables := 8192) {
     init_render_buffers(max_renderables);
     create_default_shaders();
     // @Fix(sushi): If this is -1, the first draw call gets clipped?
-    render_ctx.state.current_depth = -0.999999;
+    render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
 }
 
 create_shader :: (vert_code: string, frag_code: string) -> *Shader {
@@ -48,6 +48,7 @@ batch_draw :: () {
     // @Todo(sushi): add custom shader uniforms
 
     mvp := render_ctx.state.projection * render_ctx.state.model_view;
+    transpose(*mvp);
     {
         glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_COLORED].gl_id);
 
@@ -96,7 +97,7 @@ batch_draw :: () {
         render_ctx.draw_counter = 0;
     }
 
-    render_ctx.state.current_depth = -0.999999;
+    render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
 }
 
 push_model_view_identity :: () {
@@ -164,6 +165,22 @@ push_uv :: (u: float32, v: float32) {
 
 push_color :: (color: Color) {
     render_ctx.state.color = color;
+}
+
+translate_model_view :: (offset: Vector2) {
+    using render_ctx.state;
+    model_view.coef[0][3] += model_view.coef[0][0] * offset.x + model_view.coef[0][1] * offset.y;
+    model_view.coef[1][3] += model_view.coef[1][0] * offset.x + model_view.coef[1][1] * offset.y;
+    model_view.coef[2][3] += model_view.coef[2][0] * offset.x + model_view.coef[2][1] * offset.y;
+    model_view.coef[3][3] += model_view.coef[3][0] * offset.x + model_view.coef[3][1] * offset.y;
+}
+
+set_tilt_pivot :: (position: Vector2) {
+    using render_ctx.state;
+    model_view.coef[3][0] += model_view.coef[0][0] * position.x + model_view.coef[1][0] * position.y;
+    model_view.coef[3][1] += model_view.coef[0][1] * position.x + model_view.coef[1][1] * position.y;
+    model_view.coef[3][2] += model_view.coef[0][2] * position.x + model_view.coef[1][2] * position.y;
+    model_view.coef[3][3] += model_view.coef[0][3] * position.x + model_view.coef[1][3] * position.y;
 }
 
 set_texture :: (texture_id: Texture_Id) {
@@ -295,6 +312,7 @@ buffer_sub_data :: inline ($type: Render_Type) {
     glBindVertexArray(0);
 }
 
+RENDER_STARTING_DEPTH   :: -0.99999;
 DEFAULT_MAX_DRAWCALLS   :: 256;
 DEFAULT_MAX_SHADERS     :: 64;
 DEFAULT_SHADER_TEXTURED :: 0;
@@ -333,8 +351,8 @@ Render_Context :: struct {
         uv:            Vector2;
         color:         Color;
 
-        projection:  Matrix4;
-        model_view:  Matrix4;
+        projection: Matrix4;
+        model_view: Matrix4;
     }
 
     draw_counter: s64;
