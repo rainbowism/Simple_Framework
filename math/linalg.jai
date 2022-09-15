@@ -49,6 +49,25 @@ intersect_line_toi :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> float,
     return t, determinant;
 }
 
+side_of_line :: (position: Vector2, a: Vector2, b: Vector2) -> float {
+    product := (position.x - a.x) * (-b.y + a.y) + (position.y - a.y) * (b.x - a.x);
+    if product < 0  return -1;
+    if product > 0  return  1;
+    return 0;
+}
+
+distance_to_line :: (position: Vector2, a: Vector2, b: Vector2) -> float {
+    perp: Vector2 = ---;
+    perp.x = -b.y + a.y;
+    perp.y =  b.x - a.x;
+    return abs((position.x - a.x) * perp.x + (position.y - a.y) * perp.y) / length(perp);
+}
+
+// This doesn't give the actual distance to the line, but it's fast and useful for sorting.
+distance_to_line_fast :: (position: Vector2, a: Vector2, b: Vector2) -> float {
+    return abs((position.x - a.x) * (-b.y + a.y) + (position.y - a.y) * (b.x - a.x));
+}
+
 Circle :: struct {
     using position: Vector2;
     radius:         float;
