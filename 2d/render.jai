@@ -66,7 +66,7 @@ batch_draw :: () {
     {
         glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED].gl_id);
 
-        glUniformMatrix4fv(0, 1, GL_FALSE, *mvp._11);
+        glUniformMatrix4fv(0, 1, GL_FALSE, mvp.floats.data);
         glBindVertexArray(render_ctx.tex_rects.vao);
 
         glActiveTexture(GL_TEXTURE0);
