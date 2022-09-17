@@ -93,6 +93,13 @@ temp_c_string :: (s: string) -> *u8 {
     return result;
 }
 
+check_result :: (condition: bool, fmt: string, args: .. Any) #expand {
+    if condition {
+        error(fmt, ..args);
+        exit(-1);
+    }
+}
+
 #scope_module
 
 to_string :: (c_string: *u8, count: $T) -> string
