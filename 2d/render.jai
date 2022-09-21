@@ -197,6 +197,10 @@ Render_Type :: enum {
     Line;
 }
 
+get_draw_counter :: () -> int {
+    return render_ctx.draw_counter;
+}
+
 #scope_module
 
 render_ctx: Render_Context;
