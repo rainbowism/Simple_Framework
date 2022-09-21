@@ -161,7 +161,7 @@ draw_texture :: (
     pos: Vector2,
     tint := Colors.White,
     origin := Vector2.{0, 0},
-    rotation: float32 = 0.0
+    rotation: float = 0.0
 ) {
     source, dest: Rect;
     source.width  = xx texture.width;
@@ -180,17 +180,43 @@ draw_texture :: (
 
 draw_texture :: (
     texture: Texture,
+    src: Vector2,
+    dst: Vector2,
+    size: Vector2,
+    tint := Colors.White,
+    origin := Vector2.{0, 0},
+    rotation: float = 0.0
+) {
+    source, dest: Rect = ---;
+    source.x = src.x;
+    source.y = src.y;
+    source.width  = size.x;
+    source.height = size.y;
+    dest.x        = dst.x;
+    dest.y        = dst.y;
+    dest.width    = size.x;
+    dest.height   = size.y;
+    draw_texture(
+        texture, source, dest,
+        origin = origin,
+        rotation = rotation,
+        tint = tint
+    );
+}
+
+draw_texture :: (
+    texture: Texture,
     source: Rect,
     dest: Rect,
     tint := Colors.White,
     origin := Vector2.{0, 0},
-    rotation: float32 = 0.0,
-    flip_x := false
+    rotation: float = 0.0,
+    $flip_x := false
 ) {
     if texture.id == 0  return;
 
-    width:  float32 = xx texture.width;
-    height: float32 = xx texture.height;
+    width:  float = xx texture.width;
+    height: float = xx texture.height;
 
     tl, tr, bl, br: Vector2 = ---;
     rotate_quad();
@@ -200,7 +226,7 @@ draw_texture :: (
     {
         push_color(tint);
 
-        if flip_x {
+        #if flip_x {
             push_uv((source.x + source.width) / width, source.y / height);
             push_vertex(.Texture, tl);
             push_uv((source.x + source.width) / width, (source.y + source.height) / height);
@@ -221,6 +247,16 @@ draw_texture :: (
         }
     }
     batch_end(.Texture);
+}
+
+draw_text :: (font: Font, text: string, position: Vector2, tint := Colors.White) {
+    offset := position;
+    for 0..text.count-1 {
+        if text[it] < 32 || text[it] >= 128  continue;
+        glyph := font.glyphs[text[it] - 32];
+        draw_texture(font.texture, glyph.src, glyph.dst + offset, glyph.size, tint);
+        offset.x += glyph.advance_x;
+    }
 }
 
 #scope_file

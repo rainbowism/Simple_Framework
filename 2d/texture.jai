@@ -53,7 +53,7 @@ load_texture :: (
 ) -> Texture {
     path := temp_c_string(filepath);
 
-    texture: Texture;
+    texture: Texture = ---;
     image_data := stbi_load(path, *texture.width, *texture.height, xx *texture.format, xx Pixel_Format.RGBA);
     defer stbi_image_free(image_data);
 
@@ -62,12 +62,11 @@ load_texture :: (
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8); else
-    if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4); else
-    if (texture.width * texture.height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
-    else glPixelStorei(GL_PACK_ALIGNMENT, 1);
+         if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
+    else if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    else if (texture.width * texture.height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
+    else                                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    gl_format: GLenum;
     if texture.format == {
     case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx texture.width, xx texture.height, 0, GL_RED , GL_UNSIGNED_BYTE, image_data);
     case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx texture.width, xx texture.height, 0, GL_RG  , GL_UNSIGNED_BYTE, image_data);
@@ -82,12 +81,36 @@ load_texture :: (
     return texture;
 }
 
-free :: (image: Image) {
+create_font_texture :: (buffer: [] u8, width: s32, height: s32) -> Texture {
+    texture: Texture = ---;
+    texture.width  = width;
+    texture.height = height;
+
+    glGenTextures(1, *texture.id);  assert(texture.id != 0);
+    glBindTexture(GL_TEXTURE_2D, texture.id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+         if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
+    else if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    else if (texture.width * texture.height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
+    else                                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, xx texture.width, xx texture.height, 0, GL_RED, GL_UNSIGNED_BYTE, buffer.data);
+
+    swizzle_mask :: GLint.[GL_ONE, GL_ONE, GL_ONE, GL_RED];
+    glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_mask.data);
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+    return texture;
+}
+
+free_image :: (image: Image) {
     if image.data == null  return;
     stbi_image_free(image.data);
 }
 
-free :: (texture: Texture) {
+free_texture :: (texture: Texture) {
     if texture.id == 0  return;
     glDeleteTextures(1, *texture.id);
 }
