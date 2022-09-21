@@ -38,29 +38,32 @@ Wrap_Mode :: enum GLenum {
     Clamp_To_Border :: GL_CLAMP_TO_BORDER;
 }
 
-// create_image_from_file :: (filepath: string) -> Image {
-//     path := temp_c_string(filepath);
-//     image: Image = ---;
-//     image.data = stbi_load(path, *image.width, *image.height, *image.format, PixelFormat.RGBA);
-//     return image;
-// }
+create_image :: (filepath: string) -> Image {
+    path := temp_c_string(filepath);
+    image: Image = ---;
+    image.data = stbi_load(path, *image.width, *image.height, *image.format, PixelFormat.RGBA);
+    return image;
+}
 
 load_texture :: (
     filepath: string,
     min_sampling := Sampling_Mode.Trilinear_Mipmap,
     mag_sampling := Sampling_Mode.Nearest,
-    wrap_mode    := Wrap_Mode.Clamp_To_Edge
+    wrap_mode    := Wrap_Mode.Clamp_To_Edge,
+    pixel_format := Pixel_Format.RGBA
 ) -> Texture {
     path := temp_c_string(filepath);
 
     texture: Texture = ---;
-    image_data := stbi_load(path, *texture.width, *texture.height, xx *texture.format, xx Pixel_Format.RGBA);
+    image_data := stbi_load(path, *texture.width, *texture.height, xx *texture.format, xx pixel_format);
     defer stbi_image_free(image_data);
 
     glGenTextures(1, *texture.id);  assert(texture.id != 0);
     glBindTexture(GL_TEXTURE_2D, texture.id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_sampling);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_sampling);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     wrap_mode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     wrap_mode);
 
          if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
     else if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
@@ -68,10 +71,49 @@ load_texture :: (
     else                                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     if texture.format == {
-    case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx texture.width, xx texture.height, 0, GL_RED , GL_UNSIGNED_BYTE, image_data);
-    case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx texture.width, xx texture.height, 0, GL_RG  , GL_UNSIGNED_BYTE, image_data);
-    case .RGB;       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx texture.width, xx texture.height, 0, GL_RGB , GL_UNSIGNED_BYTE, image_data);
-    case .RGBA;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx texture.width, xx texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_R8,    xx texture.width, xx texture.height, 0, GL_RED , GL_UNSIGNED_BYTE, image_data);
+    case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8,   xx texture.width, xx texture.height, 0, GL_RG  , GL_UNSIGNED_BYTE, image_data);
+    case .RGB;       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,  xx texture.width, xx texture.height, 0, GL_RGB , GL_UNSIGNED_BYTE, image_data);
+    case .RGBA;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, xx texture.width, xx texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    case;
+        warn(.Render, "Parsed invalid texture format for file: %", filepath);
+        return .{};
+    }
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+    return texture;
+}
+
+load_texture :: (
+    image: Image,
+    min_sampling := Sampling_Mode.Trilinear_Mipmap,
+    mag_sampling := Sampling_Mode.Nearest,
+    wrap_mode    := Wrap_Mode.Clamp_To_Edge
+) -> Texture {
+    path := temp_c_string(filepath);
+
+    texture: Texture = ---;
+    texture.width  = image.width;
+    texture.height = image.height;
+    texture.format = image.format;
+
+    glGenTextures(1, *texture.id);  assert(texture.id != 0);
+    glBindTexture(GL_TEXTURE_2D, texture.id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_sampling);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_sampling);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     wrap_mode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     wrap_mode);
+
+         if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
+    else if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    else if (texture.width * texture.height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
+    else                                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+    if texture.format == {
+    case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_R8,    xx texture.width, xx texture.height, 0, GL_RED , GL_UNSIGNED_BYTE, image_data);
+    case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8,   xx texture.width, xx texture.height, 0, GL_RG  , GL_UNSIGNED_BYTE, image_data);
+    case .RGB;       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,  xx texture.width, xx texture.height, 0, GL_RGB , GL_UNSIGNED_BYTE, image_data);
+    case .RGBA;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, xx texture.width, xx texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     case;
         warn(.Render, "Parsed invalid texture format for file: %", filepath);
         return .{};
@@ -90,6 +132,8 @@ create_font_texture :: (buffer: [] u8, width: s32, height: s32) -> Texture {
     glBindTexture(GL_TEXTURE_2D, texture.id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
          if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
     else if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
@@ -106,6 +150,11 @@ create_font_texture :: (buffer: [] u8, width: s32, height: s32) -> Texture {
 }
 
 free_image :: (image: Image) {
+    if image.data == null  return;
+    free(image.data);
+}
+
+free_stbi_image :: (image: Image) {
     if image.data == null  return;
     stbi_image_free(image.data);
 }
