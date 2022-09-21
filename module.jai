@@ -23,6 +23,7 @@ SF_Result :: enum {
 #load "window.jai";
 #load "input.jai";
 #load "math/linalg.jai";
+#load "math/matrix.jai";
 
 #if !DISABLE_RENDER {
     #load "2d/texture.jai";

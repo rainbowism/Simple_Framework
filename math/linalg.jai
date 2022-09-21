@@ -1,3 +1,41 @@
+Rect :: struct {
+    x, y:          float;
+    width, height: float;
+}
+
+intersect :: inline (v: Vector2, r: Rect) -> bool {
+    return r.x <= v.x && r.width  >= v.x &&
+           r.y <= v.y && r.height >= v.y;
+}
+
+Point2 :: struct {
+    x, y: s32;
+}
+
+xy :: make_point2;
+make_point2 :: (x: s32) -> Point2 {
+    p: Point2 = ---;
+    p.x = x;
+    p.y = x;
+    return p;
+}
+make_point2 :: (x: s32, y: s32) -> Point2 {
+    p: Point2 = ---;
+    p.x = x;
+    p.y = y;
+    return p;
+}
+
+Recti :: struct {
+    x, y:          s32;
+    width, height: s32;
+}
+
+intersect :: inline (p: Point2, r: Recti) -> bool {
+    return r.x <= p.x && r.width  >= p.x &&
+           r.y <= p.y && r.height >= p.y;
+}
+
 // @Note(sushi): The determinant in all intersect_line procedures are the
 //  winding direction of the collision.
 intersect_line :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool, float {

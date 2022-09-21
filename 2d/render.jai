@@ -1,7 +1,6 @@
 render_init :: (max_renderables := 8192) {
     init_render_buffers(max_renderables);
     create_default_shaders();
-    // @Fix(sushi): If this is -1, the first draw call gets clipped?
     render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
 }
 
@@ -33,7 +32,7 @@ batch_start :: ($type: Render_Type) {
 }
 
 batch_end :: ($type: Render_Type) {
-    DEPTH_OFFSET : float32 : 1.0 / 20000.0;
+    DEPTH_OFFSET :: 1.0 / 20000.0;
     render_ctx.state.current_depth += DEPTH_OFFSET;
     #if type == .Texture {
         if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
@@ -312,13 +311,13 @@ buffer_sub_data :: inline ($type: Render_Type) {
     glBindVertexArray(0);
 }
 
-RENDER_STARTING_DEPTH   :: -0.99999;
+// @Fix(sushi): If this is -1, the first draw call gets clipped?
+RENDER_STARTING_DEPTH   :: 0;
 DEFAULT_MAX_DRAWCALLS   :: 256;
 DEFAULT_MAX_SHADERS     :: 64;
 DEFAULT_SHADER_TEXTURED :: 0;
 DEFAULT_SHADER_COLORED  :: 1;
 
-// @Todo(sushi): are SoAs in yet? should i convert this?
 Vertex_Buffer :: struct {
     index:    s64;
     count:    s64;
