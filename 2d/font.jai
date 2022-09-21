@@ -44,12 +44,21 @@ load_font :: (filepath: string, font_size: float, padding: s32 = 0) -> Font, boo
     font.glyphs.count = 96;
     for 0..chars.count-1 {
         info := chars[it];
+<<<<<<< HEAD
         font.glyphs[it].src.x  = cast(float) info.x0;
         font.glyphs[it].src.y  = cast(float) info.y0;
         font.glyphs[it].dst.x  = info.xoff;
         font.glyphs[it].dst.y  = info.yoff + offset_y;
         font.glyphs[it].size.x = cast(float) (info.x1 - info.x0);
         font.glyphs[it].size.y = cast(float) (info.y1 - info.y0);
+=======
+        font.glyphs[it].src.x  = cast(float) info.x0 - 1;
+        font.glyphs[it].src.y  = cast(float) info.y0;
+        font.glyphs[it].dst.x  = info.xoff;
+        font.glyphs[it].dst.y  = info.yoff + offset_y;
+        font.glyphs[it].size.x = cast(float) (info.x1 - info.x0 + 1);
+        font.glyphs[it].size.y = cast(float) (info.y1 - info.y0 + 1);
+>>>>>>> 7e364352463d4e9950642ef447c25984d29abca8
         font.glyphs[it].advance_x = info.xadvance;
     }
 
