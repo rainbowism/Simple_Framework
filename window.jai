@@ -349,7 +349,7 @@ time: struct {
 update_viewport :: (width: s32, height: s32) {
     glViewport(0, 0, xx width, xx height);
     #if !DISABLE_RENDER {
-        render_ctx.state.projection = make_ortho_matrix(0, xx width, xx height, 0, 0, 1, true);
+        render_ctx.state.projection = make_ortho_matrix(0, xx width, xx height, 0, -1, 1);
     }
 }
 

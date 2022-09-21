@@ -6,6 +6,11 @@ draw_end :: () {
     batch_draw();
 }
 
+draw_camera :: (camera: Camera, $push_identity := false) {
+    #if push_identity  push_model_view_identity();
+    push_model_view(get_camera_matrix(camera));
+}
+
 draw_line :: (a: Vector2, b: Vector2, tint := Colors.White) {
     batch_start(.Line);
     {

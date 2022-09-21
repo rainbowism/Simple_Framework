@@ -166,12 +166,8 @@ push_color :: (color: Color) {
     render_ctx.state.color = color;
 }
 
-translate_model_view :: (offset: Vector2) {
-    using render_ctx.state;
-    model_view.coef[0][3] += model_view.coef[0][0] * offset.x + model_view.coef[0][1] * offset.y;
-    model_view.coef[1][3] += model_view.coef[1][0] * offset.x + model_view.coef[1][1] * offset.y;
-    model_view.coef[2][3] += model_view.coef[2][0] * offset.x + model_view.coef[2][1] * offset.y;
-    model_view.coef[3][3] += model_view.coef[3][0] * offset.x + model_view.coef[3][1] * offset.y;
+push_model_view :: inline (m: Matrix4) {
+    render_ctx.state.model_view *= m;
 }
 
 set_tilt_pivot :: (position: Vector2) {
