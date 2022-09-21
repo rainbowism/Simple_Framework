@@ -426,6 +426,7 @@ glfw_window_focus_callback :: (handle: *GLFWwindow, focused: s32) #c_call {
 }
 
 glfw_key_callback :: (glfw_win: *GLFWwindow, key: s32, scancode: s32, action: s32, mods: s32) #c_call {
+    if key < 0  return;
 	#if !DISABLE_IMGUI  ImGui_Impl_KeyCallback(key, scancode, action, mods);
     input_state.key_cur[key] = action != GLFW_RELEASE;
     push_context window.ctx {

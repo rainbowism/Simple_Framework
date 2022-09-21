@@ -61,6 +61,7 @@ imgui_filename :: (filename: string) {
 }
 
 ImGui_Impl_KeyCallback :: (key: s32, scancode: s32, action: s32, mods: s32) #c_call {
+    if key >= 512  return;
     ui.requested_frames += 1;
     ui.io.KeysDown[key] = action >= GLFW_PRESS;
     ui.io.KeyShift      = mods & GLFW_MOD_SHIFT   > 0;
