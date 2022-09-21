@@ -1,6 +1,7 @@
 Font :: struct {
     texture:   Texture;
     glyphs: [] Glyph_Info;
+    size: float;
 }
 
 Glyph_Info :: struct {
@@ -40,6 +41,8 @@ load_font :: (filepath: string, font_size: float, padding: s32 = 0) -> Font, boo
     offset_y := cast(float) ascent * scale;
 
     font: Font;
+    font.size = font_size;
+
     font.glyphs.data  = alloc(96 * size_of(Glyph_Info));
     font.glyphs.count = 96;
     for 0..chars.count-1 {
@@ -60,6 +63,18 @@ load_font :: (filepath: string, font_size: float, padding: s32 = 0) -> Font, boo
 free_font :: (font: Font) {
     free(font.glyphs.data);
     free_texture(font.texture);
+}
+
+measure_text :: (font: Font, text: string) -> Vector2 {
+    size: Vector2 = ---;
+    size.x = 0;
+    size.y = font.size;
+    if text.count == 0  return size;
+    for 0..text.count-1 {
+        if text[it] < 32 || text[it] >= 128  continue;
+        size.x += font.glyphs[text[it] - 32].advance_x;
+    }
+    return size;
 }
 
 #scope_file
