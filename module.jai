@@ -3,10 +3,12 @@
     LOG_LEVEL            := Log_Level.INFO,
     LOG_FILE_PATH        := false,
     MANUALLY_SWAP_BUFFER := false,
-    DISABLE_RENDER       := false,
-    DISABLE_AUDIO        := false,
-    DISABLE_IMGUI        := false,
-    DISABLE_SIMD         := false
+
+    DISABLE_RENDER  := false,
+    DISABLE_AUDIO   := false,
+    DISABLE_IMGUI   := false,
+    DISABLE_SIMD    := false,
+    ENABLE_PROFILER := false
 );
 
 SF_Result :: enum {
@@ -22,6 +24,7 @@ SF_Result :: enum {
 #load "data.jai";
 #load "window.jai";
 #load "input.jai";
+#load "profiler.jai";
 
 #load "math/linalg.jai";
 #load "math/matrix.jai";
@@ -44,4 +47,5 @@ SF_Result :: enum {
 
 #if !DISABLE_IMGUI {
     #load "imgui/imgui.jai";
+    #load "imgui/profiler.jai";
 }

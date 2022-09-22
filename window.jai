@@ -12,8 +12,6 @@ Window_Flags :: enum_flags {
     Fullscreen;
     Centered;
     VSync;
-    Frametime_In_Title;
-    Draw_Calls_In_Title;
 }
 
 init :: () -> SF_Result {
@@ -62,15 +60,6 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
         }
     }
 
-    #if DEBUG {
-        if flags & .Frametime_In_Title {
-            window.debug.frametime_in_title = true;
-        }
-        if flags & .Draw_Calls_In_Title {
-            window.debug.draw_calls_in_title = true;
-        }
-    }
-
     glfwSetInputMode(window.handle, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
     glfwSetInputMode(window.handle, GLFW_STICKY_KEYS, GLFW_TRUE);
     glfwSetWindowSizeCallback (window.handle, glfw_window_size_callback);
@@ -107,6 +96,7 @@ should_exit :: () -> bool {
     reset_temporary_storage();
     #if !MANUALLY_SWAP_BUFFER  glfwSwapBuffers(window.handle);
     glfwPollEvents();
+    cpu_end_frame();
 
     exit := glfwWindowShouldClose(window.handle) == GLFW_TRUE;
 
@@ -128,27 +118,9 @@ should_exit :: () -> bool {
             fps_buffer[fps_index] = time.delta / TRACK_FPS_SAMPLES;
             fps_average += fps_buffer[fps_index];
             fps_index = (fps_index + 1) % TRACK_FPS_SAMPLES;
-
-            #if DEBUG {
-                using window.debug;
-                if (frametime_in_title || draw_calls_in_title) && (fps_index % 20) == 0 {
-                    builder: String_Builder;
-                    builder.allocator = temp;
-
-                    print_to_builder(*builder, window.name);
-                    if frametime_in_title {
-                        print_to_builder(*builder, " | FT:%", formatFloat(fps_average * 1000, mode = .SHORTEST));
-                    }
-                    if draw_calls_in_title {
-                        print_to_builder(*builder, " | DC:%", render_ctx.draw_counter + 1);
-                    }
-                    print_to_builder(*builder, "\0");
-                    new_title := builder_to_string(*builder);
-                    glfwSetWindowTitle(window.handle, new_title.data);
-                }
-            }
         }
     }
+    cpu_begin_frame();
 
     if !window.time.vsync && window.time.target_fps > 0 && time.delta > 0 {
         desired_sleep_time := max(
@@ -387,13 +359,6 @@ Window_Context :: struct {
         fps_last:     float64;
         fps_index:    int;
         fps_average:  float64;
-    }
-
-    #if DEBUG {
-        debug: struct {
-            draw_calls_in_title: bool;
-            frametime_in_title: bool;
-        }
     }
 
     callbacks: struct {

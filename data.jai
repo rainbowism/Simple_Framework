@@ -1,9 +1,11 @@
 Color :: struct {
-    r, g, b, a: float32;
+    r, g, b, a: float;
 }
 
 Color8 :: struct {
     r, g, b, a: u8;
+#place r;
+    value: u32;
 }
 
 Colors :: struct #type_info_none {
@@ -150,9 +152,9 @@ Colors :: struct #type_info_none {
     Yellow_Green            :: Color.{0.6039, 0.8039, 0.1961, 1}; // #9ACD32
 }
 
-ONE_OVER_255 : float32 : 1.0 / 255;
+ONE_OVER_255 :: 1.0 / 255.0;
 
-alloc_color :: (r: float32, g: float32, b: float32, a: float32) -> Color {
+make_color :: (r: float, g: float, b: float, a: float) -> Color {
     c: Color = ---;
     c.r = r;
     c.g = g;
@@ -161,7 +163,9 @@ alloc_color :: (r: float32, g: float32, b: float32, a: float32) -> Color {
     return c;
 }
 
-alloc_color8 :: (r: u8, g: u8, b: u8, a: u8) -> Color8 {
+rgba :: make_color;
+
+make_color8 :: (r: u8, g: u8, b: u8, a: u8) -> Color8 {
     c: Color8 = ---;
     c.r = r;
     c.g = g;
@@ -170,11 +174,22 @@ alloc_color8 :: (r: u8, g: u8, b: u8, a: u8) -> Color8 {
     return c;
 }
 
+rgba8 :: make_color8;
+
 to_color :: (in: Color8) -> Color {
     out: Color = ---;
-    out.r = (cast(float32) in.r) * ONE_OVER_255;
-    out.g = (cast(float32) in.g) * ONE_OVER_255;
-    out.b = (cast(float32) in.b) * ONE_OVER_255;
-    out.a = (cast(float32) in.a) * ONE_OVER_255;
+    out.r = (cast(float) in.r) * ONE_OVER_255;
+    out.g = (cast(float) in.g) * ONE_OVER_255;
+    out.b = (cast(float) in.b) * ONE_OVER_255;
+    out.a = (cast(float) in.a) * ONE_OVER_255;
+    return out;
+}
+
+to_color8 :: (in: Color) -> Color8 {
+    out: Color8 = ---;
+    out.r = cast(u8) (clamp(in.r, 0, 1) * 255 + 0.5);
+    out.g = cast(u8) (clamp(in.g, 0, 1) * 255 + 0.5);
+    out.b = cast(u8) (clamp(in.b, 0, 1) * 255 + 0.5);
+    out.a = cast(u8) (clamp(in.a, 0, 1) * 255 + 0.5);
     return out;
 }
