@@ -93,18 +93,13 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 }
 
 should_exit :: () -> bool {
-    cpu_end_frame();
-
     reset_temporary_storage();
 
     {
         gpu_scoped_task("Present", Colors8.Red);
         #if !MANUALLY_SWAP_BUFFER  glfwSwapBuffers(window.handle);
     }
-    gpu_end_frame();
     glfwPollEvents();
-
-    cpu_begin_frame();
 
     exit := glfwWindowShouldClose(window.handle) == GLFW_TRUE;
 
@@ -115,7 +110,7 @@ should_exit :: () -> bool {
     }
 
     {
-        cpu_scoped_task("WaitForFence", Colors8.Light_Salmon);
+        gpu_scoped_task("WaitForFence", Colors8.Light_Salmon);
         new_time := get_time();
         time.delta64 = new_time - time.last;
         if time.delta64 > MAX_DELTA_TIME  time.delta64 = MAX_DELTA_TIME;
@@ -151,6 +146,7 @@ should_exit :: () -> bool {
         }
         time.last = new_time;
     }
+    gpu_end_frame();
 
     return exit;
 }
