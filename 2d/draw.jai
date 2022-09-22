@@ -1,9 +1,12 @@
 draw_begin :: () {
+    gpu_begin_frame();
     push_model_view_identity();
+    _profiler_draw_task = gpu_begin_task("Draw", Colors8.Medium_Purple);
 }
 
 draw_end :: () {
     batch_draw();
+    gpu_end_task(_profiler_draw_task);
 }
 
 draw_camera :: (camera: Camera, $push_identity := false) {
@@ -297,5 +300,7 @@ rotate_quad :: () #expand {
         `br.y = y + (dx + `dest.width) * theta_sin + (dy + `dest.height) * theta_cos;
     }
 }
+
+_profiler_draw_task: int;
 
 #import "Math";

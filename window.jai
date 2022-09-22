@@ -19,11 +19,11 @@ init :: () -> SF_Result {
     if !glfwInit() {
         return .Failed_To_Init_GLFW;
     }
-	#if OS == .WINDOWS {
-        Win32 :: #import "Windows";
-		Win32.SetProcessDPIAware();
-        Win32.timeBeginPeriod(1);
-	}
+	// #if OS == .WINDOWS {
+    //     Win32 :: #import "Windows";
+    //     Win32.SetProcessDPIAware();
+    //     Win32.timeBeginPeriod(1);
+	// }
     window.ctx = context;
     initialized = true;
     return .Ok;
@@ -93,10 +93,18 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 }
 
 should_exit :: () -> bool {
-    reset_temporary_storage();
-    #if !MANUALLY_SWAP_BUFFER  glfwSwapBuffers(window.handle);
-    glfwPollEvents();
     cpu_end_frame();
+
+    reset_temporary_storage();
+
+    {
+        gpu_scoped_task("Present", Colors8.Red);
+        #if !MANUALLY_SWAP_BUFFER  glfwSwapBuffers(window.handle);
+    }
+    gpu_end_frame();
+    glfwPollEvents();
+
+    cpu_begin_frame();
 
     exit := glfwWindowShouldClose(window.handle) == GLFW_TRUE;
 
@@ -106,32 +114,43 @@ should_exit :: () -> bool {
         window.size.last_height = window.size.height;
     }
 
-    new_time := get_time();
-    time.delta64 = new_time - time.last;
-    if time.delta64 > MAX_DELTA_TIME  time.delta64 = MAX_DELTA_TIME;
-    time.delta   = xx time.delta64;
     {
-        using window.time;
-        if (new_time - fps_last) > TRACK_FPS_STEP {
-            fps_last = new_time;
-            fps_average -= fps_buffer[fps_index];
-            fps_buffer[fps_index] = time.delta / TRACK_FPS_SAMPLES;
-            fps_average += fps_buffer[fps_index];
-            fps_index = (fps_index + 1) % TRACK_FPS_SAMPLES;
-        }
-    }
-    cpu_begin_frame();
+        cpu_scoped_task("WaitForFence", Colors8.Light_Salmon);
+        new_time := get_time();
+        time.delta64 = new_time - time.last;
+        if time.delta64 > MAX_DELTA_TIME  time.delta64 = MAX_DELTA_TIME;
+        time.delta   = xx time.delta64;
+        {
+            using window.time;
+            if (new_time - fps_last) > TRACK_FPS_STEP {
+                fps_last = new_time;
+                fps_average -= fps_buffer[fps_index];
+                fps_buffer[fps_index] = time.delta64 * (1.0 / TRACK_FPS_SAMPLES);
+                fps_average += fps_buffer[fps_index];
+                fps_index = (fps_index + 1) % TRACK_FPS_SAMPLES;
 
-    if !window.time.vsync && window.time.target_fps > 0 && time.delta > 0 {
-        desired_sleep_time := max(
-            (1_000_000.0 / window.time.target_fps)
-          - (time.delta * 1_000_000.0), 0.0
-        );
-        if desired_sleep_time > 0 {
-            usleep(cast(s64) desired_sleep_time, new_time + (1.0 / window.time.target_fps));
+                // #if DEBUG {
+                //     builder: String_Builder;
+                //     builder.allocator = temp;
+
+                //     print_to_builder(*builder, window.name);
+                //     print_to_builder(*builder, " | FT:%", formatFloat(fps_average * 1000, mode = .SHORTEST));
+                //     print_to_builder(*builder, " | DC:%", render_ctx.draw_counter + 1);
+                //     print_to_builder(*builder, "\0");
+                //     new_title := builder_to_string(*builder);
+                //     glfwSetWindowTitle(window.handle, new_title.data);
+                // }
+            }
         }
+
+        if !window.time.vsync && window.time.target_fps > 0 && time.delta64 > 0 {
+            desired_sleep_time := max((1_000_000.0 * window.time.target_fps_inv) - (1_000_000.0 * time.delta64), 0.0);
+            if desired_sleep_time > 0 {
+                usleep(cast(s64) desired_sleep_time, new_time + window.time.target_fps_inv - time.delta64);
+            }
+        }
+        time.last = new_time;
     }
-    time.last = new_time;
 
     return exit;
 }
@@ -192,7 +211,8 @@ get_target_fps :: () -> float {
 }
 
 set_target_fps :: (value: float) {
-    window.time.target_fps = value;
+    window.time.target_fps     = value;
+    window.time.target_fps_inv = 1.0 / xx value;
 }
 
 get_window_mode :: () -> Window_Flags {
@@ -352,8 +372,9 @@ Window_Context :: struct {
     }
 
     time: struct {
-        vsync:        bool;
-        target_fps:   float;
+        vsync:          bool;
+        target_fps:     float;
+        target_fps_inv: float64;
 
         fps_buffer:   [TRACK_FPS_SAMPLES] float64;
         fps_last:     float64;

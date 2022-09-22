@@ -1,8 +1,9 @@
 #if ENABLE_PROFILER {
     imgui_render_profiler :: () {
         title := tprint(
-            "Profiler [%ms, % draw]###ProfilerWindow\0",
-            formatFloat(window.time.fps_average * 1000, trailing_width = 2, zero_removal = .NO),
+            "Profiler [%ms, %fps, % draw]###ProfilerWindow\0",
+            formatFloat(window.time.fps_average * 1000, trailing_width = 3, zero_removal = .NO),
+            cast(int) (1.0 / window.time.fps_average),
             render_ctx.draw_counter + 1
         );
 
@@ -58,6 +59,7 @@ render_graph :: (draw_list: *ImGui.ImDrawList, profiler: Profiler, position: Vec
         for cur_frame.tasks {
             start_height: float = xx (it.start * MAX_FRAME_TIME) * size.y;
             end_height:   float = xx (it.end   * MAX_FRAME_TIME) * size.y;
+            if start_height > size.y || end_height > size.y  continue;
             if abs(end_height - start_height) < HEIGHT_THRESHOLD  continue;
             add_rect_filled(draw_list, task_position + xy(0.0, -start_height), task_position + xy(FRAME_WIDTH, -end_height), it.color);
         }
@@ -82,6 +84,8 @@ render_legend :: (draw_list: *ImGui.ImDrawList, profiler: Profiler, position: Ve
         start_height: float = xx (it.start * MAX_FRAME_TIME) * size.y;
         end_height:   float = xx (it.end   * MAX_FRAME_TIME) * size.y;
 
+        if start_height > size.y || end_height > size.y  continue;
+
         marker_left_rect_min := position             + xy(MARKER_LEFT_RECT_MARGIN, size.y);
         marker_left_rect_max := marker_left_rect_min + xy(MARKER_LEFT_RECT_WIDTH,  0.0);
         marker_left_rect_min.y -= start_height;
@@ -95,7 +99,7 @@ render_legend :: (draw_list: *ImGui.ImDrawList, profiler: Profiler, position: Ve
         render_task_marker(draw_list, marker_left_rect_min, marker_left_rect_max, marker_right_rect_min, marker_right_rect_max, it.color);
 
         task_time := (it.end - it.start) * 1000;
-        add_text(draw_list, marker_right_rect_max + TEXT_MARGIN, it.color, tprint("[%ms] %", formatFloat(task_time, trailing_width = 2, zero_removal = .NO), it.name));
+        add_text(draw_list, marker_right_rect_max + TEXT_MARGIN, it.color, tprint("[%ms] %", formatFloat(task_time, trailing_width = 3, zero_removal = .NO), it.name));
     }
 }
 

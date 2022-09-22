@@ -53,7 +53,7 @@ Profiler :: struct {
 
     cpu_scoped_task :: (name: string, color := Colors8.White) #expand {
         id := profiler_begin_task(*_cpu_profiler, name, color);
-        defer profiler_end_task(*_cpu_profiler, id);
+        `defer profiler_end_task(*_cpu_profiler, id);
     }
 
     cpu_begin_frame :: () #expand {
@@ -69,7 +69,7 @@ Profiler :: struct {
     }
 
     cpu_begin_task :: (name: string, color := Colors8.White) -> int #expand {
-        profiler_begin_task(*_cpu_profiler, name, color);
+        return profiler_begin_task(*_cpu_profiler, name, color);
     }
 
     cpu_end_task :: (id: int) -> Profiler_Task #expand {
@@ -78,7 +78,7 @@ Profiler :: struct {
 
     gpu_scoped_task :: (name: string, color := Colors8.White) #expand {
         id := profiler_begin_task(*_gpu_profiler, name, color);
-        defer profiler_end_task(*_gpu_profiler, id);
+        `defer profiler_end_task(*_gpu_profiler, id);
     }
 
     gpu_begin_frame :: () #expand {
@@ -94,7 +94,7 @@ Profiler :: struct {
     }
 
     gpu_begin_task :: (name: string, color := Colors8.White) -> int #expand {
-        profiler_begin_task(*_gpu_profiler, name, color);
+        return profiler_begin_task(*_gpu_profiler, name, color);
     }
 
     gpu_end_task :: (id: int) -> Profiler_Task #expand {
@@ -104,17 +104,19 @@ Profiler :: struct {
     profiler_begin_frame :: (profiler: *Profiler) #expand {}
     profiler_end_frame   :: (profiler: *Profiler) #expand {}
     profiler_elapsed     :: (profiler: *Profiler) -> float64 #expand {}
-    profiler_begin_task  :: (profiler: *Profiler, name: string, color := Colors.White) -> int #expand {}
+    profiler_begin_task  :: (profiler: *Profiler, name: string, color := Colors8.White) -> int #expand {}
     profiler_end_task    :: (profiler: *Profiler, id: int) -> Profiler_Task #expand {}
+    cpu_scoped_task :: (name: string, color := Colors8.White) #expand {}
     cpu_begin_frame :: () #expand {}
     cpu_end_frame :: () #expand {}
     cpu_elapsed :: () -> float64 #expand {}
-    cpu_begin_task :: (name: string, color := Colors.White) -> int #expand {}
+    cpu_begin_task :: (name: string, color := Colors8.White) -> int #expand {}
     cpu_end_task :: (id: int) -> Profiler_Task #expand {}
+    gpu_scoped_task :: (name: string, color := Colors8.White) #expand {}
     gpu_begin_frame :: () #expand {}
     gpu_end_frame :: () #expand {}
     gpu_elapsed :: () -> float64 #expand {}
-    gpu_begin_task :: (name: string, color := Colors.White) -> int #expand {}
+    gpu_begin_task :: (name: string, color := Colors8.White) -> int #expand {}
     gpu_end_task :: (id: int) -> Profiler_Task #expand {}
 }
 

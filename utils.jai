@@ -145,16 +145,40 @@ insert_line_numbers :: (s: string) -> string {
 
 #if OS == .WINDOWS {
     usleep :: (microseconds: s64, target_time: float64) {
-        ft: Win32.LARGE_INTEGER;
-        ft.QuadPart = -(10 * microseconds);
+        ft: LARGE_INTEGER;
+        ft.QuadPart = -microseconds * 10;
 
-        timer := Win32.CreateWaitableTimerW(null, .TRUE, null);
-        Win32.SetWaitableTimer(timer, *ft, 0, null, null, .FALSE);
-        Win32.WaitForSingleObject(timer, Win32.INFINITE);
-        Win32.CloseHandle(timer);
+        timer := CreateWaitableTimerW(null, .TRUE, null);
+        SetWaitableTimer(timer, *ft, 0, null, null, .FALSE);
+        WaitForSingleObject(timer, INFINITE);
+        CloseHandle(timer);
 
         while get_time() < target_time {}
     }
+
+    // usleep :: (microseconds: s64, target_time: float64) {
+    //     CreateWaitableTimerExW :: (
+    //         lpTimerAttributes: *SECURITY_ATTRIBUTES,
+    //         lpTimerName:       LPCWSTR,
+    //         dwFlags:           DWORD,
+    //         dwDesiredAccess:   DWORD
+    //     ) -> HANDLE #foreign kernel32;
+    //     kernel32 :: #foreign_system_library "kernel32";
+
+    //     // @PlatformDependence
+    //     CREATE_WAITABLE_TIMER_HIGH_RESOLUTION :: 0x00000002;
+    //     EVENT_ALL_ACCESS :: 0x1F0003;
+    //     high_resolution_timer := CreateWaitableTimerExW(null, null, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, EVENT_ALL_ACCESS);
+
+    //     // to wait on it:
+    //     due_time: LARGE_INTEGER;
+    //     due_time.QuadPart = -microseconds * 10;
+    //     set_ok := SetWaitableTimer(high_resolution_timer, *due_time, 0, null, null, 0);
+    //     assert(set_ok != 0, "%", GetLastError());
+    //     WaitForSingleObject(high_resolution_timer, INFINITE);
+
+    //     while get_time() < target_time {}
+    // }
 } else #if OS == .LINUX || OS == .MACOS {
     usleep :: (microseconds: s64, target_time: float64) {
         nanosleep :: (req: *timespec, rem: *timespec) -> int #foreign libc;
@@ -174,7 +198,7 @@ insert_line_numbers :: (s: string) -> string {
 #scope_file
 
 #if OS == .WINDOWS {
-    Win32 :: #import "Windows";
+    #import "Windows";
 } else #if OS == .LINUX || OS == .MACOS {
     #import "POSIX";
 }
