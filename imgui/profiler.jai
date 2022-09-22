@@ -2,7 +2,7 @@
     imgui_render_profiler :: () {
         title := tprint(
             "Profiler [%ms, % draw]###ProfilerWindow\0",
-            formatFloat(window.time.fps_average * 1000, mode = .SHORTEST),
+            formatFloat(window.time.fps_average * 1000, trailing_width = 2, zero_removal = .NO),
             render_ctx.draw_counter + 1
         );
 
@@ -95,7 +95,7 @@ render_legend :: (draw_list: *ImGui.ImDrawList, profiler: Profiler, position: Ve
         render_task_marker(draw_list, marker_left_rect_min, marker_left_rect_max, marker_right_rect_min, marker_right_rect_max, it.color);
 
         task_time := (it.end - it.start) * 1000;
-        add_text(draw_list, marker_right_rect_max + TEXT_MARGIN, it.color, tprint("[%ms] %", formatFloat(task_time, trailing_width = 3), it.name));
+        add_text(draw_list, marker_right_rect_max + TEXT_MARGIN, it.color, tprint("[%ms] %", formatFloat(task_time, trailing_width = 2, zero_removal = .NO), it.name));
     }
 }
 

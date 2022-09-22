@@ -17,7 +17,7 @@ Profiler :: struct {
 }
 
 #if ENABLE_PROFILER {
-    profiler_scoped_task :: (using profiler: *Profiler, name: string, color := Colors.White) #expand {
+    profiler_scoped_task :: (using profiler: *Profiler, name: string, color := Colors8.White) #expand {
         id := profiler_begin_task(name, color);
         defer profiler_end_task(id);
     }
@@ -36,11 +36,11 @@ Profiler :: struct {
         return get_time() - frames[index].start;
     }
 
-    profiler_begin_task :: (using profiler: *Profiler, name: string, color := Colors.White) -> int {
+    profiler_begin_task :: (using profiler: *Profiler, name: string, color := Colors8.White) -> int {
         task: Profiler_Task = ---;
         task.start = profiler_frame_elapsed(profiler);
         task.name  = name;
-        task.color = to_color8(color).value;
+        task.color = color.value;
 
         array_add(*frames[index].tasks, task);
         return frames[index].tasks.count-1;
@@ -51,7 +51,7 @@ Profiler :: struct {
         return frames[index].tasks[id];
     }
 
-    cpu_scoped_task :: (name: string, color := Colors.White) #expand {
+    cpu_scoped_task :: (name: string, color := Colors8.White) #expand {
         id := profiler_begin_task(*_cpu_profiler, name, color);
         defer profiler_end_task(*_cpu_profiler, id);
     }
@@ -68,7 +68,7 @@ Profiler :: struct {
         profiler_elapsed(*_cpu_profiler);
     }
 
-    cpu_begin_task :: (name: string, color := Colors.White) -> int #expand {
+    cpu_begin_task :: (name: string, color := Colors8.White) -> int #expand {
         profiler_begin_task(*_cpu_profiler, name, color);
     }
 
@@ -76,7 +76,7 @@ Profiler :: struct {
         profiler_end_task(*_cpu_profiler, id);
     }
 
-    gpu_scoped_task :: (name: string, color := Colors.White) #expand {
+    gpu_scoped_task :: (name: string, color := Colors8.White) #expand {
         id := profiler_begin_task(*_gpu_profiler, name, color);
         defer profiler_end_task(*_gpu_profiler, id);
     }
@@ -93,7 +93,7 @@ Profiler :: struct {
         profiler_elapsed(*_gpu_profiler);
     }
 
-    gpu_begin_task :: (name: string, color := Colors.White) -> int #expand {
+    gpu_begin_task :: (name: string, color := Colors8.White) -> int #expand {
         profiler_begin_task(*_gpu_profiler, name, color);
     }
 
