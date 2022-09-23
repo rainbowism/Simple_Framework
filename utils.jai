@@ -66,6 +66,26 @@ error :: (fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_loc
     log(.Game, .ERROR, fmt, ..args, flags = flags | .ERROR, loc = loc);
 }
 
+trace :: (value: Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+    log(.Game, .TRACE, "%", value, flags = flags, loc = loc);
+}
+
+debug :: (value: Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+    log(.Game, .DEBUG, "%", value, flags = flags, loc = loc);
+}
+
+info :: (value: Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+    log(.Game, .INFO, "%", value, flags = flags, loc = loc);
+}
+
+warn :: (value: Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+    log(.Game, .WARN, "%", value, flags = flags | .WARNING, loc = loc);
+}
+
+error :: (value: Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
+    log(.Game, .ERROR, "%", value, flags = flags | .ERROR, loc = loc);
+}
+
 trace :: ($log_type: Log_Type, fmt: string, args: .. Any, flags := Log_Flags.NONE, loc := #caller_location) #expand {
     log(log_type, .TRACE, fmt, ..args, flags = flags, loc = loc);
 }
