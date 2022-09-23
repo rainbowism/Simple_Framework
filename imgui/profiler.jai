@@ -14,6 +14,8 @@
 
         size_constraints := ImGui.GetStyle().WindowPadding * 2 + MAX_WINDOW_SIZE;
         ImGui.SetNextWindowSizeConstraints(MIN_WINDOW_SIZE, size_constraints);
+        ImGui.PushStyleColor(.WindowBg, 0x0F0F0F80);
+        defer ImGui.PopStyleColor();
         defer ImGui.End();
         if !ImGui.Begin(title.data, null, .NoScrollbar) return;
 
