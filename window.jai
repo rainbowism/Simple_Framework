@@ -151,11 +151,11 @@ should_exit :: () -> bool {
     return exit;
 }
 
-swap_buffers :: () {
+swap_buffers :: inline () {
     glfwSwapBuffers(window.handle);
 }
 
-exit :: () {
+exit :: inline () {
     glfwSetWindowShouldClose(window.handle, GLFW_TRUE);
 }
 

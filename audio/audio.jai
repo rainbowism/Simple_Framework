@@ -54,19 +54,19 @@ free_sound_channel :: (sound_channel: *Sound_Channel) #expand {
     free(sound_channel);
 }
 
-get_volume :: () -> float32 #expand {
+get_volume :: () -> float #expand {
     return ma_node_get_output_bus_volume(ma_node_graph_get_endpoint(*audio_ctx.engine.nodeGraph), 0);
 }
 
-get_volume :: (sound_channel: *Sound_Channel) -> float32 #expand {
+get_volume :: (sound_channel: *Sound_Channel) -> float #expand {
     return ma_sound_group_get_volume(sound_channel);
 }
 
-set_volume :: (volume: float32) -> float32 #expand {
+set_volume :: (volume: float) -> float #expand {
     ma_engine_set_volume(*audio_ctx.engine, volume);
 }
 
-set_volume :: (sound_channel: *Sound_Channel, volume: float32) -> float32 #expand {
+set_volume :: (sound_channel: *Sound_Channel, volume: float) -> float #expand {
     ma_sound_group_set_volume(sound_channel, volume);
 }
 

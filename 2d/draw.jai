@@ -107,7 +107,7 @@ draw_rect :: (using obb: *OBB, tint := Colors.White) {
     batch_end(.Rect);
 }
 
-draw_rect_bottom_center :: (position: Vector2, size: Vector2, tint := Colors.White, rotation: float32 = 0.0) {
+draw_rect_bottom_center :: (position: Vector2, size: Vector2, tint := Colors.White, rotation: float = 0.0) {
     x := position.x - size.x * 0.5;
     y := position.y - size.y;
     tl, tr, bl, br: Vector2 = ---;
@@ -131,7 +131,7 @@ draw_rect_bottom_center :: (position: Vector2, size: Vector2, tint := Colors.Whi
     batch_end(.Rect);
 }
 
-draw_rect :: (dest: Rect, tint := Colors.White, origin := Vector2.{0, 0}, rotation: float32 = 0.0) {
+draw_rect :: (dest: Rect, tint := Colors.White, origin := Vector2.{0, 0}, rotation: float = 0.0) {
     tl, tr, bl, br: Vector2 = ---;
     rotate_quad();
 
@@ -146,7 +146,7 @@ draw_rect :: (dest: Rect, tint := Colors.White, origin := Vector2.{0, 0}, rotati
     batch_end(.Rect);
 }
 
-draw_rect :: (dest: Rect, tints: [4] Color, origin := Vector2.{0, 0}, rotation: float32 = 0.0) {
+draw_rect :: (dest: Rect, tints: [4] Color, origin := Vector2.{0, 0}, rotation: float = 0.0) {
     tl, tr, bl, br: Vector2 = ---;
     rotate_quad();
 

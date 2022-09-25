@@ -157,7 +157,7 @@ push_uv :: (uv: Vector2) {
     render_ctx.state.uv = uv;
 }
 
-push_uv :: (u: float32, v: float32) {
+push_uv :: (u: float, v: float) {
     render_ctx.state.uv.x = u;
     render_ctx.state.uv.y = v;
 }
@@ -346,7 +346,7 @@ Render_Context :: struct {
     }
 
     state: struct {
-        current_depth: float32;
+        current_depth: float;
         uv:            Vector2;
         color:         Color;
 

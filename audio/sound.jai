@@ -31,8 +31,8 @@ free_sound :: (sound: *Sound) {
     ma_sound_uninit(sound);
 }
 
-get_length_in_seconds :: (sound: *Sound) -> float32 {
-    value: float32;
+get_length_in_seconds :: (sound: *Sound) -> float {
+    value: float;
     ma_data_source_get_length_in_seconds(sound.pDataSource, *value);
     return value;
 }
