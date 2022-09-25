@@ -24,8 +24,8 @@
         graph_width  := canvas_size.x - LEGEND_WIDTH;
         graph_height := min((canvas_size.y - size_margin) * 0.5, MAX_GRAPH_HEIGHT);
 
-        render_timings(_cpu_profiler, graph_width, LEGEND_WIDTH, graph_height, 0);
-        render_timings(_gpu_profiler, graph_width, LEGEND_WIDTH, graph_height, 0);
+        render_timings(_cpu_profiler, graph_width, LEGEND_WIDTH, graph_height, 0, CPU_FRAME_TIME);
+        render_timings(_gpu_profiler, graph_width, LEGEND_WIDTH, graph_height, 0, GPU_FRAME_TIME);
     }
 } else {
     imgui_render_profiler :: () #expand {}
@@ -33,19 +33,20 @@
 
 #scope_file
 
-MAX_FRAME_TIME :: 60.0;
+CPU_FRAME_TIME :: 120.0;
+GPU_FRAME_TIME :: 60.0;
 FRAME_WIDTH    :: 3.0;
 FRAME_SPACING  :: 1.0;
 
-render_timings :: (profiler: Profiler, graph_width: float, legend_width: float, height: float, frame_offset: int) {
+render_timings :: (profiler: Profiler, graph_width: float, legend_width: float, height: float, frame_offset: int, $max_frame_time: float) {
     draw_list := ImGui.GetWindowDrawList();
     widget_pos := ImGui.GetCursorScreenPos();
-    render_graph(draw_list, profiler, widget_pos, xy(graph_width, height), frame_offset);
-    render_legend(draw_list, profiler, widget_pos + xy(graph_width, 0), xy(legend_width, height), frame_offset);
+    render_graph(draw_list, profiler, widget_pos, xy(graph_width, height), frame_offset, max_frame_time);
+    render_legend(draw_list, profiler, widget_pos + xy(graph_width, 0), xy(legend_width, height), frame_offset, max_frame_time);
     ImGui.Dummy(xy(graph_width + legend_width, height));
 }
 
-render_graph :: (draw_list: *ImGui.ImDrawList, profiler: Profiler, position: Vector2, size: Vector2, frame_offset: int) {
+render_graph :: (draw_list: *ImGui.ImDrawList, profiler: Profiler, position: Vector2, size: Vector2, frame_offset: int, $max_frame_time: float) {
     add_rect(draw_list, position, position + size, 0xFFFFFFFF);
     HEIGHT_THRESHOLD :: 1.0;
 
@@ -59,8 +60,8 @@ render_graph :: (draw_list: *ImGui.ImDrawList, profiler: Profiler, position: Vec
         task_position := frame_position;
         cur_frame     := profiler.frames[frame_index];
         for cur_frame.tasks {
-            start_height: float = xx (it.start * MAX_FRAME_TIME) * size.y;
-            end_height:   float = xx (it.end   * MAX_FRAME_TIME) * size.y;
+            start_height: float = xx (it.start * max_frame_time) * size.y;
+            end_height:   float = xx (it.end   * max_frame_time) * size.y;
             if start_height > size.y || end_height > size.y  continue;
             if abs(end_height - start_height) < HEIGHT_THRESHOLD  continue;
             add_rect_filled(draw_list, task_position + xy(0.0, -start_height), task_position + xy(FRAME_WIDTH, -end_height), it.color);
@@ -68,7 +69,7 @@ render_graph :: (draw_list: *ImGui.ImDrawList, profiler: Profiler, position: Vec
     }
 }
 
-render_legend :: (draw_list: *ImGui.ImDrawList, profiler: Profiler, position: Vector2, size: Vector2, frame_offset: int) {
+render_legend :: (draw_list: *ImGui.ImDrawList, profiler: Profiler, position: Vector2, size: Vector2, frame_offset: int, $max_frame_time: float) {
     MARKER_LEFT_RECT_MARGIN   :: 3.0;
     MARKER_LEFT_RECT_WIDTH    :: 5.0;
     MARKER_MID_WIDTH          :: 30.0;
@@ -83,8 +84,8 @@ render_legend :: (draw_list: *ImGui.ImDrawList, profiler: Profiler, position: Ve
     cur_frame   := profiler.frames[frame_index];
 
     for cur_frame.tasks {
-        start_height: float = xx (it.start * MAX_FRAME_TIME) * size.y;
-        end_height:   float = xx (it.end   * MAX_FRAME_TIME) * size.y;
+        start_height: float = xx (it.start * max_frame_time) * size.y;
+        end_height:   float = xx (it.end   * max_frame_time) * size.y;
 
         if start_height > size.y || end_height > size.y  continue;
 
