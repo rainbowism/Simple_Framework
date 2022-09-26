@@ -166,7 +166,9 @@ insert_line_numbers :: (s: string) -> string {
 #if OS == .WINDOWS {
     usleep :: (microseconds: s64, target_time: float64) {
         ft: LARGE_INTEGER;
-        ft.QuadPart = -microseconds * 10;
+        // ft.QuadPart = -microseconds * 10;
+        ft.QuadPart = -microseconds * 9;
+        // ft.QuadPart = -(microseconds * 9 + microseconds >> 1);
 
         timer := CreateWaitableTimerW(null, .TRUE, null);
         SetWaitableTimer(timer, *ft, 0, null, null, .FALSE);

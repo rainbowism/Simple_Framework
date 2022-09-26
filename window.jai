@@ -114,7 +114,21 @@ should_exit :: () -> bool {
         new_time := get_time();
         time.delta64 = new_time - time.last;
         if time.delta64 > MAX_DELTA_TIME  time.delta64 = MAX_DELTA_TIME;
-        time.delta   = xx time.delta64;
+
+        if !window.time.vsync && window.time.target_fps > 0 && time.delta64 > 0 {
+            remaining_time := window.time.target_fps_inv - time.delta64;
+            if remaining_time > 0 {
+                usleep(cast(s64) (1_000_000.0 * remaining_time), new_time + remaining_time);
+                time.delta64 = get_time() - time.last;
+                time.last = get_time();
+            } else {
+                time.last = new_time;
+            }
+        } else {
+            time.last = new_time;
+        }
+        time.delta = xx time.delta64;
+
         {
             using window.time;
             if (new_time - fps_last) > TRACK_FPS_STEP {
@@ -137,14 +151,6 @@ should_exit :: () -> bool {
                 // }
             }
         }
-
-        if !window.time.vsync && window.time.target_fps > 0 && time.delta64 > 0 {
-            desired_sleep_time := max((1_000_000.0 * window.time.target_fps_inv) - (1_000_000.0 * time.delta64), 0.0);
-            if desired_sleep_time > 0 {
-                usleep(cast(s64) desired_sleep_time, new_time + window.time.target_fps_inv - time.delta64);
-            }
-        }
-        time.last = new_time;
     }
     gpu_end_frame();
 
