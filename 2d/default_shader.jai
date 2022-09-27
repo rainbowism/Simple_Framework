@@ -1,3 +1,6 @@
+DEFAULT_SHADER_TEXTURED :: 0;
+DEFAULT_SHADER_COLORED  :: 1;
+
 DEFAULT_SHADER_VERTEX_POS   :: 0;
 DEFAULT_SHADER_VERTEX_UV1   :: 1;
 DEFAULT_SHADER_VERTEX_COLOR :: 2;
@@ -12,8 +15,7 @@ in vec4 vColor;
 out vec2 fUV;
 out vec4 fColor;
 
-// @Todo(sushi): make this not static
-layout(location = 0) uniform mat4 mvpMatrix;
+uniform mat4 mvpMatrix;
 
 void main() {
     gl_Position = mvpMatrix * vec4(vPos, 1.0);

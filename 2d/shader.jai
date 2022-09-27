@@ -1,14 +1,106 @@
 Uniform :: struct {
-    id:       s64;
-    data:     *void;
-    count:    s64;
     location: GLint;
+    type:     Type;
+    data:     *void;
+    // count:    s64;
 }
 
 Shader :: struct {
-    id:          s64;
-    gl_id:       GLuint;
-    uniforms: [] Uniform;
+    id:            s64;
+    program:       GLuint;
+    uniforms: [..] Uniform;
+}
+
+create_shader :: (vert_code: string, frag_code: string, $attach_default_uniforms := true) -> *Shader {
+    program := create_program(vert_code, frag_code);
+    if program == 0  return null;
+    shader_ptr := *render_ctx.shaders.data[render_ctx.shaders.last_occupied];
+    shader_ptr.id      = last_shader_id;
+    shader_ptr.program = program;
+    last_shader_id += 1;
+    render_ctx.shaders.last_occupied += 1;
+    #if attach_default_uniforms {
+        attach_uniform(shader_ptr, "mvpMatrix", *render_ctx.state.mvp);
+    }
+    return shader_ptr;
+}
+
+find_shader :: (id: s64) -> *Shader {
+    for *render_ctx.shaders {
+        if it.id == id  return it;
+    }
+    return null;
+}
+
+destroy :: (id: s64) {
+    for *render_ctx.shaders {
+        if it.id != id      continue;
+        if it.program == 0  return false;
+
+        render_ctx.shaders.last_occupied -= 1;
+        glDeleteProgram(it.program);
+        array_reset(it.uniforms);
+        render_ctx.shaders[it_index] = render_ctx.shaders[render_ctx.shaders.last_occupied];
+        break;
+    }
+}
+
+destroy :: (shader: *Shader) {
+    inline destroy(shader.id);
+}
+
+find_uniform :: (shader: *Shader, location: GLint) -> *Uniform {
+    for *shader.uniforms {
+        if it.location == location  return it;
+    }
+    return null;
+}
+
+attach_uniform :: (id: s64, name: string, data: *$T) -> bool {
+    for *render_ctx.shaders {
+        if it.id != id  continue;
+        return inline attach_uniform(it);
+    }
+    return false;
+}
+
+attach_uniform :: (shader: *Shader, name: string, data: *$T) -> bool {
+    if shader == null       return false;
+    if shader.program == 0  return false;
+
+    location := glGetUniformLocation(shader.program, temp_c_string(name));
+    if location == -1  return false;
+
+    uniform := find_uniform(shader, location);
+    if uniform == null {
+        uniform := array_add(*shader.uniforms);
+        uniform.location = location;
+        uniform.type = T;
+        uniform.data = xx data;
+    }
+    return true;
+}
+
+apply_uniform :: (using uniform: Uniform) {
+    if type == {
+    case u32;     glUniform1ui(location, << cast(*GLuint) data);
+    case u64;     glUniform1ui(location, << cast(*GLuint) data);
+    case s32;     glUniform1i(location, << cast(*GLint) data);
+    case s64;     glUniform1i(location, << cast(*GLint) data);
+    case float32; glUniform1f(location, << cast(*GLfloat) data);
+    case float64; glUniform1f(location, << cast(*GLfloat) data);
+    case Vector2; glUniform2fv(location, 1, cast(*GLfloat) data);
+    case Vector3; glUniform3fv(location, 1, cast(*GLfloat) data);
+    case Vector4; glUniform4fv(location, 1, cast(*GLfloat) data);
+    case Point2;  glUniform2iv(location, 1, cast(*GLint) data);
+    case Point3;  glUniform3iv(location, 1, cast(*GLint) data);
+    case Point4;  glUniform4iv(location, 1, cast(*GLint) data);
+    case Color;   glUniform4fv(location, 1, cast(*GLfloat) data);
+    case Matrix2; glUniformMatrix2fv(location, 1, GL_TRUE, cast(*GLfloat) data);
+    case Matrix3; glUniformMatrix3fv(location, 1, GL_TRUE, cast(*GLfloat) data);
+    case Matrix4; glUniformMatrix4fv(location, 1, GL_TRUE, cast(*GLfloat) data);
+    case;         warn("Unhandled uniform type: %", type);
+    }
 }
 
 create_program :: (vert_code: string, frag_code: string) -> GLuint {
@@ -21,7 +113,7 @@ create_program :: (vert_code: string, frag_code: string) -> GLuint {
         glGetShaderiv(shader, GL_COMPILE_STATUS, *gl_success);
         if gl_success == 0 /* GL_FALSE */ {
             buffer_length: GLuint;
-            buffer:        [1024] u8;
+            buffer: [1024] u8;
             glGetShaderInfoLog(shader, 1024, *buffer_length, buffer.data);
             if buffer_length > 0 {
                 #if type == GL_VERTEX_SHADER
@@ -70,3 +162,19 @@ create_program :: (vert_code: string, frag_code: string) -> GLuint {
     }
     return program;
 }
+
+create_default_shaders :: () {
+    textured_shader := create_shader(VERT_SHADER_RECT, FRAG_SHADER_TEXTURED_RECT);
+    colored_shader  := create_shader(VERT_SHADER_RECT, FRAG_SHADER_COLORED_RECT);
+    glBindAttribLocation(textured_shader.program, DEFAULT_SHADER_VERTEX_POS,   "vPos");
+    glBindAttribLocation(textured_shader.program, DEFAULT_SHADER_VERTEX_UV1,   "vUV");
+    glBindAttribLocation(textured_shader.program, DEFAULT_SHADER_VERTEX_COLOR, "vColor");
+    glBindAttribLocation(colored_shader.program,  DEFAULT_SHADER_VERTEX_POS,   "vPos");
+    glBindAttribLocation(colored_shader.program,  DEFAULT_SHADER_VERTEX_UV1,   "vUV");
+    glBindAttribLocation(colored_shader.program,  DEFAULT_SHADER_VERTEX_COLOR, "vColor");
+}
+
+#scope_file
+
+last_shader_id: int;
+

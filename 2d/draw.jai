@@ -1,16 +1,19 @@
 draw_begin :: () {
     gpu_begin_frame();
     push_model_view_identity();
+    // push_default_shader();
     _profiler_draw_task = gpu_begin_task("Draw", Colors8.Medium_Purple);
 }
+
+draw_batch :: batch_draw;
 
 draw_end :: () {
     batch_draw();
     gpu_end_task(_profiler_draw_task);
 }
 
-draw_camera :: (camera: Camera, $push_identity := false) {
-    #if push_identity  push_model_view_identity();
+draw_camera :: (camera: Camera, $reset_model_view := false) {
+    #if reset_model_view  push_model_view_identity();
     push_model_view(get_camera_matrix(camera));
 }
 
