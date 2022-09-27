@@ -93,8 +93,8 @@ apply_uniform :: (using uniform: Uniform) {
     case Vector3; glUniform3fv(location, 1, cast(*GLfloat) data);
     case Vector4; glUniform4fv(location, 1, cast(*GLfloat) data);
     case Point2;  glUniform2iv(location, 1, cast(*GLint) data);
-    case Point3;  glUniform3iv(location, 1, cast(*GLint) data);
-    case Point4;  glUniform4iv(location, 1, cast(*GLint) data);
+    // case Point3;  glUniform3iv(location, 1, cast(*GLint) data);
+    // case Point4;  glUniform4iv(location, 1, cast(*GLint) data);
     case Color;   glUniform4fv(location, 1, cast(*GLfloat) data);
     case Matrix2; glUniformMatrix2fv(location, 1, GL_TRUE, cast(*GLfloat) data);
     case Matrix3; glUniformMatrix3fv(location, 1, GL_TRUE, cast(*GLfloat) data);

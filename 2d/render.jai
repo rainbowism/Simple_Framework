@@ -72,8 +72,6 @@ batch_draw :: () {
         }
         render_ctx.draw_counter = -1;
     }
-
-    render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
 }
 
 push_model_view_identity :: () {
@@ -88,6 +86,7 @@ push_layer :: (clear: bool, one_minus_alpha := false) {
 }
 
 push_shader :: inline (shader: *Shader) {
+    if render_ctx.draw_counter < 0  return;
     if shader == null {
         render_ctx.draws[render_ctx.draw_counter].shader = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
     } else {
@@ -114,6 +113,15 @@ set_texture :: (texture_id: Texture_Id) {
     render_ctx.draws[render_ctx.draw_counter].texture_id = texture_id;
     render_ctx.draws[render_ctx.draw_counter].count      = 0;
     render_ctx.draws[render_ctx.draw_counter].shader     = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
+}
+
+set_texture :: (slot: GLuint, texture_id: Texture_Id) {
+    glActiveTexture(GL_TEXTURE0 + slot);
+    glBindTexture(GL_TEXTURE_2D, texture_id);
+}
+
+set_texture :: (slot: GLuint, texture: Texture) {
+    inline set_texture(slot, texture.id);
 }
 
 push_vertex :: ($type: Render_Type, pos: Vector3) {
@@ -187,6 +195,8 @@ get_draw_counter :: () -> int {
 }
 
 #scope_module
+
+RENDER_STARTING_DEPTH :: 0;
 
 render_ctx: Render_Context;
 
@@ -300,9 +310,8 @@ buffer_sub_data :: inline ($type: Render_Type) {
     glBindVertexArray(0);
 }
 
-RENDER_STARTING_DEPTH   :: 0;
-DEFAULT_MAX_DRAWCALLS   :: 256;
-DEFAULT_MAX_SHADERS     :: 64;
+DEFAULT_MAX_DRAWCALLS :: 256;
+DEFAULT_MAX_SHADERS   :: 64;
 
 Vertex_Buffer :: struct {
     index:    s64;

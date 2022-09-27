@@ -1,7 +1,7 @@
 draw_begin :: () {
     gpu_begin_frame();
     push_model_view_identity();
-    // push_default_shader();
+    render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
     _profiler_draw_task = gpu_begin_task("Draw", Colors8.Medium_Purple);
 }
 

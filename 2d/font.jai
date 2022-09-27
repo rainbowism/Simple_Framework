@@ -56,7 +56,7 @@ load_font :: (filepath: string, font_size: float, padding: s32 = 0) -> Font, boo
         font.glyphs[it].advance_x = info.xadvance;
     }
 
-    font.texture = create_font_texture(bitmap, texture_size, texture_size);
+    font.texture = create_grayscale_texture(bitmap, texture_size, texture_size);
     return font, true;
 }
 

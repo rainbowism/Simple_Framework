@@ -33,10 +33,10 @@ in vec4 fColor;
 
 out vec4 glFragColor;
 
-uniform sampler2D Tex;
+uniform sampler2D Texture;
 
 void main() {
-    glFragColor = texture(Tex, fUV) * fColor;
+    glFragColor = texture(Texture, fUV) * fColor;
 }
 
 ___glsl
