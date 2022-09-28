@@ -48,7 +48,9 @@ batch_draw :: () {
         vertex_offset: s64;
         for 0..render_ctx.draw_counter {
             glUseProgram(render_ctx.draws[it].shader.program);
-            for render_ctx.draws[it].shader.uniforms  apply_uniform(it);
+            for render_ctx.draws[it].shader.uniforms {
+                apply_uniform(it);
+            }
 
             glBindTexture(GL_TEXTURE_2D, render_ctx.draws[it].texture_id);
             offset := render_ctx.draws[it].count / 4 * 6;
@@ -70,6 +72,7 @@ batch_draw :: () {
         for 0..render_ctx.draw_counter {
             render_ctx.draws[it].texture_id = 0;
         }
+        render_ctx.draw_calls += render_ctx.draw_counter + 1;
         render_ctx.draw_counter = -1;
     }
 }
@@ -351,6 +354,7 @@ Render_Context :: struct {
         mvp:        Matrix4;
     }
 
+    draw_calls:   s64;
     draw_counter: s64 = -1;
     draws:        [DEFAULT_MAX_DRAWCALLS] Draw_Call;
     tex_rects:    Vertex_Buffer = ---;

@@ -60,10 +60,10 @@ load_texture :: (
 
     glGenTextures(1, *texture.id);  assert(texture.id != 0);
     glBindTexture(GL_TEXTURE_2D, texture.id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_sampling);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_sampling);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     wrap_mode);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     wrap_mode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, xx min_sampling);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, xx mag_sampling);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     xx wrap_mode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     xx wrap_mode);
 
          if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
     else if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
@@ -99,10 +99,10 @@ create_texture :: (
 
     glGenTextures(1, *texture.id);  assert(texture.id != 0);
     glBindTexture(GL_TEXTURE_2D, texture.id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_sampling);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_sampling);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     wrap_mode);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     wrap_mode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, xx min_sampling);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, xx mag_sampling);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     xx wrap_mode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     xx wrap_mode);
 
          if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
     else if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);

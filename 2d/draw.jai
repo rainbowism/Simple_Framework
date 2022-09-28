@@ -2,6 +2,7 @@ draw_begin :: () {
     gpu_begin_frame();
     push_model_view_identity();
     render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
+    render_ctx.draw_calls = 0;
     _profiler_draw_task = gpu_begin_task("Draw", Colors8.Medium_Purple);
 }
 
@@ -167,7 +168,7 @@ draw_rect :: (dest: Rect, tints: [4] Color, origin := Vector2.{0, 0}, rotation: 
     batch_end(.Rect);
 }
 
-draw_texture :: (
+draw_texture :: inline (
     texture: Texture,
     pos: Vector2,
     tint := Colors.White,
@@ -189,7 +190,7 @@ draw_texture :: (
     );
 }
 
-draw_texture :: (
+draw_texture :: inline (
     texture: Texture,
     src: Vector2,
     dst: Vector2,

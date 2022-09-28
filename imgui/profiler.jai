@@ -4,7 +4,7 @@
             "Profiler [%ms, %fps, % draw]###ProfilerWindow\0",
             formatFloat(window.time.fps_average * 1000, trailing_width = 3, zero_removal = .NO),
             ceil(1.0 / window.time.fps_average),
-            render_ctx.draw_counter + 1
+            render_ctx.draw_calls
         );
 
         MAX_GRAPH_HEIGHT :: 300;
