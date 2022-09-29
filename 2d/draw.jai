@@ -1,21 +1,43 @@
-draw_begin :: () {
+draw_begin :: inline (time: float, camera: Camera) {
     gpu_begin_frame();
-    push_model_view_identity();
-    render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
-    render_ctx.draw_calls = 0;
     _profiler_draw_task = gpu_begin_task("Draw", Colors8.Medium_Purple);
+    render_begin(time, camera);
 }
 
 draw_batch :: batch_draw;
 
-draw_end :: () {
+draw_end :: inline () {
+    draw_framebuffer();
     batch_draw();
     gpu_end_task(_profiler_draw_task);
 }
 
-draw_camera :: (camera: Camera, $reset_model_view := false) {
-    #if reset_model_view  push_model_view_identity();
-    push_model_view(get_camera_matrix(camera));
+draw_framebuffer :: () {
+    if render_ctx.state.buffer_drawn  return;
+    batch_draw();
+    push_default_framebuffer();
+    draw_clear();
+    glDisable(GL_DEPTH_TEST);
+    push_texture(render_ctx.target.color);
+    batch_start(.Texture);
+    {
+        push_color(Colors.White);
+        push_uv(0, 1);
+        push_vertex(.Texture, .{-1,  1});
+        push_uv(0, 0);
+        push_vertex(.Texture, .{-1, -1});
+        push_uv(1, 0);
+        push_vertex(.Texture, .{ 1, -1});
+        push_uv(1, 1);
+        push_vertex(.Texture, .{ 1,  1});
+    }
+    batch_end(.Texture);
+    glEnable(GL_DEPTH_TEST);
+    push_default_shader_framebuffer();
+    batch_draw();
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, render_ctx.target.color);
+    render_ctx.state.buffer_drawn = true;
 }
 
 draw_line :: (a: Vector2, b: Vector2, tint := Colors.White) {
@@ -227,34 +249,34 @@ draw_texture :: (
 ) {
     if texture.id == 0  return;
 
-    width:  float = xx texture.width;
-    height: float = xx texture.height;
+    width:  float = 1.0 / cast(float) texture.width;
+    height: float = 1.0 / cast(float) texture.height;
 
     tl, tr, bl, br: Vector2 = ---;
     rotate_quad();
 
-    set_texture(texture.id);
+    push_texture(texture.id);
     batch_start(.Texture);
     {
         push_color(tint);
 
         #if flip_x {
-            push_uv((source.x + source.width) / width, source.y / height);
+            push_uv((source.x + source.width) * width, source.y * height);
             push_vertex(.Texture, tl);
-            push_uv((source.x + source.width) / width, (source.y + source.height) / height);
+            push_uv((source.x + source.width) * width, (source.y + source.height) * height);
             push_vertex(.Texture, bl);
-            push_uv(source.x / width, (source.y + source.height) / height);
+            push_uv(source.x * width, (source.y + source.height) * height);
             push_vertex(.Texture, br);
-            push_uv(source.x / width, source.y / height);
+            push_uv(source.x * width, source.y * height);
             push_vertex(.Texture, tr);
         } else {
-            push_uv(source.x / width, source.y / height);
+            push_uv(source.x * width, source.y * height);
             push_vertex(.Texture, tl);
-            push_uv(source.x / width, (source.y + source.height) / height);
+            push_uv(source.x * width, (source.y + source.height) * height);
             push_vertex(.Texture, bl);
-            push_uv((source.x + source.width) / width, (source.y + source.height) / height);
+            push_uv((source.x + source.width) * width, (source.y + source.height) * height);
             push_vertex(.Texture, br);
-            push_uv((source.x + source.width) / width, source.y / height);
+            push_uv((source.x + source.width) * width, source.y * height);
             push_vertex(.Texture, tr);
         }
     }

@@ -11,7 +11,9 @@ Shader :: struct {
     uniforms: [..] Uniform;
 }
 
-create_shader :: (vert_code: string, frag_code: string, $attach_default_uniforms := true) -> *Shader {
+SCREEN_TEXTURE_SLOT: s32 = 1;
+
+create_shader :: (vert_code: string, frag_code: string, $use_screen_texture := false) -> *Shader {
     program := create_program(vert_code, frag_code);
     if program == 0  return null;
     shader_ptr := *render_ctx.shaders.data[render_ctx.shaders.last_occupied];
@@ -19,14 +21,17 @@ create_shader :: (vert_code: string, frag_code: string, $attach_default_uniforms
     shader_ptr.program = program;
     last_shader_id += 1;
     render_ctx.shaders.last_occupied += 1;
-    #if attach_default_uniforms {
-        attach_uniform(shader_ptr, "mvpMatrix", *render_ctx.state.mvp);
+    glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_POS,   "vPos");
+    glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_UV1,   "vUV");
+    glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_COLOR, "vColor");
+    #if use_screen_texture {
+        attach_uniform(shader_ptr, "ScreenTexture", *SCREEN_TEXTURE_SLOT);
     }
     return shader_ptr;
 }
 
 find_shader :: (id: s64) -> *Shader {
-    for *render_ctx.shaders {
+    for *render_ctx.shaders.data {
         if it.id == id  return it;
     }
     return null;
@@ -164,14 +169,9 @@ create_program :: (vert_code: string, frag_code: string) -> GLuint {
 }
 
 create_default_shaders :: () {
-    textured_shader := create_shader(VERT_SHADER_RECT, FRAG_SHADER_TEXTURED_RECT);
-    colored_shader  := create_shader(VERT_SHADER_RECT, FRAG_SHADER_COLORED_RECT);
-    glBindAttribLocation(textured_shader.program, DEFAULT_SHADER_VERTEX_POS,   "vPos");
-    glBindAttribLocation(textured_shader.program, DEFAULT_SHADER_VERTEX_UV1,   "vUV");
-    glBindAttribLocation(textured_shader.program, DEFAULT_SHADER_VERTEX_COLOR, "vColor");
-    glBindAttribLocation(colored_shader.program,  DEFAULT_SHADER_VERTEX_POS,   "vPos");
-    glBindAttribLocation(colored_shader.program,  DEFAULT_SHADER_VERTEX_UV1,   "vUV");
-    glBindAttribLocation(colored_shader.program,  DEFAULT_SHADER_VERTEX_COLOR, "vColor");
+    create_shader(VERT_SHADER_RECT, FRAG_SHADER_TEXTURED_RECT);
+    create_shader(VERT_SHADER_RECT, FRAG_SHADER_COLORED_RECT);
+    create_shader(VERT_SHADER_FRAMEBUFFER, FRAG_SHADER_TEXTURED_RECT);
 }
 
 #scope_file

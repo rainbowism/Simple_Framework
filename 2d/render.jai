@@ -4,6 +4,25 @@ render_init :: (max_renderables := 8192) {
     render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
 }
 
+render_begin :: inline (time: float, camera: Camera) {
+    push_model_view_identity();
+    push_model_view(get_camera_matrix(camera));
+    render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
+    render_ctx.draw_calls = 0;
+
+    glBindBuffer(GL_UNIFORM_BUFFER, render_ctx.ubo);
+    glBufferSubData(GL_UNIFORM_BUFFER, size_of(Matrix4), size_of(Matrix4), render_ctx.state.model_view.floats.data);
+    glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4) + size_of(Vector4), size_of(float), *time);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    render_ctx.state.buffer_drawn = false;
+    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target.fbo);
+}
+
+push_default_framebuffer :: inline () {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 batch_start :: ($type: Render_Type) {
     #if type == .Texture {
         if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
@@ -19,15 +38,12 @@ batch_end :: ($type: Render_Type) {
 }
 
 batch_draw :: () {
-    buffer_sub_data(.Texture);
-    buffer_sub_data(.Rect);
-    buffer_sub_data(.Line);
+    should_render_primitives := buffer_sub_data(.Rect);
+    should_render_primitives |= buffer_sub_data(.Line);
 
-    render_ctx.state.mvp = render_ctx.state.projection * render_ctx.state.model_view;
-    {
+    if should_render_primitives {
         glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_COLORED].program);
 
-        glUniformMatrix4fv(0, 1, GL_TRUE, render_ctx.state.mvp.floats.data);
         if render_ctx.rects.index > 0 {
             glBindVertexArray(render_ctx.rects.vao);
             glDrawElements(GL_TRIANGLES, xx (render_ctx.rects.index / 4 * 6), GL_UNSIGNED_INT, null);
@@ -41,8 +57,10 @@ batch_draw :: () {
         glBindVertexArray(0);
         glUseProgram(0);
     }
-    if render_ctx.draw_counter >= 0 {
+
+    if buffer_sub_data(.Texture) && render_ctx.draw_counter >= 0 {
         glBindVertexArray(render_ctx.tex_rects.vao);
+
         glActiveTexture(GL_TEXTURE0);
 
         vertex_offset: s64;
@@ -77,8 +95,32 @@ batch_draw :: () {
     }
 }
 
-push_model_view_identity :: () {
+push_screen_size :: inline (width: s32, height: s32) {
+    resize_render_target(render_ctx.target, width, height);
+    render_ctx.state.projection = make_ortho_matrix(0, xx width, xx height, 0, -1, 1);
+    screen_size := make_vector2(xx width, xx height);
+    pixel_size  := 1.0 / screen_size;
+    glBindBuffer(GL_UNIFORM_BUFFER, render_ctx.ubo);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, size_of(Matrix4), render_ctx.state.projection.floats.data);
+    glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4), size_of(Vector2), *screen_size);
+    glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4) + size_of(Vector2), size_of(Vector2), *pixel_size);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
+push_projection_identity :: inline () {
+    render_ctx.state.projection = Matrix4_Identity;
+}
+
+push_projection :: inline (m: Matrix4) {
+    render_ctx.state.projection *= m;
+}
+
+push_model_view_identity :: inline () {
     render_ctx.state.model_view = Matrix4_Identity;
+}
+
+push_model_view :: inline (m: Matrix4) {
+    render_ctx.state.model_view *= m;
 }
 
 push_layer :: (clear: bool, one_minus_alpha := false) {
@@ -102,11 +144,15 @@ push_shader :: inline (id: s64) {
     push_shader(shader);
 }
 
-push_default_shader :: inline () {
+push_default_shader_textured :: inline () {
     push_shader(*render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED]);
 }
 
-set_texture :: (texture_id: Texture_Id) {
+push_default_shader_framebuffer :: inline () {
+    push_shader(*render_ctx.shaders.data[DEFAULT_SHADER_FRAMEBUFFER]);
+}
+
+push_texture :: (texture_id: Texture_Id) {
     if texture_id == 0  return;
     if render_ctx.draw_counter >= 0 {
         if render_ctx.draws[render_ctx.draw_counter].texture_id == texture_id  return;
@@ -118,13 +164,13 @@ set_texture :: (texture_id: Texture_Id) {
     render_ctx.draws[render_ctx.draw_counter].shader     = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
 }
 
-set_texture :: (slot: GLuint, texture_id: Texture_Id) {
-    glActiveTexture(GL_TEXTURE0 + slot);
+push_texture :: (slot: GLuint, texture_id: Texture_Id) {
+    glActiveTexture(GL_TEXTURE2 + slot);
     glBindTexture(GL_TEXTURE_2D, texture_id);
 }
 
-set_texture :: (slot: GLuint, texture: Texture) {
-    inline set_texture(slot, texture.id);
+push_texture :: (slot: GLuint, texture: Texture) {
+    inline push_texture(slot, texture.id);
 }
 
 push_vertex :: ($type: Render_Type, pos: Vector3) {
@@ -183,10 +229,6 @@ push_color :: (color: Color) {
     render_ctx.state.color = color;
 }
 
-push_model_view :: inline (m: Matrix4) {
-    render_ctx.state.model_view *= m;
-}
-
 Render_Type :: enum {
     Texture;
     Rect;
@@ -205,7 +247,18 @@ render_ctx: Render_Context;
 
 #scope_file
 
-init_render_buffers :: (max_renderables: s64) #expand {
+init_render_buffers :: inline (max_renderables: s64) {
+    success: bool = ---;
+    render_ctx.target, success = create_render_target();
+    if !success  warn(.Render, "Failed to initialize default Render_Target");
+
+    SHADER_GLOBALS_SIZE :: 2 * size_of(Matrix4) + 2 * size_of(Vector2) + size_of(float);
+    glGenBuffers(1, *render_ctx.ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, render_ctx.ubo);
+    glBufferData(GL_UNIFORM_BUFFER, SHADER_GLOBALS_SIZE, null, GL_STREAM_DRAW);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, render_ctx.ubo, 0, SHADER_GLOBALS_SIZE);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
     init_vertex_buffer(.Texture, *render_ctx.tex_rects, max_renderables, 4, 6);
     init_vertex_buffer(.Rect,    *render_ctx.rects,     max_renderables, 4, 6);
     init_vertex_buffer(.Line,    *render_ctx.lines,     max_renderables, 2, 2);
@@ -282,13 +335,13 @@ init_vertex_buffer :: inline (
     glBindVertexArray(0);
 }
 
-buffer_sub_data :: inline ($type: Render_Type) {
+buffer_sub_data :: inline ($type: Render_Type) -> bool {
     #if type == .Texture  using render_ctx.tex_rects; else
     #if type == .Rect     using render_ctx.rects; else
     #if type == .Line     using render_ctx.lines;
 
     if index == 0 {
-        return;
+        return false;
     }
 
     glBindVertexArray(vao);
@@ -311,6 +364,8 @@ buffer_sub_data :: inline ($type: Render_Type) {
     glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_COLOR);
 
     glBindVertexArray(0);
+
+    return true;
 }
 
 DEFAULT_MAX_DRAWCALLS :: 256;
@@ -351,9 +406,11 @@ Render_Context :: struct {
 
         projection: Matrix4;
         model_view: Matrix4;
-        mvp:        Matrix4;
+        buffer_drawn: bool;
     }
 
+    target:          Render_Target;
+    ubo:          GLuint;
     draw_calls:   s64;
     draw_counter: s64 = -1;
     draws:        [DEFAULT_MAX_DRAWCALLS] Draw_Call;

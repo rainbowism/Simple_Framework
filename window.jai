@@ -316,7 +316,11 @@ draw_clear :: (color: Color8) #expand {
 }
 
 draw_clear :: () #expand {
-    draw_clear(Colors.Black);
+    draw_clear(window.clear_color);
+}
+
+set_clear_color :: inline (color: Color) {
+    window.clear_color = color;
 }
 
 wait_for_events :: () #expand {
@@ -342,9 +346,7 @@ time: struct {
 
 update_viewport :: (width: s32, height: s32) {
     glViewport(0, 0, xx width, xx height);
-    #if !DISABLE_RENDER {
-        render_ctx.state.projection = make_ortho_matrix(0, xx width, xx height, 0, -1, 1);
-    }
+    #if !DISABLE_RENDER  push_screen_size(width, height);
 }
 
 initialized: bool;
@@ -390,6 +392,8 @@ Window_Context :: struct {
         text: Text_Callback;
         scroll: Scroll_Callback;
     }
+
+    clear_color: Color = Colors.Black;
 }
 window: Window_Context;
 
