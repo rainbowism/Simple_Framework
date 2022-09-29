@@ -1,5 +1,22 @@
 render_init :: (max_renderables := 8192) {
-    init_render_buffers(max_renderables);
+    success: bool = ---;
+    render_ctx.target, success = create_render_target();
+    if !success  warn(.Render, "Failed to initialize default Render_Target");
+
+    SHADER_GLOBALS_SIZE :: 2 * size_of(Matrix4) + 2 * size_of(Vector2) + size_of(float);
+    glGenBuffers(1, *render_ctx.ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, render_ctx.ubo);
+    glBufferData(GL_UNIFORM_BUFFER, SHADER_GLOBALS_SIZE, null, GL_STREAM_DRAW);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, render_ctx.ubo, 0, SHADER_GLOBALS_SIZE);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    init_vertex_buffer(.Texture, *render_ctx.tex_rects, max_renderables, 4, 6);
+    init_vertex_buffer(.Rect,    *render_ctx.rects,     max_renderables, 4, 6);
+    init_vertex_buffer(.Line,    *render_ctx.lines,     max_renderables, 2, 2);
+
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, xx *render_ctx.max_texture_slot);
+    render_ctx.max_texture_slot -= 1;
+
     create_default_shaders();
     render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
 }
@@ -165,7 +182,7 @@ push_texture :: (texture_id: Texture_Id) {
 }
 
 push_texture :: (slot: GLuint, texture_id: Texture_Id) {
-    glActiveTexture(GL_TEXTURE2 + slot);
+    glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_2D, texture_id);
 }
 
@@ -246,23 +263,6 @@ RENDER_STARTING_DEPTH :: 0;
 render_ctx: Render_Context;
 
 #scope_file
-
-init_render_buffers :: inline (max_renderables: s64) {
-    success: bool = ---;
-    render_ctx.target, success = create_render_target();
-    if !success  warn(.Render, "Failed to initialize default Render_Target");
-
-    SHADER_GLOBALS_SIZE :: 2 * size_of(Matrix4) + 2 * size_of(Vector2) + size_of(float);
-    glGenBuffers(1, *render_ctx.ubo);
-    glBindBuffer(GL_UNIFORM_BUFFER, render_ctx.ubo);
-    glBufferData(GL_UNIFORM_BUFFER, SHADER_GLOBALS_SIZE, null, GL_STREAM_DRAW);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, render_ctx.ubo, 0, SHADER_GLOBALS_SIZE);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-    init_vertex_buffer(.Texture, *render_ctx.tex_rects, max_renderables, 4, 6);
-    init_vertex_buffer(.Rect,    *render_ctx.rects,     max_renderables, 4, 6);
-    init_vertex_buffer(.Line,    *render_ctx.lines,     max_renderables, 2, 2);
-}
 
 init_vertex_buffer :: inline (
     $type:           Render_Type,
@@ -409,8 +409,10 @@ Render_Context :: struct {
         buffer_drawn: bool;
     }
 
-    target:          Render_Target;
-    ubo:          GLuint;
+    target:           Render_Target;
+    ubo:              GLuint;
+    max_texture_slot: GLuint;
+
     draw_calls:   s64;
     draw_counter: s64 = -1;
     draws:        [DEFAULT_MAX_DRAWCALLS] Draw_Call;

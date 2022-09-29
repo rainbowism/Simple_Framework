@@ -11,8 +11,6 @@ Shader :: struct {
     uniforms: [..] Uniform;
 }
 
-SCREEN_TEXTURE_SLOT: s32 = 1;
-
 create_shader :: (vert_code: string, frag_code: string, $use_screen_texture := false) -> *Shader {
     program := create_program(vert_code, frag_code);
     if program == 0  return null;
@@ -25,7 +23,7 @@ create_shader :: (vert_code: string, frag_code: string, $use_screen_texture := f
     glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_UV1,   "vUV");
     glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_COLOR, "vColor");
     #if use_screen_texture {
-        attach_uniform(shader_ptr, "ScreenTexture", *SCREEN_TEXTURE_SLOT);
+        attach_uniform(shader_ptr, "ScreenTexture", *render_ctx.max_texture_slot);
     }
     return shader_ptr;
 }
