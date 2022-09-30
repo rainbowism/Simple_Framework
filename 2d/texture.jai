@@ -159,7 +159,6 @@ create_grayscale_texture :: (buffer: [] $T, width: s32, height: s32, wrap_mode :
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_mask.data);
     }
 
-    glGenerateMipmap(GL_TEXTURE_2D);
     return texture;
 }
 
@@ -185,7 +184,6 @@ create_font_texture :: (buffer: [] u8, width: s32, height: s32, wrap_mode := Wra
     swizzle_mask :: GLint.[GL_RED, GL_RED, GL_RED, GL_GREEN];
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_mask.data);
 
-    glGenerateMipmap(GL_TEXTURE_2D);
     return texture;
 }
 
