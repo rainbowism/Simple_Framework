@@ -11,7 +11,7 @@ Glyph_Info :: struct {
     advance_x: float;
 }
 
-load_font :: (filepath: string, font_size: float, padding: s32 = 0) -> Font, bool {
+load_font :: (filepath: string, font_size: float, stroke: s32 = 0, padding: s32 = 0) -> Font, bool {
     file, success := read_entire_file(filepath);
     if !success  return .{}, false;
     defer free(file);
@@ -27,7 +27,7 @@ load_font :: (filepath: string, font_size: float, padding: s32 = 0) -> Font, boo
         bitmap.count = texture_size * texture_size;
         bitmap.data = alloc(bitmap.count);
         pack_context: ttf.PackContext;
-        ttf.pack_begin(*pack_context, bitmap.data, texture_size, texture_size, 0, padding + 1, null);
+        ttf.pack_begin(*pack_context, bitmap.data, texture_size, texture_size, 0, padding + stroke + 3, null);
         defer ttf.pack_end(*pack_context);
         ttf.pack_set_oversampling(*pack_context, 1, 1);
         if ttf.pack_font_range(*pack_context, file.data, 0, font_size, 32, 95, chars.data)  break;
@@ -43,20 +43,46 @@ load_font :: (filepath: string, font_size: float, padding: s32 = 0) -> Font, boo
     font: Font;
     font.size = font_size;
 
+    strokef := cast(float) stroke;
     font.glyphs.data  = alloc(96 * size_of(Glyph_Info));
     font.glyphs.count = 96;
     for 0..chars.count-1 {
         info := chars[it];
-        font.glyphs[it].src.x  = cast(float) info.x0;
-        font.glyphs[it].src.y  = cast(float) info.y0;
-        font.glyphs[it].dst.x  = info.xoff;
-        font.glyphs[it].dst.y  = info.yoff + offset_y;
-        font.glyphs[it].size.x = cast(float) (info.x1 - info.x0);
-        font.glyphs[it].size.y = cast(float) (info.y1 - info.y0);
+        font.glyphs[it].src.x  = cast(float) info.x0 - strokef + 1;
+        font.glyphs[it].src.y  = cast(float) info.y0 - strokef + 1;
+        font.glyphs[it].dst.x  = info.xoff - strokef;
+        font.glyphs[it].dst.y  = info.yoff + offset_y - strokef;
+        font.glyphs[it].size.x = cast(float) (info.x1 + strokef) - font.glyphs[it].src.x - 1;
+        font.glyphs[it].size.y = cast(float) (info.y1 + strokef) - font.glyphs[it].src.y - 1;
         font.glyphs[it].advance_x = info.xadvance;
     }
 
-    font.texture = create_grayscale_texture(bitmap, texture_size, texture_size);
+    dest_bitmap: [] u8;
+    dest_bitmap.count = texture_size * texture_size * 2;
+    dest_bitmap.data = alloc(bitmap.count * 2);
+    memset(dest_bitmap.data, 0, dest_bitmap.count);
+    defer free(dest_bitmap.data);
+
+    stroke_circle_length := cast(s32) floor(sqrt(strokef * strokef * 2));
+    max_value: u8 = ---;
+    index: s64 = ---;
+    for y: stroke..texture_size-stroke-1 {
+        for x: stroke..texture_size-stroke-1 {
+            max_value = 0;
+            for dy: -stroke..stroke {
+                for dx: -stroke..stroke {
+                    if dx * dx + dy * dy > stroke_circle_length  continue;
+                    index = (y + dy) * texture_size + x + dx;
+                    if bitmap[index] > max_value  max_value = bitmap[index];
+                }
+            }
+
+            dest_bitmap[(y * texture_size + x) * 2] = bitmap[y * texture_size + x];
+            dest_bitmap[(y * texture_size + x) * 2 + 1] = max_value;
+        }
+    }
+
+    font.texture = create_font_texture(dest_bitmap, texture_size, texture_size);
     return font, true;
 }
 

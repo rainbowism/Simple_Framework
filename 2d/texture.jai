@@ -163,6 +163,32 @@ create_grayscale_texture :: (buffer: [] $T, width: s32, height: s32, wrap_mode :
     return texture;
 }
 
+create_font_texture :: (buffer: [] u8, width: s32, height: s32, wrap_mode := Wrap_Mode.Clamp_To_Edge) -> Texture {
+    texture: Texture = ---;
+    texture.width  = width;
+    texture.height = height;
+
+    glGenTextures(1, *texture.id);  assert(texture.id != 0);
+    glBindTexture(GL_TEXTURE_2D, texture.id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     xx wrap_mode);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     xx wrap_mode);
+
+         if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
+    else if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    else if (texture.width * texture.height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
+    else                                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, xx texture.width, xx texture.height, 0, GL_RG, GL_UNSIGNED_BYTE, buffer.data);
+
+    swizzle_mask :: GLint.[GL_RED, GL_RED, GL_RED, GL_GREEN];
+    glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_mask.data);
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+    return texture;
+}
+
 free_image :: (image: Image) {
     if image.data == null  return;
     free(image.data);
