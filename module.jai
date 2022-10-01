@@ -29,6 +29,7 @@ SF_Result :: enum {
 #load "math/linalg.jai";
 #load "math/matrix.jai";
 #load "math/camera.jai";
+#load "math/noise.jai";
 
 #if !DISABLE_RENDER {
     #load "2d/texture.jai";
