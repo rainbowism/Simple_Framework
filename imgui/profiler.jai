@@ -13,11 +13,15 @@
         MAX_WINDOW_SIZE  :: Vector2.{32767, MAX_GRAPH_HEIGHT};
 
         size_constraints := ImGui.GetStyle().WindowPadding * 2 + MAX_WINDOW_SIZE;
+        ImGui.SetNextWindowPos(.{0, 0}, .FirstUseEver);
+        ImGui.SetNextWindowSize(.{420, 320}, .FirstUseEver);
+        ImGui.SetNextWindowCollapsed(true, .FirstUseEver);
         ImGui.SetNextWindowSizeConstraints(MIN_WINDOW_SIZE, size_constraints);
         ImGui.PushStyleColor(.WindowBg, 0x0F0F0F80);
         defer ImGui.PopStyleColor();
         defer ImGui.End();
-        if !ImGui.Begin(title.data, null, .NoScrollbar) return;
+        WINDOW_FLAGS :: ImGui.WindowFlags.NoScrollbar;
+        if !ImGui.Begin(title.data, null, WINDOW_FLAGS) return;
 
         canvas_size  := ImGui.GetContentRegionAvail();
         size_margin  := ImGui.GetStyle().ItemSpacing.y;

@@ -1,7 +1,9 @@
 render_init :: (max_renderables := 8192) {
     success: bool = ---;
-    render_ctx.target, success = create_render_target();
-    if !success  warn(.Render, "Failed to initialize default Render_Target");
+    render_ctx.target[0], success = create_render_target();
+    if !success  warn(.Render, "Failed to initialize main Render_Target");
+    render_ctx.target[1], success = create_render_target();
+    if !success  warn(.Render, "Failed to initialize particle Render_Target");
 
     SHADER_GLOBALS_SIZE :: 2 * size_of(Matrix4) + 2 * size_of(Vector2) + size_of(float);
     glGenBuffers(1, *render_ctx.ubo);
@@ -33,11 +35,20 @@ render_begin :: inline (time: float, camera: Camera) {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     render_ctx.state.buffer_drawn = false;
-    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target.fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
+    draw_clear(.{0.0, 0.0, 0.0, 0.0});
+}
+
+push_particle_framebuffer :: inline () {
+    batch_draw();
+    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_PARTICLE].fbo);
+    draw_clear(.{0.0, 0.0, 0.0, 0.0});
 }
 
 push_default_framebuffer :: inline () {
+    batch_draw();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    draw_clear();
 }
 
 batch_start :: ($type: Render_Type) {
@@ -113,7 +124,8 @@ batch_draw :: () {
 }
 
 push_screen_size :: inline (width: s32, height: s32) {
-    resize_render_target(render_ctx.target, width, height);
+    resize_render_target(render_ctx.target[RENDER_TARGET_MAIN], width, height);
+    resize_render_target(render_ctx.target[RENDER_TARGET_PARTICLE], width, height);
     render_ctx.state.projection = make_ortho_matrix(0, xx width, xx height, 0, -1, 1);
     screen_size := make_vector2(xx width, xx height);
     pixel_size  := 1.0 / screen_size;
@@ -255,6 +267,10 @@ Render_Type :: enum {
 get_draw_counter :: () -> int {
     return render_ctx.draw_counter;
 }
+
+RENDER_TARGET_MAIN     :: 0;
+RENDER_TARGET_PARTICLE :: 1;
+RENDER_TARGET_DEFAULT  :: 2;
 
 #scope_module
 
@@ -409,7 +425,7 @@ Render_Context :: struct {
         buffer_drawn: bool;
     }
 
-    target:           Render_Target;
+    target:           [2] Render_Target;
     ubo:              GLuint;
     max_texture_slot: GLuint;
 

@@ -40,6 +40,7 @@ SF_Result :: enum {
     #load "2d/shader.jai";
     #load "2d/default_shader.jai";
     #load "2d/draw.jai";
+    #load "2d/particles.jai";
 }
 
 #if !DISABLE_AUDIO {

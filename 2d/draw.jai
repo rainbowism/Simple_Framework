@@ -7,18 +7,16 @@ draw_begin :: inline (time: float, camera: Camera) {
 draw_batch :: batch_draw;
 
 draw_end :: inline () {
-    draw_framebuffer();
+    draw_buffer();
     batch_draw();
     gpu_end_task(_profiler_draw_task);
 }
 
-draw_framebuffer :: () {
+draw_buffer :: () {
     if render_ctx.state.buffer_drawn  return;
-    batch_draw();
     push_default_framebuffer();
-    draw_clear();
     glDisable(GL_DEPTH_TEST);
-    push_texture(render_ctx.target.color);
+    push_texture(render_ctx.target[RENDER_TARGET_MAIN].color);
     batch_start(.Texture);
     {
         push_color(Colors.White);
@@ -32,11 +30,26 @@ draw_framebuffer :: () {
         push_vertex(.Texture, .{ 1,  1});
     }
     batch_end(.Texture);
-    glEnable(GL_DEPTH_TEST);
+    push_default_shader_framebuffer();
+    push_texture(render_ctx.target[RENDER_TARGET_PARTICLE].color);
+    batch_start(.Texture);
+    {
+        push_color(Colors.White);
+        push_uv(0, 1);
+        push_vertex(.Texture, .{-1,  1});
+        push_uv(0, 0);
+        push_vertex(.Texture, .{-1, -1});
+        push_uv(1, 0);
+        push_vertex(.Texture, .{ 1, -1});
+        push_uv(1, 1);
+        push_vertex(.Texture, .{ 1,  1});
+    }
+    batch_end(.Texture);
     push_default_shader_framebuffer();
     batch_draw();
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, render_ctx.target.color);
+    glEnable(GL_DEPTH_TEST);
+    glActiveTexture(GL_TEXTURE0 + render_ctx.max_texture_slot);
+    glBindTexture(GL_TEXTURE_2D, render_ctx.target[RENDER_TARGET_MAIN].color);
     render_ctx.state.buffer_drawn = true;
 }
 
@@ -44,8 +57,8 @@ draw_line :: (a: Vector2, b: Vector2, tint := Colors.White) {
     batch_start(.Line);
     {
         push_color(tint);
-        push_vertex(.Line, a);
-        push_vertex(.Line, b);
+        push_vertex(.Line, round(a));
+        push_vertex(.Line, round(b));
     }
     batch_end(.Line);
 }
@@ -54,15 +67,17 @@ draw_line :: (a: Vector2, b: Vector2, tints: [2] Color) {
     batch_start(.Line);
     {
         push_color(tints[0]);
-        push_vertex(.Line, a);
+        push_vertex(.Line, round(a));
         push_color(tints[1]);
-        push_vertex(.Line, b);
+        push_vertex(.Line, round(b));
     }
     batch_end(.Line);
 }
 
 draw_circle :: (using circle: *Circle, tint := Colors.White, $segments: int = 32) {
     INCREMENT :: TAU / segments;
+
+    position := round(circle.position);
 
     last: Vector2 = ---;
     theta: float;
@@ -86,6 +101,8 @@ draw_circle :: (using circle: *Circle, tint := Colors.White, $segments: int = 32
 
 draw_circle :: (position: Vector2, radius: float, tint := Colors.White, $segments: int = 32) {
     INCREMENT :: TAU / segments;
+
+    position := round(position);
 
     last: Vector2 = ---;
     theta: float;
@@ -134,8 +151,8 @@ draw_rect :: (using obb: *OBB, tint := Colors.White) {
 }
 
 draw_rect_bottom_center :: (position: Vector2, size: Vector2, tint := Colors.White, rotation: float = 0.0) {
-    x := position.x - size.x * 0.5;
-    y := position.y - size.y;
+    x := round(position.x - size.x * 0.5);
+    y := round(position.y - size.y);
     tl, tr, bl, br: Vector2 = ---;
     tl.x = x;
     tl.y = y;
@@ -204,9 +221,32 @@ draw_texture :: inline (
     dest.y        = pos.y;
     dest.width    = source.width;
     dest.height   = source.height;
-    draw_texture(
+    inline draw_texture(
         texture, source, dest,
         origin = origin,
+        rotation = rotation,
+        tint = tint
+    );
+}
+
+draw_texture :: inline (
+    texture: Texture,
+    pos: Vector2,
+    scale: float,
+    tint := Colors.White,
+    origin := Vector2.{0, 0},
+    rotation: float = 0.0
+) {
+    source, dest: Rect;
+    source.width  = xx texture.width;
+    source.height = xx texture.height;
+    dest.x        = pos.x;
+    dest.y        = pos.y;
+    dest.width    = source.width * scale;
+    dest.height   = source.height * scale;
+    inline draw_texture(
+        texture, source, dest,
+        origin = origin * scale,
         rotation = rotation,
         tint = tint
     );
@@ -230,7 +270,7 @@ draw_texture :: inline (
     dest.y        = dst.y;
     dest.width    = size.x;
     dest.height   = size.y;
-    draw_texture(
+    inline draw_texture(
         texture, source, dest,
         origin = origin,
         rotation = rotation,
@@ -311,8 +351,8 @@ rotate_quad :: () #expand {
     } else {
         theta_sin := sin(`rotation);
         theta_cos := cos(`rotation);
-        x := `dest.x;
-        y := `dest.y;
+        x := round(`dest.x);
+        y := round(`dest.y);
         dx := -`origin.x;
         dy := -`origin.y;
 
