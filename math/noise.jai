@@ -154,6 +154,11 @@ get_single_float :: (seed: u64, position: $T) -> float {
     return randint / cast(float) MASK;
 }
 
+get_single_float :: (seed: u64, x: s64, y: s64) -> float {
+    randint := (inline get_single_2d(seed, x, y)) & MASK;
+    return randint / cast(float) MASK;
+}
+
 #scope_file
 
 PRIME_Y :: 0x1DDE90C9;

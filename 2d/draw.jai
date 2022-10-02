@@ -251,6 +251,28 @@ draw_texture :: inline (
         tint = tint
     );
 }
+draw_texture :: inline (
+    texture: Texture,
+    pos: Vector2,
+    scale: Vector2,
+    tint := Colors.White,
+    origin := Vector2.{0, 0},
+    rotation: float = 0.0
+) {
+    source, dest: Rect;
+    source.width  = xx texture.width;
+    source.height = xx texture.height;
+    dest.x        = pos.x;
+    dest.y        = pos.y;
+    dest.width    = source.width * scale.x;
+    dest.height   = source.height * scale.y;
+    inline draw_texture(
+        texture, source, dest,
+        origin = origin * scale,
+        rotation = rotation,
+        tint = tint
+    );
+}
 
 draw_texture :: inline (
     texture: Texture,

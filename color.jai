@@ -1,5 +1,7 @@
 Color :: struct {
     r, g, b, a: float;
+#place r;
+    using #as base: Vector4;
 }
 
 Color8 :: struct {
