@@ -251,6 +251,7 @@ draw_texture :: inline (
         tint = tint
     );
 }
+
 draw_texture :: inline (
     texture: Texture,
     pos: Vector2,

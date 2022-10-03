@@ -3,12 +3,11 @@ Particle_Material :: struct {
 }
 
 Particle_Emitter :: struct() {
-    particles: Bucket_Array(Particle, 128, true);
+    particles: [..] Particle;
     texture: Texture;
     spawn_particle: Particle_Spawn_Callback;
     sim_particle: Particle_Sim_Callback;
     emitting := true;
-    particles_per_second: float = 100;
     interval_per_particle: float = 0.01;
     origin: Vector2;
     position: Vector2;
@@ -35,7 +34,7 @@ Particle_Sim_Callback :: #type (particle: *Particle, delta: float);
 
 create_emitter :: (
     texture: Texture,
-    particles_per_second: float = 100,
+    particles_per_second: float = 32,
     $spawn_callback: Particle_Spawn_Callback = spawn_particle,
     $sim_callback: Particle_Sim_Callback = sim_particle
 ) -> *Particle_Emitter {
@@ -43,27 +42,41 @@ create_emitter :: (
     emitter.texture = texture;
     emitter.spawn_particle = spawn_callback;
     emitter.sim_particle = sim_callback;
-    emitter.particles_per_second = particles_per_second;
     emitter.interval_per_particle = 1.0 / particles_per_second;
     emitter.origin = xy(cast(float) texture.width, cast(float) texture.height) * 0.5;
-    add_bucket(*emitter.particles);
     return emitter;
 }
 
+set_particles_per_second :: (emitter: *Particle_Emitter, particles_per_second: float = 32) {
+    emitter.interval_per_particle = 1.0 / particles_per_second;
+    if emitter.remainder > emitter.interval_per_particle {
+        emitter.remainder = emitter.interval_per_particle;
+    }
+}
+
 update_emitter :: (emitter: *Particle_Emitter, delta: float) {
-    for particle: emitter.particles {
+    for *particle: emitter.particles {
         emitter.sim_particle(particle, delta);
 
         if particle.elapsed > particle.lifetime  remove;
     }
 
-    emitter.elapsed += delta;
-    emitter.remainder += delta;
-
     if emitter.emitting {
+        emitter.elapsed += delta;
+        emitter.remainder += delta;
+
+        emitted := false;
         while emitter.remainder > emitter.interval_per_particle {
             emitter.remainder -= emitter.interval_per_particle;
             emitter.spawn_particle(emitter);
+            emitted = true;
+        }
+        if emitted {
+            sort_by_depth :: (a: Particle, b: Particle) -> s64 {
+                if a.elapsed > b.elapsed  return -1;
+                return 1;
+            }
+            bubble_sort(emitter.particles, sort_by_depth);
         }
     } else {
         // @Todo(sushi): Free the emitter.
@@ -84,7 +97,7 @@ draw_emitter :: (emitter: *Particle_Emitter, $additive := false) {
 #scope_file
 
 spawn_particle :: (emitter: *Particle_Emitter) {
-    locator, particle := bucket_array_add(*emitter.particles, .{});
+    particle := array_add(*emitter.particles);
     particle.position = emitter.position;
     particle.velocity = emitter.velocity;
     theta := get_single_float(41935, emitter.emitted) * TAU;
@@ -96,8 +109,7 @@ spawn_particle :: (emitter: *Particle_Emitter) {
     particle.lifetime = get_single_float(41935, emitter.emitted + 1) * 1.5 + 1.5;
     particle.color = Colors.White;
     emitter.emitted += 1;
-    emitter.sim_particle(particle, emitter.remainder);
-    return particle;
+    emitter.sim_particle(*particle, emitter.remainder);
 }
 
 sim_particle :: (using particle: *Particle, delta: float) {
@@ -108,5 +120,5 @@ sim_particle :: (using particle: *Particle, delta: float) {
     elapsed  += delta;
 }
 
-#import "Bucket_Array";
+#import "Sort";
 #import "GL";
