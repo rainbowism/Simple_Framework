@@ -1,20 +1,28 @@
 Uniform :: struct {
+    #if DEBUG  name: *u8;
     location: GLint;
     type:     Type;
     data:     *void;
-    // count:    s64;
 }
 
 Shader :: struct {
+    #if DEBUG {
+        vert_code: string;
+        frag_code: string;
+    }
     id:            s64;
     program:       GLuint;
     uniforms: [..] Uniform;
 }
 
 create_shader :: (vert_code: string, frag_code: string, $use_screen_texture := false) -> *Shader {
-    program := create_program(vert_code, frag_code);
+    program := create_gl_program(vert_code, frag_code);
     if program == 0  return null;
     shader_ptr := *render_ctx.shaders.data[render_ctx.shaders.last_occupied];
+    #if DEBUG {
+        shader_ptr.vert_code = copy_string(vert_code);
+        shader_ptr.frag_code = copy_string(frag_code);
+    }
     shader_ptr.id      = last_shader_id;
     shader_ptr.program = program;
     last_shader_id += 1;
@@ -77,6 +85,11 @@ attach_uniform :: (shader: *Shader, name: string, data: *$T) -> bool {
     uniform := find_uniform(shader, location);
     if uniform == null {
         uniform := array_add(*shader.uniforms);
+        #if DEBUG {
+            uniform.name = alloc(name.count + 1);
+            memcpy(uniform.name, name.data, name.count);
+            uniform.name[name.count] = 0;
+        }
         uniform.location = location;
         uniform.type = T;
         uniform.data = xx data;
@@ -84,20 +97,29 @@ attach_uniform :: (shader: *Shader, name: string, data: *$T) -> bool {
     return true;
 }
 
+#if DEBUG {
+    reattach_uniform :: (shader: *Shader) {
+        for *uniform: shader.uniforms {
+            location := glGetUniformLocation(shader.program, uniform.name);
+            if location == -1  continue;
+
+            uniform.location = location;
+        }
+    }
+}
+
 apply_uniform :: (using uniform: Uniform) {
     if type == {
     case u32;     glUniform1ui(location, << cast(*GLuint) data);
     case u64;     glUniform1ui(location, << cast(*GLuint) data);
-    case s32;     glUniform1i(location, << cast(*GLint) data);
-    case s64;     glUniform1i(location, << cast(*GLint) data);
-    case float32; glUniform1f(location, << cast(*GLfloat) data);
-    case float64; glUniform1f(location, << cast(*GLfloat) data);
+    case s32;     glUniform1i (location, << cast(*GLint) data);
+    case s64;     glUniform1i (location, << cast(*GLint) data);
+    case float32; glUniform1f (location, << cast(*GLfloat) data);
+    case float64; glUniform1f (location, << cast(*GLfloat) data);
     case Vector2; glUniform2fv(location, 1, cast(*GLfloat) data);
     case Vector3; glUniform3fv(location, 1, cast(*GLfloat) data);
     case Vector4; glUniform4fv(location, 1, cast(*GLfloat) data);
     case Point2;  glUniform2iv(location, 1, cast(*GLint) data);
-    // case Point3;  glUniform3iv(location, 1, cast(*GLint) data);
-    // case Point4;  glUniform4iv(location, 1, cast(*GLint) data);
     case Color;   glUniform4fv(location, 1, cast(*GLfloat) data);
     case Matrix2; glUniformMatrix2fv(location, 1, GL_TRUE, cast(*GLfloat) data);
     case Matrix3; glUniformMatrix3fv(location, 1, GL_TRUE, cast(*GLfloat) data);
@@ -106,37 +128,13 @@ apply_uniform :: (using uniform: Uniform) {
     }
 }
 
-create_program :: (vert_code: string, frag_code: string) -> GLuint {
-    create_shader :: (code: string, $type: GLenum) -> GLuint, bool #must {
-        shader := glCreateShader(type);
-        glShaderSource(shader, 1, *code.data, *(cast(GLint) code.count));
-        glCompileShader(shader);
-
-        gl_success: GLint;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, *gl_success);
-        if gl_success == 0 /* GL_FALSE */ {
-            buffer_length: GLuint;
-            buffer: [1024] u8;
-            glGetShaderInfoLog(shader, 1024, *buffer_length, buffer.data);
-            if buffer_length > 0 {
-                #if type == GL_VERTEX_SHADER
-                    warn(.Render, "Vertex shader compile error:\n%\n%", insert_line_numbers(code), to_string(buffer.data, buffer_length));
-                else #if type == GL_FRAGMENT_SHADER
-                    warn(.Render, "Fragment shader compile error:\n%\n%", insert_line_numbers(code), to_string(buffer.data, buffer_length));
-                else
-                    warn(.Render, "Shader(type:%) compile(%) error:\n%\n%", type, insert_line_numbers(code), to_string(buffer.data, buffer_length));
-            }
-            return 0, false;
-        }
-        return shader, true;
-    }
-
+create_gl_program :: (vert_code: string, frag_code: string) -> GLuint {
     success: bool;
     vert_shader, frag_shader: GLuint;
-    vert_shader, success = create_shader(vert_code, GL_VERTEX_SHADER);
+    vert_shader, success = create_gl_shader(vert_code, .Vertex);
     if !success  return 0;
     defer glDeleteShader(vert_shader);
-    frag_shader, success = create_shader(frag_code, GL_FRAGMENT_SHADER);
+    frag_shader, success = create_gl_shader(frag_code, .Fragment);
     if !success  return 0;
     defer glDeleteShader(frag_shader);
 
@@ -164,6 +162,36 @@ create_program :: (vert_code: string, frag_code: string) -> GLuint {
         program = 0;
     }
     return program;
+}
+
+create_gl_shader :: (code: string, $type: enum { Vertex; Fragment; }) -> GLuint, bool #must {
+    #if type == .Vertex {
+        shader := glCreateShader(GL_VERTEX_SHADER);
+    } else #if type == .Fragment {
+        shader := glCreateShader(GL_FRAGMENT_SHADER);
+    } else {
+        assert(false, "Invalid shader type.");
+    }
+    glShaderSource(shader, 1, *code.data, *(cast(GLint) code.count));
+    glCompileShader(shader);
+
+    gl_success: GLint;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, *gl_success);
+    if gl_success == 0 /* GL_FALSE */ {
+        buffer_length: GLuint;
+        buffer: [1024] u8;
+        glGetShaderInfoLog(shader, 1024, *buffer_length, buffer.data);
+        if buffer_length > 0 {
+            #if type == GL_VERTEX_SHADER
+                warn(.Render, "Vertex shader compile error:\n%\n%", insert_line_numbers(code), to_string(buffer.data, buffer_length));
+            else #if type == GL_FRAGMENT_SHADER
+                warn(.Render, "Fragment shader compile error:\n%\n%", insert_line_numbers(code), to_string(buffer.data, buffer_length));
+            else
+                warn(.Render, "Shader(type:%) compile(%) error:\n%\n%", type, insert_line_numbers(code), to_string(buffer.data, buffer_length));
+        }
+        return 0, false;
+    }
+    return shader, true;
 }
 
 create_default_shaders :: () {
