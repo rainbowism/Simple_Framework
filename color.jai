@@ -1,7 +1,13 @@
+LabA :: struct {
+    L, a, b, A: float;
+#place L;
+    using #as value: Vector4;
+}
+
 Color :: struct {
     r, g, b, a: float;
 #place r;
-    using #as base: Vector4;
+    using #as value: Vector4;
 }
 
 Color8 :: struct {
@@ -338,4 +344,38 @@ to_color8 :: (in: Color) -> Color8 {
     out.b = cast(u8) (clamp(in.b, 0, 1) * 255 + 0.5);
     out.a = cast(u8) (clamp(in.a, 0, 1) * 255 + 0.5);
     return out;
+}
+
+color_to_laba :: (c: Color) -> LabA {
+    l: float = 0.41222147 * c.r + 0.53633253 * c.g + 0.05144599 * c.b;
+	m: float = 0.21190349 * c.r + 0.68069954 * c.g + 0.10739695 * c.b;
+	s: float = 0.08830246 * c.r + 0.28171883 * c.g + 0.62997870 * c.b;
+
+    l_: float = pow(l, 1.0 / 3.0);
+    m_: float = pow(m, 1.0 / 3.0);
+    s_: float = pow(s, 1.0 / 3.0);
+
+    r: LabA = ---;
+    r.L = 0.21045425*l_ + 0.79361778*m_ - 0.00407204*s_;
+    r.a = 1.9779984 *l_ - 2.4285922 *m_ + 0.45059370*s_;
+    r.b = 0.02590403*l_ + 0.78277176*m_ - 0.80867576*s_;
+    r.A = c.a;
+    return r;
+}
+
+laba_to_color :: (c: LabA) -> Color {
+    l_: float = c.L + 0.39633777 * c.a + 0.21580375 * c.b;
+    m_: float = c.L - 0.10556134 * c.a - 0.06385417 * c.b;
+    s_: float = c.L - 0.08948417 * c.a - 1.2914855  * c.b;
+
+    l: float = l_*l_*l_;
+    m: float = m_*m_*m_;
+    s: float = s_*s_*s_;
+
+    r: Color = ---;
+    r.r = +4.0767416  * l - 3.3077115  * m + 0.23096992 * s;
+    r.g = -1.2684380  * l + 2.6097574  * m - 0.34131939 * s;
+    r.b = -0.00419608 * l - 0.70341861 * m + 1.7076147  * s;
+    r.a = c.A;
+    return r;
 }
