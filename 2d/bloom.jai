@@ -95,7 +95,6 @@ render_bloom :: inline (render_bloom: *Render_Bloom, source_texture: GLuint, fil
     glUniform1i(4, 1);
     glUniform1i(5, 2);
     glUniform1f(6, bloom_strength);
-    glUniform1f(7, bloom_exposure);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, render_ctx.target[RENDER_TARGET_MAIN].color);
     glActiveTexture(GL_TEXTURE1);
@@ -149,8 +148,7 @@ render_upsamples :: (render_bloom: *Render_Bloom, filter_radius: float) {
     }
 }
 
-bloom_strength: float = 0.04;
-bloom_exposure: float = 1.0;
+bloom_strength: float = 0.15;
 
 FRAG_SHADER_BLOOM :: #string ___glsl
 #version 430 core
@@ -163,7 +161,6 @@ uniform sampler2D Texture;
 layout(location = 4) uniform sampler2D ParticlesTexture;
 layout(location = 5) uniform sampler2D BloomBlur;
 layout(location = 6) uniform float BloomStrength;
-layout(location = 7) uniform float BloomExposure;
 
 void main() {
     glFragColor = texture(Texture, fUV);
@@ -171,7 +168,6 @@ void main() {
     vec4 ParticlesColor = texture(ParticlesTexture, fUV);
     vec3 BloomColor = texture(BloomBlur, fUV).rgb;
 
-    // glFragColor = ParticlesColor * (ParticlesColor.a) + HDRColor * (1-ParticlesColor.a);
     glFragColor.rgb += BloomColor * BloomStrength;
 }
 
