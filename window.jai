@@ -36,6 +36,8 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_VISIBLE, 0);
 
+    window.size.x = xx width;
+    window.size.y = xx height;
     window.size.width  = width;
     window.size.height = height;
     window.name = title;
@@ -47,7 +49,6 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 	}
 	glfwMakeContextCurrent(window.handle);
 	gl_load(*gl, glfwGetProcAddress);
-
 
     if flags & .Fullscreen {
         set_fullscreen(true);
@@ -72,8 +73,6 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 
     set_vsync(flags & .VSync > 0);
 
-    update_viewport(width, height);
-
     glEnable(GL_BLEND);
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
@@ -86,6 +85,8 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     #if !DISABLE_RENDER { if modules_to_init & .Render  render_init(); }
     #if !DISABLE_AUDIO  { if modules_to_init & .Audio   audio_init();  }
     #if !DISABLE_IMGUI  { if modules_to_init & .ImGui   imgui_init();  }
+
+    update_viewport(width, height);
 
     time.last = get_time();
 
@@ -346,6 +347,10 @@ time: struct {
 
 update_viewport :: (width: s32, height: s32) {
     glViewport(0, 0, xx width, xx height);
+    window.size.x = xx width;
+    window.size.y = xx height;
+    window.size.width  = width;
+    window.size.height = height;
     #if !DISABLE_RENDER  push_screen_size(width, height);
 }
 
@@ -369,6 +374,7 @@ Window_Context :: struct {
 
     focused: bool;
     size: struct {
+        using #as base: Vector2;
         width:       s32;
         height:      s32;
         last_width:  s32;

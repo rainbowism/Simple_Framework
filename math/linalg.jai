@@ -26,6 +26,27 @@ make_point2 :: (x: s32, y: s32) -> Point2 {
     return p;
 }
 
+operator - :: (a: Point2) -> Point2 {
+    r: Point2 = ---;
+    r.x = -a.x;
+    r.y = -a.y;
+    return r;
+}
+
+operator / :: (a: Point2, b: s32) -> Point2 {
+    r: Point2 = ---;
+    r.x = a.x / b;
+    r.y = a.y / b;
+    return r;
+}
+
+operator / :: (a: s32, b: Point2) -> Point2 {
+    r: Point2 = ---;
+    r.x = a / b.x;
+    r.y = a / b.y;
+    return r;
+}
+
 Recti :: struct {
     x, y:          s32;
     width, height: s32;

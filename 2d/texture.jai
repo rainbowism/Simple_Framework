@@ -38,6 +38,9 @@ Wrap_Mode :: enum GLenum {
     Clamp_To_Border :: GL_CLAMP_TO_BORDER;
 }
 
+SWIZZLE_RGB_MASK   :: GLint.[GL_RED, GL_RED, GL_RED, GL_ONE];
+SWIZZLE_ALPHA_MASK :: GLint.[GL_ONE, GL_ONE, GL_ONE, GL_RED];
+
 create_image :: (filepath: string) -> Image {
     path := temp_c_string(filepath);
     image: Image = ---;
@@ -47,10 +50,10 @@ create_image :: (filepath: string) -> Image {
 
 load_texture :: (
     filepath: string,
-    min_sampling := Sampling_Mode.Trilinear_Mipmap,
-    mag_sampling := Sampling_Mode.Linear,
-    wrap_mode    := Wrap_Mode.Clamp_To_Edge,
-    pixel_format := Pixel_Format.RGBA
+    min_sampling  := Sampling_Mode.Trilinear_Mipmap,
+    mag_sampling  := Sampling_Mode.Linear,
+    wrap_mode     := Wrap_Mode.Clamp_To_Edge,
+    $pixel_format := Pixel_Format.RGBA
 ) -> Texture {
     path := temp_c_string(filepath);
 
@@ -79,6 +82,10 @@ load_texture :: (
         warn(.Render, "Parsed invalid texture format for file: %", filepath);
         return .{};
     }
+
+    // #if pixel_format == .Gray {
+    //     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, SWIZZLE_ALPHA_MASK.data);
+    // }
 
     glGenerateMipmap(GL_TEXTURE_2D);
     return texture;
@@ -152,11 +159,9 @@ create_grayscale_texture :: (buffer: [] $T, width: s32, height: s32, wrap_mode :
     }
 
     #if swizzle_rgb {
-        swizzle_mask :: GLint.[GL_RED, GL_RED, GL_RED, GL_ONE];
-        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_mask.data);
+        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, SWIZZLE_RGB_MASK.data);
     } else {
-        swizzle_mask :: GLint.[GL_ONE, GL_ONE, GL_ONE, GL_RED];
-        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_mask.data);
+        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, SWIZZLE_ALPHA_MASK.data);
     }
 
     glGenerateMipmap(GL_TEXTURE_2D);

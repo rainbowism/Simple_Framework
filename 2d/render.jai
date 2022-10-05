@@ -19,6 +19,25 @@ render_init :: (max_renderables := 8192) {
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, xx *render_ctx.max_texture_slot);
     render_ctx.max_texture_slot -= 1;
 
+    // init render quad
+    glGenVertexArrays(1, *quad_vao);
+    glGenBuffers(1, *quad_vbo);
+
+    glBindVertexArray(quad_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, quad_vbo);
+    glBufferData(GL_ARRAY_BUFFER, quad_vertices.count * size_of(float), quad_vertices.data, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_POS, 3, GL_FLOAT, GL_FALSE, 5 * size_of(float), null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_POS);
+
+    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_UV1, 2, GL_FLOAT, GL_FALSE, 5 * size_of(float), xx (3 * size_of(float)));
+    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_UV1);
+
+    glBindVertexArray(0);
+
+    render_ctx.bloom, success = init_render_bloom(BLOOM_LEVELS);
+    if !success  warn(.Render, "Failed to initialize bloom renderer");
+
     create_default_shaders();
     render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
 }
@@ -37,6 +56,12 @@ render_begin :: inline (time: float, camera: Camera) {
     render_ctx.state.buffer_drawn = false;
     glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
     draw_clear(.{0.0, 0.0, 0.0, 0.0});
+}
+
+render_quad :: inline () {
+    glBindVertexArray(quad_vao);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
 }
 
 push_particle_framebuffer :: inline () {
@@ -126,6 +151,7 @@ batch_draw :: () {
 push_screen_size :: inline (width: s32, height: s32) {
     resize_render_target(render_ctx.target[RENDER_TARGET_MAIN], width, height);
     resize_render_target(render_ctx.target[RENDER_TARGET_PARTICLE], width, height);
+    resize_render_bloom(render_ctx.bloom, width, height);
     render_ctx.state.projection = make_ortho_matrix(0, xx width, xx height, 0, -1, 1);
     screen_size := make_vector2(xx width, xx height);
     pixel_size  := 1.0 / screen_size;
@@ -278,6 +304,14 @@ RENDER_STARTING_DEPTH :: 0;
 
 render_ctx: Render_Context;
 
+quad_vertices :: float.[
+    -1.0,  1.0, 0.0, 0.0, 1.0,
+    -1.0, -1.0, 0.0, 0.0, 0.0,
+     1.0,  1.0, 0.0, 1.0, 1.0,
+     1.0, -1.0, 0.0, 1.0, 0.0,
+];
+quad_vao, quad_vbo: GLuint = ---;
+
 #scope_file
 
 init_vertex_buffer :: inline (
@@ -384,6 +418,7 @@ buffer_sub_data :: inline ($type: Render_Type) -> bool {
     return true;
 }
 
+BLOOM_LEVELS :: 6;
 DEFAULT_MAX_DRAWCALLS :: 256;
 DEFAULT_MAX_SHADERS   :: 64;
 
@@ -426,6 +461,7 @@ Render_Context :: struct {
     }
 
     target:           [2] Render_Target;
+    bloom:            *Render_Bloom(BLOOM_LEVELS);
     ubo:              GLuint;
     max_texture_slot: GLuint;
 

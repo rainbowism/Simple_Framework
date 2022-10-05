@@ -1,6 +1,9 @@
-DEFAULT_SHADER_TEXTURED    :: 0;
-DEFAULT_SHADER_COLORED     :: 1;
-DEFAULT_SHADER_FRAMEBUFFER :: 2;
+DEFAULT_SHADER_TEXTURED         :: 0;
+DEFAULT_SHADER_COLORED          :: 1;
+DEFAULT_SHADER_FRAMEBUFFER      :: 2;
+DEFAULT_SHADER_BLOOM            :: 3;
+DEFAULT_SHADER_BLOOM_DOWNSAMPLE :: 4;
+DEFAULT_SHADER_BLOOM_UPSAMPLE   :: 5;
 
 DEFAULT_SHADER_VERTEX_POS   :: 0;
 DEFAULT_SHADER_VERTEX_UV1   :: 1;
@@ -51,7 +54,6 @@ layout(std140, binding = 0) uniform ShaderGlobals {
 
 in vec3 vPosition;
 in vec2 vUV;
-in vec4 vColor;
 
 out vec2 fUV;
 out vec4 fColor;
@@ -62,7 +64,7 @@ out float fTime;
 void main() {
     gl_Position      = vec4(vPosition.xy, 0.0, 1.0);
     fUV              = vUV;
-    fColor           = vColor;
+    fColor           = vec4(1.0);
     fScreenSize      = ScreenSize;
     fScreenPixelSize = ScreenPixelSize;
     fTime            = Time;
@@ -75,7 +77,6 @@ FRAG_SHADER_TEXTURED_RECT :: #string ___glsl
 
 in vec2 fUV;
 in vec4 fColor;
-in vec2 fScreenPixelSize;
 
 out vec4 glFragColor;
 

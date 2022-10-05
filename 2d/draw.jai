@@ -16,37 +16,10 @@ draw_buffer :: () {
     if render_ctx.state.buffer_drawn  return;
     push_default_framebuffer();
     glDisable(GL_DEPTH_TEST);
-    push_texture(render_ctx.target[RENDER_TARGET_MAIN].color);
-    batch_start(.Texture);
-    {
-        push_color(Colors.White);
-        push_uv(0, 1);
-        push_vertex(.Texture, .{-1,  1});
-        push_uv(0, 0);
-        push_vertex(.Texture, .{-1, -1});
-        push_uv(1, 0);
-        push_vertex(.Texture, .{ 1, -1});
-        push_uv(1, 1);
-        push_vertex(.Texture, .{ 1,  1});
-    }
-    batch_end(.Texture);
-    push_default_shader_framebuffer();
-    push_texture(render_ctx.target[RENDER_TARGET_PARTICLE].color);
-    batch_start(.Texture);
-    {
-        push_color(Colors.White);
-        push_uv(0, 1);
-        push_vertex(.Texture, .{-1,  1});
-        push_uv(0, 0);
-        push_vertex(.Texture, .{-1, -1});
-        push_uv(1, 0);
-        push_vertex(.Texture, .{ 1, -1});
-        push_uv(1, 1);
-        push_vertex(.Texture, .{ 1,  1});
-    }
-    batch_end(.Texture);
-    push_default_shader_framebuffer();
-    batch_draw();
+    // draw_render_texture(render_ctx.target[RENDER_TARGET_MAIN]);
+    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
+    draw_render_texture(render_ctx.target[RENDER_TARGET_PARTICLE]);
+    render_bloom(render_ctx.bloom, render_ctx.target[RENDER_TARGET_PARTICLE].color, 0.005);
     glEnable(GL_DEPTH_TEST);
     glActiveTexture(GL_TEXTURE0 + render_ctx.max_texture_slot);
     glBindTexture(GL_TEXTURE_2D, render_ctx.target[RENDER_TARGET_MAIN].color);

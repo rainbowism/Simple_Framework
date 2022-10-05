@@ -13,7 +13,7 @@ create_render_target :: () -> Render_Target, bool {
 
     glGenTextures(1, *render_target.color);
     glBindTexture(GL_TEXTURE_2D, render_target.color);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx window.size.width, xx window.size.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx window.size.width, xx window.size.height, 0, GL_RGBA, GL_FLOAT, null);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -50,6 +50,14 @@ resize_render_target :: (render_target: Render_Target, width: s32, height: s32) 
     glViewport(0, 0, xx width, xx height);
 }
 
-draw_render_texture :: () {
-
+draw_render_texture :: (render_target: Render_Target, $additive := false) {
+    #if additive {
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        defer glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
+    glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_FRAMEBUFFER].program);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, render_target.color);
+    render_quad();
+    render_ctx.draw_calls += 1;
 }
