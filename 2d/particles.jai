@@ -55,10 +55,14 @@ set_particles_per_second :: (emitter: *Particle_Emitter, particles_per_second: f
 }
 
 update_emitter :: (emitter: *Particle_Emitter, delta: float) {
+    should_sort := false;
     for *particle: emitter.particles {
         emitter.sim_particle(particle, delta);
 
-        if particle.elapsed > particle.lifetime  remove;
+        if particle.elapsed > particle.lifetime {
+            should_sort = true;
+            remove;
+        }
     }
 
     if emitter.emitting {
@@ -69,18 +73,12 @@ update_emitter :: (emitter: *Particle_Emitter, delta: float) {
         while emitter.remainder > emitter.interval_per_particle {
             emitter.remainder -= emitter.interval_per_particle;
             emitter.spawn_particle(emitter);
-            emitted = true;
-        }
-        if emitted {
-            sort_by_depth :: (a: Particle, b: Particle) -> s64 {
-                if a.elapsed > b.elapsed  return -1;
-                return 1;
-            }
-            bubble_sort(emitter.particles, sort_by_depth);
+            should_sort = true;
         }
     } else {
         // @Todo(sushi): Free the emitter.
     }
+    if should_sort  bubble_sort(emitter.particles, sort_by_depth);
 }
 
 draw_emitter :: (emitter: *Particle_Emitter, $additive := false) {
@@ -95,6 +93,11 @@ draw_emitter :: (emitter: *Particle_Emitter, $additive := false) {
 }
 
 #scope_file
+
+sort_by_depth :: (a: Particle, b: Particle) -> s64 {
+    if a.elapsed > b.elapsed  return 1;
+    return -1;
+}
 
 spawn_particle :: (emitter: *Particle_Emitter) {
     particle := array_add(*emitter.particles);

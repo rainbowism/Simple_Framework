@@ -118,17 +118,17 @@ get_fractal_4d :: inline (contexts: [] *osn_context, x: float, y: float, z: floa
 }
 
 get_single_1d :: (seed: u64, position: $T) -> u64 {
-    bit_1 :: 0xB5297A4D;
-    bit_2 :: 0x68E31DA4;
-    bit_3 :: 0x1B56C4E9;
+    bits_1 :: 0xB5297A4D;
+    bits_2 :: 0x68E31DA4;
+    bits_3 :: 0x1B56C4E9;
 
-    mangled := cast(u64) position;
-    mangled *= bit_1;
+    mangled := cast,no_check(u64) position;
+    mangled *= bits_1;
     mangled += seed;
     mangled ^= mangled >> 8;
-    mangled += bit_2;
+    mangled += bits_2;
     mangled ^= mangled << 8;
-    mangled *= bit_3;
+    mangled *= bits_3;
     mangled ^= mangled >> 8;
     return mangled;
 }
