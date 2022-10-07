@@ -30,8 +30,8 @@ draw_line :: (a: Vector2, b: Vector2, tint := Colors.White) {
     batch_start(.Line);
     {
         push_color(tint);
-        push_vertex(.Line, round(a));
-        push_vertex(.Line, round(b));
+        push_vertex(.Line, a);
+        push_vertex(.Line, b);
     }
     batch_end(.Line);
 }
@@ -40,9 +40,9 @@ draw_line :: (a: Vector2, b: Vector2, tints: [2] Color) {
     batch_start(.Line);
     {
         push_color(tints[0]);
-        push_vertex(.Line, round(a));
+        push_vertex(.Line, a);
         push_color(tints[1]);
-        push_vertex(.Line, round(b));
+        push_vertex(.Line, b);
     }
     batch_end(.Line);
 }
@@ -50,7 +50,7 @@ draw_line :: (a: Vector2, b: Vector2, tints: [2] Color) {
 draw_circle :: (using circle: *Circle, tint := Colors.White, $segments: int = 32) {
     INCREMENT :: TAU / segments;
 
-    position := round(circle.position);
+    position := circle.position;
 
     last: Vector2 = ---;
     theta: float;
@@ -75,7 +75,7 @@ draw_circle :: (using circle: *Circle, tint := Colors.White, $segments: int = 32
 draw_circle :: (position: Vector2, radius: float, tint := Colors.White, $segments: int = 32) {
     INCREMENT :: TAU / segments;
 
-    position := round(position);
+    position := position;
 
     last: Vector2 = ---;
     theta: float;
@@ -111,7 +111,8 @@ draw_poly :: (using polygon: *Polygon($N), tint := Colors.White) {
     batch_end(.Line);
 }
 
-draw_rect :: (using obb: *OBB, tint := Colors.White) {
+draw_rect :: (obb: *OBB, tint := Colors.White) {
+    position := oobb.position;
     batch_start(.Rect);
     {
         push_color(tint);
@@ -124,8 +125,8 @@ draw_rect :: (using obb: *OBB, tint := Colors.White) {
 }
 
 draw_rect_bottom_center :: (position: Vector2, size: Vector2, tint := Colors.White, rotation: float = 0.0) {
-    x := round(position.x - size.x * 0.5);
-    y := round(position.y - size.y);
+    x := position.x - size.x * 0.5;
+    y := position.y - size.y;
     tl, tr, bl, br: Vector2 = ---;
     tl.x = x;
     tl.y = y;
@@ -347,8 +348,8 @@ rotate_quad :: () #expand {
     } else {
         theta_sin := sin(`rotation);
         theta_cos := cos(`rotation);
-        x := round(`dest.x);
-        y := round(`dest.y);
+        x := `dest.x;
+        y := `dest.y;
         dx := -`origin.x;
         dy := -`origin.y;
 
