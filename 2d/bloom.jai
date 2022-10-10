@@ -1,5 +1,6 @@
 Render_Bloom :: struct(chain_length: int) {
     fbo:  GLuint;
+    strength: float = 0.15;
     mip_chain: [chain_length] Bloom_Mip;
 }
 
@@ -94,7 +95,7 @@ render_bloom :: inline (render_bloom: *Render_Bloom, source_texture: GLuint, fil
     glViewport(0, 0, xx window.size.width, xx window.size.height);
     glUniform1i(4, 1);
     glUniform1i(5, 2);
-    glUniform1f(6, bloom_strength);
+    glUniform1f(6, render_bloom.strength);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, render_ctx.target[RENDER_TARGET_MAIN].color);
     glActiveTexture(GL_TEXTURE1);
@@ -147,8 +148,6 @@ render_upsamples :: (render_bloom: *Render_Bloom, filter_radius: float) {
         render_quad();
     }
 }
-
-bloom_strength: float = 0.15;
 
 FRAG_SHADER_BLOOM :: #string ___glsl
 #version 430 core
