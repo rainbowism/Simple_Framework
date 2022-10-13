@@ -16,7 +16,7 @@ render_init :: (max_renderables := 8192) {
     init_vertex_buffer(.Rect,    *render_ctx.rects,     max_renderables, 4, 6);
     init_vertex_buffer(.Line,    *render_ctx.lines,     max_renderables, 2, 2);
 
-    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, xx *render_ctx.max_texture_slot);
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, *render_ctx.max_texture_slot);
     render_ctx.max_texture_slot -= 1;
 
     // init render quad
@@ -119,8 +119,17 @@ batch_draw :: () {
         vertex_offset: s64;
         for 0..render_ctx.draw_counter {
             glUseProgram(render_ctx.draws[it].shader.program);
-            for render_ctx.draws[it].shader.uniforms {
-                apply_uniform(it);
+            for uniform: render_ctx.draws[it].shader.uniforms {
+                apply_uniform(uniform);
+
+                #if 0 {
+                    if uniform.type == GLint {
+                        name: string = ---;
+                        name.data = uniform.name;
+                        name.count = c_style_strlen(uniform.name);
+                        info("%: loc=% data=%", name, uniform.location, << cast(*GLint) uniform.data);
+                    }
+                }
             }
 
             glBindTexture(GL_TEXTURE_2D, render_ctx.draws[it].texture_id);
@@ -463,7 +472,7 @@ Render_Context :: struct {
     target:           [2] Render_Target;
     bloom:            *Render_Bloom(BLOOM_LEVELS);
     ubo:              GLuint;
-    max_texture_slot: GLuint;
+    max_texture_slot: GLint;
 
     draw_calls:   s64;
     draw_counter: s64 = -1;

@@ -14,16 +14,27 @@ draw_end :: inline () {
 
 draw_buffer :: () {
     if render_ctx.state.buffer_drawn  return;
-    push_default_framebuffer();
+    batch_draw();
     glDisable(GL_DEPTH_TEST);
-    // draw_render_texture(render_ctx.target[RENDER_TARGET_MAIN]);
     glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
     draw_render_texture(render_ctx.target[RENDER_TARGET_PARTICLE]);
-    render_bloom(render_ctx.bloom, render_ctx.target[RENDER_TARGET_PARTICLE].color, 0.005);
+    render_bloom(
+        render_ctx.bloom,
+        render_ctx.target[RENDER_TARGET_MAIN].fbo,
+        render_ctx.target[RENDER_TARGET_PARTICLE].color,
+        0.005
+    );
     glEnable(GL_DEPTH_TEST);
-    glActiveTexture(GL_TEXTURE0 + render_ctx.max_texture_slot);
-    glBindTexture(GL_TEXTURE_2D, render_ctx.target[RENDER_TARGET_MAIN].color);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    draw_clear();
+    draw_render_texture(render_ctx.target[RENDER_TARGET_MAIN]);
+    bind_screen_texture();
     render_ctx.state.buffer_drawn = true;
+}
+
+bind_screen_texture :: inline () {
+    glActiveTexture(GL_TEXTURE0 + cast,no_check(GLuint) render_ctx.max_texture_slot);
+    glBindTexture(GL_TEXTURE_2D, render_ctx.target[RENDER_TARGET_MAIN].color);
 }
 
 draw_line :: (a: Vector2, b: Vector2, tint := Colors.White) {

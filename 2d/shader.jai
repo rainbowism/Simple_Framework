@@ -33,6 +33,20 @@ create_shader :: (vert_code: string, frag_code: string, $use_screen_texture := f
     #if use_screen_texture {
         attach_uniform(shader_ptr, "ScreenTexture", *render_ctx.max_texture_slot);
     }
+
+    #if 0 {
+        uniform_count: s32;
+        glGetProgramInterfaceiv(shader_ptr.program, GL_UNIFORM, GL_ACTIVE_RESOURCES, *uniform_count);
+        uniform_size: GLint;
+        uniform_type: GLenum;
+        name := talloc_string(256);
+
+        for 0..uniform_count-1 {
+            glGetActiveUniform(shader_ptr.program, xx it, 256, xx *name.count, *uniform_size, *uniform_type, name.data);
+
+            info("Uniform % Type: % Name: %", it, uniform_type, name);
+        }
+    }
     return shader_ptr;
 }
 
@@ -90,6 +104,10 @@ attach_uniform :: (shader: *Shader, name: string, data: *$T) -> bool {
             memcpy(uniform.name, name.data, name.count);
             uniform.name[name.count] = 0;
         }
+        uniform.location = location;
+        uniform.type = T;
+        uniform.data = xx data;
+    } else {
         uniform.location = location;
         uniform.type = T;
         uniform.data = xx data;

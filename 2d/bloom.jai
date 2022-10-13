@@ -1,6 +1,6 @@
 Render_Bloom :: struct(chain_length: int) {
     fbo:  GLuint;
-    strength: float = 0.15;
+    strength: float = 0.1;
     mip_chain: [chain_length] Bloom_Mip;
 }
 
@@ -43,9 +43,6 @@ init_render_bloom :: ($chain_length: int) -> *Render_Bloom(chain_length), bool {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_bloom.mip_chain[0].texture, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-	// attachments := u32.[GL_COLOR_ATTACHMENT0];
-	// glDrawBuffers(1, attachments.data);
-
     if glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE {
         return render_bloom, true;
     }
@@ -82,25 +79,20 @@ resize_render_bloom :: (render_bloom: *Render_Bloom, width: s32, height: s32) {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-render_bloom :: inline (render_bloom: *Render_Bloom, source_texture: GLuint, filter_radius: float) {
+render_bloom :: inline (render_bloom: *Render_Bloom, fbo: GLuint, source_texture: GLuint, filter_radius: float) {
 	glBindFramebuffer(GL_FRAMEBUFFER, render_bloom.fbo);
     render_downsamples(render_bloom, source_texture);
     render_upsamples(render_bloom, filter_radius);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
     glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_BLOOM].program);
-    defer glUseProgram(0);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    defer glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glViewport(0, 0, xx window.size.width, xx window.size.height);
-    glUniform1i(4, 1);
-    glUniform1i(5, 2);
-    glUniform1f(6, render_bloom.strength);
+    glUniform1f(0, render_bloom.strength);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, render_ctx.target[RENDER_TARGET_MAIN].color);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, render_ctx.target[RENDER_TARGET_PARTICLE].color);
-    glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, render_bloom.mip_chain[0].texture);
     render_quad();
 }
@@ -114,17 +106,17 @@ render_downsamples :: (render_bloom: *Render_Bloom, source_texture: GLuint) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, source_texture);
 
-    glUniform2fv(4, 1, *window.size.x);
-    glUniform1i(5, 0); // enable Karis average
+    glUniform2fv(0, 1, *window.size.x);
+    glUniform1i(1, 0); // enable Karis average
     for *mip: render_bloom.mip_chain {
         glViewport(0, 0, xx mip.isize.x, xx mip.isize.y);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mip.texture, 0);
 
         render_quad();
 
-        glUniform2fv(4, 1, *mip.size.x);
+        glUniform2fv(0, 1, *mip.size.x);
         glBindTexture(GL_TEXTURE_2D, mip.texture);
-        if it_index == 0  glUniform1i(5, 1); // disable Karis average
+        if it_index == 0  glUniform1i(1, 1); // disable Karis average
     }
 }
 
@@ -135,7 +127,7 @@ render_upsamples :: (render_bloom: *Render_Bloom, filter_radius: float) {
     glBlendFunc(GL_ONE, GL_ONE);
     defer glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glUniform1f(4, filter_radius);
+    glUniform1f(0, filter_radius);
     for < render_bloom.chain_length-1..1 {
         mip      := render_bloom.mip_chain[it];
         next_mip := render_bloom.mip_chain[it-1];
@@ -157,17 +149,11 @@ in vec2 fUV;
 out vec4 glFragColor;
 
 uniform sampler2D Texture;
-layout(location = 4) uniform sampler2D ParticlesTexture;
-layout(location = 5) uniform sampler2D BloomBlur;
-layout(location = 6) uniform float BloomStrength;
+layout(location = 0) uniform float BloomStrength;
 
 void main() {
     glFragColor = texture(Texture, fUV);
-    vec4 HDRColor = texture(Texture, fUV);
-    vec4 ParticlesColor = texture(ParticlesTexture, fUV);
-    vec3 BloomColor = texture(BloomBlur, fUV).rgb;
-
-    glFragColor.rgb += BloomColor * BloomStrength;
+    glFragColor.rgb *= BloomStrength;
 }
 
 ___glsl
@@ -180,8 +166,8 @@ in vec2 fUV;
 out vec3 glFragColor;
 
 uniform sampler2D Texture;
-layout(location = 4) uniform vec2 SourceSize;
-layout(location = 5) uniform int MipLevel;
+layout(location = 0) uniform vec2 SourceSize;
+layout(location = 1) uniform int MipLevel;
 
 vec3 PowVec3(vec3 v, float p)
 {
@@ -281,7 +267,7 @@ in vec2 fUV;
 out vec3 glFragColor;
 
 uniform sampler2D Texture;
-layout(location = 4) uniform float FilterRadius;
+layout(location = 0) uniform float FilterRadius;
 
 void main() {
     // The filter kernel is applied with a radius, specified in texture
