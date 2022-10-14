@@ -3,6 +3,24 @@ Rect :: struct {
     width, height: float;
 }
 
+operator * :: (a: Rect, b: float) -> Rect {
+    r: Rect = ---;
+    r.x = a.x * b;
+    r.y = a.y * b;
+    r.width  = a.width  * b;
+    r.height = a.height * b;
+    return r;
+}
+
+operator + :: (a: Rect, b: Vector2) -> Rect {
+    r: Rect = ---;
+    r.x = a.x + b.x;
+    r.y = a.y + b.y;
+    r.width  = a.width;
+    r.height = a.height;
+    return r;
+}
+
 intersect :: inline (v: Vector2, r: Rect) -> bool {
     return r.x <= v.x && r.width  >= v.x &&
            r.y <= v.y && r.height >= v.y;

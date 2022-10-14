@@ -34,6 +34,7 @@ SF_Result :: enum {
 #if !DISABLE_RENDER {
     #load "2d/texture.jai";
     #load "2d/font.jai";
+    #load "2d/msdf.jai";
     #load "2d/render.jai";
     #load "2d/shader.jai";
     #load "2d/default_shader.jai";

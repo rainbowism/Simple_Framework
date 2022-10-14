@@ -341,6 +341,24 @@ draw_text :: (font: Font, text: string, position: Vector2, tint := Colors.White)
     }
 }
 
+draw_text :: (msdf: MSDF_Font, text: string, position: Vector2, size: float, tint := Colors.White) {
+    offset := position;
+    current_tint := tint;
+
+    last_char: u8 = 0;
+
+    for 0..text.count-1 {
+        if text[it] < msdf.starting_glyph || text[it] >= (msdf.starting_glyph + msdf.glyphs.count)  continue;
+        offset.x += get_kerning(msdf, text[it], last_char) * size;
+        glyph := msdf.glyphs[text[it] - msdf.starting_glyph];
+        dest := (glyph.plane * size) + offset;
+        current_tint.a = size / dest.width;
+        draw_texture(msdf.texture, glyph.atlas, dest, tint);
+        offset.x += glyph.advance_x * size;
+        last_char = text[it];
+    }
+}
+
 #scope_file
 
 rotate_quad :: () #expand {
