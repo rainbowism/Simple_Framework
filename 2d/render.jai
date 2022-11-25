@@ -42,6 +42,21 @@ render_init :: (max_renderables := 8192) {
     render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
 }
 
+render_begin :: inline (time: float) {
+    push_model_view_identity();
+    render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
+    render_ctx.draw_calls = 0;
+
+    glBindBuffer(GL_UNIFORM_BUFFER, render_ctx.ubo);
+    glBufferSubData(GL_UNIFORM_BUFFER, size_of(Matrix4), size_of(Matrix4), render_ctx.state.model_view.floats.data);
+    glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4) + size_of(Vector4), size_of(float), *time);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    render_ctx.state.buffer_drawn = false;
+    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
+    draw_clear(.{0.0, 0.0, 0.0, 0.0});
+}
+
 render_begin :: inline (time: float, camera: Camera) {
     push_model_view_identity();
     push_model_view(get_camera_matrix(camera));

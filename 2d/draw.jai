@@ -1,3 +1,9 @@
+draw_begin :: inline (time: float) {
+    gpu_begin_frame();
+    _profiler_draw_task = gpu_begin_task("Draw", Colors8.Medium_Purple);
+    render_begin(time);
+}
+
 draw_begin :: inline (time: float, camera: Camera) {
     gpu_begin_frame();
     _profiler_draw_task = gpu_begin_task("Draw", Colors8.Medium_Purple);

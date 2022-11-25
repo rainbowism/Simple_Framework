@@ -203,6 +203,4 @@ create_regular_pentagon :: (position: Vector2, radius: float, angle: float = 0, 
     return pentagon;
 }
 
-#import "Math";
-#import "Math_Ext";
 #load "collision/gjk.jai";

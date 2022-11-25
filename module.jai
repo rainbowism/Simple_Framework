@@ -20,6 +20,9 @@ SF_Result :: enum {
     Failed_To_Init_Miniaudio;
 }
 
+#import "Math";
+#import "Math_Ext";
+
 #load "utils.jai";
 #load "color.jai";
 #load "window.jai";
@@ -28,7 +31,6 @@ SF_Result :: enum {
 
 #load "math/linalg.jai";
 #load "math/matrix.jai";
-#load "math/camera.jai";
 #load "math/noise.jai";
 
 #if !DISABLE_RENDER {
@@ -43,6 +45,7 @@ SF_Result :: enum {
     #load "2d/bloom.jai";
     #load "2d/draw.jai";
     #load "2d/particles.jai";
+    #load "2d/camera.jai";
 }
 
 #if !DISABLE_AUDIO {
