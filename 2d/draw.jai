@@ -12,7 +12,7 @@ draw_end :: inline () {
     gpu_end_task(_profiler_draw_task);
 }
 
-draw_buffer :: () {
+draw_buffer :: ($draw_screen := true) {
     if render_ctx.state.buffer_drawn  return;
     batch_draw();
     glDisable(GL_DEPTH_TEST);
@@ -27,7 +27,7 @@ draw_buffer :: () {
     glEnable(GL_DEPTH_TEST);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     draw_clear();
-    draw_render_texture(render_ctx.target[RENDER_TARGET_MAIN]);
+    #if draw_screen  draw_render_texture(render_ctx.target[RENDER_TARGET_MAIN]);
     bind_screen_texture();
     render_ctx.state.buffer_drawn = true;
 }
