@@ -53,6 +53,7 @@ render_begin :: inline (time: float) {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     render_ctx.state.buffer_drawn = false;
+    render_ctx.default_shader = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
     glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
     draw_clear(.{0.0, 0.0, 0.0, 0.0});
 }
@@ -69,6 +70,7 @@ render_begin :: inline (time: float, camera: Camera) {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     render_ctx.state.buffer_drawn = false;
+    render_ctx.default_shader = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
     glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
     draw_clear(.{0.0, 0.0, 0.0, 0.0});
 }
@@ -210,9 +212,14 @@ push_layer :: (clear: bool, one_minus_alpha := false) {
 }
 
 push_shader :: inline (shader: *Shader) {
-    if render_ctx.draw_counter < 0  return;
+    if render_ctx.draw_counter < 0 {
+        if shader != null {
+            render_ctx.default_shader = shader;
+        }
+        return;
+    }
     if shader == null {
-        render_ctx.draws[render_ctx.draw_counter].shader = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
+        render_ctx.draws[render_ctx.draw_counter].shader = render_ctx.default_shader;
     } else {
         render_ctx.draws[render_ctx.draw_counter].shader = shader;
     }
@@ -240,7 +247,7 @@ push_texture :: (texture_id: Texture_Id) {
     render_ctx.draw_counter += 1;
     render_ctx.draws[render_ctx.draw_counter].texture_id = texture_id;
     render_ctx.draws[render_ctx.draw_counter].count      = 0;
-    render_ctx.draws[render_ctx.draw_counter].shader     = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
+    render_ctx.draws[render_ctx.draw_counter].shader     = render_ctx.default_shader;
 }
 
 push_texture :: (slot: GLuint, texture_id: Texture_Id) {
@@ -258,8 +265,12 @@ push_vertex :: ($type: Render_Type, pos: Vector3) {
     #if type == .Line     using render_ctx.lines;
 
     if index >= vertices.count {
-        warn(.Render, "% vertex buffer overflow.", type);
-        return;
+        // warn(.Render, "% vertex buffer overflow.", type);
+        // return;
+        current_draw := render_ctx.draws[render_ctx.draw_counter];
+        batch_draw();
+        render_ctx.draw_counter += 1;
+        render_ctx.draws[render_ctx.draw_counter] = current_draw;
     }
 
     vertices[index] = pos;
@@ -277,8 +288,12 @@ push_vertex :: ($type: Render_Type, pos: Vector2) {
     #if type == .Line     using render_ctx.lines;
 
     if index >= vertices.count {
-        warn(.Render, "% vertex buffer overflow.", type);
-        return;
+        // warn(.Render, "% vertex buffer overflow.", type);
+        // return;
+        current_draw := render_ctx.draws[render_ctx.draw_counter];
+        batch_draw();
+        render_ctx.draw_counter += 1;
+        render_ctx.draws[render_ctx.draw_counter] = current_draw;
     }
 
     v: Vector3 = ---;
@@ -491,6 +506,7 @@ Render_Context :: struct {
 
     draw_calls:   s64;
     draw_counter: s64 = -1;
+    default_shader: *Shader;
     draws:        [DEFAULT_MAX_DRAWCALLS] Draw_Call;
     tex_rects:    Vertex_Buffer = ---;
     rects:        Vertex_Buffer = ---;
