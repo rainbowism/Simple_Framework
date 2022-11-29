@@ -284,7 +284,7 @@ draw_texture :: inline (
     dest.y        = dst.y;
     dest.width    = size.x;
     dest.height   = size.y;
-    inline draw_texture(
+    draw_texture(
         texture, source, dest,
         origin = origin,
         rotation = rotation,

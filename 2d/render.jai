@@ -242,7 +242,7 @@ push_texture :: (texture_id: Texture_Id) {
     if texture_id == 0  return;
     if render_ctx.draw_counter >= 0 {
         if render_ctx.draws[render_ctx.draw_counter].texture_id == texture_id  return;
-        if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
+        if render_ctx.draw_counter + 1 >= DEFAULT_MAX_DRAWCALLS  batch_draw();
     }
     render_ctx.draw_counter += 1;
     render_ctx.draws[render_ctx.draw_counter].texture_id = texture_id;
