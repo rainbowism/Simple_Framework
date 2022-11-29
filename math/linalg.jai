@@ -1,6 +1,10 @@
 Rect :: struct {
     x, y:          float;
     width, height: float;
+#place x;
+    position: Vector2;
+#place width;
+    size: Vector2;
 }
 
 operator * :: (a: Rect, b: float) -> Rect {
@@ -68,6 +72,10 @@ operator / :: (a: s32, b: Point2) -> Point2 {
 Recti :: struct {
     x, y:          s32;
     width, height: s32;
+#place x;
+    position: Point2;
+#place width;
+    size: Point2;
 }
 
 intersect :: inline (p: Point2, r: Recti) -> bool {
