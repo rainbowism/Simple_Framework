@@ -1,4 +1,4 @@
-load_sound :: (filepath: string, $type := Sound_Type.Effect, channel: *Sound_Channel = null) -> *Sound {
+load_sound :: (filepath: string, channel: *Sound_Channel = null, $type := Sound_Type.Effect) -> *Sound {
     sound := New(Sound);
     c_filepath := temp_c_string(filepath);
     #if type == .Effect {
@@ -25,6 +25,37 @@ load_sound :: (filepath: string, $type := Sound_Type.Effect, channel: *Sound_Cha
         return null;
     }
     return sound;
+}
+
+load_sound :: (destination: *Sound, filepath: string, channel: *Sound_Channel = null, $type := Sound_Type.Effect) -> bool {
+    c_filepath := temp_c_string(filepath);
+    #if type == .Effect {
+        result := ma_sound_init_from_file(
+            *audio_ctx.engine,
+            c_filepath,
+            xx ma_sound_flags.DECODE,
+            channel,
+            null,
+            destination
+        );
+    } else {
+        result := ma_sound_init_from_file(
+            *audio_ctx.engine,
+            c_filepath,
+            xx (ma_sound_flags.STREAM | .NO_SPATIALIZATION),
+            channel,
+            null,
+            destination
+        );
+    }
+    if result != ma_result.SUCCESS {
+        return false;
+    }
+    return true;
+}
+
+copy_sound :: (destination: *Sound, existing: *Sound, channel: *Sound_Channel = null) {
+    ma_sound_init_copy(*audio_ctx.engine, existing, xx ma_sound_flags.DECODE, channel, destination);
 }
 
 free_sound :: (sound: *Sound) {

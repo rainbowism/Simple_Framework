@@ -12,7 +12,7 @@ audio_init :: () -> SF_Result {
     device_config.playback.pDeviceID        = null;
     device_config.playback.format           = .f32;
     device_config.playback.channels         = 2;
-    device_config.sampleRate                = 0;
+    device_config.sampleRate                = 48000;
     device_config.dataCallback              = audio_data_callback;
     device_config.pUserData                 = *audio_ctx.engine;
     device_config.performanceProfile        = .low_latency;
@@ -70,8 +70,10 @@ set_volume :: (sound_channel: *Sound_Channel, volume: float) -> float #expand {
     ma_sound_group_set_volume(sound_channel, volume);
 }
 
-play_music :: (sound: *Sound) {
-    ma_sound_seek_to_pcm_frame(sound, 0);
+play_sound :: (sound: *Sound, $restart := true) {
+    #if restart {
+        ma_sound_seek_to_pcm_frame(sound, 0);
+    }
     ma_sound_start(sound);
 }
 
