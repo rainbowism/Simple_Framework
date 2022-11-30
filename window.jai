@@ -96,9 +96,11 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 should_exit :: () -> bool {
     reset_temporary_storage();
 
-    {
-        gpu_scoped_task("Present", Colors8.Red);
-        #if !MANUALLY_SWAP_BUFFER  glfwSwapBuffers(window.handle);
+    #if !MANUALLY_SWAP_BUFFER {
+        {
+            gpu_scoped_task("Present", Colors8.Red);
+            glfwSwapBuffers(window.handle);
+        }
     }
     glfwPollEvents();
 
@@ -111,12 +113,14 @@ should_exit :: () -> bool {
     }
 
     {
-        gpu_scoped_task("WaitForFence", Colors8.Light_Salmon);
         new_time := get_time();
         time.delta64 = new_time - time.last;
         if time.delta64 > MAX_DELTA_TIME  time.delta64 = MAX_DELTA_TIME;
+        time.delta = xx time.delta64;
 
         if !window.time.vsync && window.time.target_fps > 0 && time.delta64 > 0 {
+            gpu_scoped_task("WaitForFence", Colors8.Light_Salmon);
+
             remaining_time := window.time.target_fps_inv - time.delta64;
             if remaining_time > 0 {
                 usleep(cast(s64) (1_000_000.0 * remaining_time), new_time + remaining_time);
@@ -128,29 +132,14 @@ should_exit :: () -> bool {
         } else {
             time.last = new_time;
         }
-        time.delta = xx time.delta64;
 
-        {
-            using window.time;
-            if (new_time - fps_last) > TRACK_FPS_STEP {
-                fps_last = new_time;
-                fps_average -= fps_buffer[fps_index];
-                fps_buffer[fps_index] = time.delta64 * (1.0 / TRACK_FPS_SAMPLES);
-                fps_average += fps_buffer[fps_index];
-                fps_index = (fps_index + 1) % TRACK_FPS_SAMPLES;
-
-                // #if DEBUG {
-                //     builder: String_Builder;
-                //     builder.allocator = temp;
-
-                //     print_to_builder(*builder, window.name);
-                //     print_to_builder(*builder, " | FT:%", formatFloat(fps_average * 1000, mode = .SHORTEST));
-                //     print_to_builder(*builder, " | DC:%", render_ctx.draw_counter + 1);
-                //     print_to_builder(*builder, "\0");
-                //     new_title := builder_to_string(*builder);
-                //     glfwSetWindowTitle(window.handle, new_title.data);
-                // }
-            }
+        using window.time;
+        if (new_time - fps_last) > TRACK_FPS_STEP {
+            fps_last = new_time;
+            fps_average -= fps_buffer[fps_index];
+            fps_buffer[fps_index] = time.delta64 * (1.0 / TRACK_FPS_SAMPLES);
+            fps_average += fps_buffer[fps_index];
+            fps_index = (fps_index + 1) % TRACK_FPS_SAMPLES;
         }
     }
     gpu_end_frame();
