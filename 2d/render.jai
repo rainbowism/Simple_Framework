@@ -42,7 +42,7 @@ render_init :: (max_renderables := 8192) {
     render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
 }
 
-render_begin :: inline (time: float) {
+render_begin :: inline (time: float, $use_render_target := true) {
     push_model_view_identity();
     render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
     render_ctx.draw_calls = 0;
@@ -52,13 +52,18 @@ render_begin :: inline (time: float) {
     glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4) + size_of(Vector4), size_of(float), *time);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    render_ctx.state.buffer_drawn = false;
     render_ctx.default_shader = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
-    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
-    draw_clear(.{0.0, 0.0, 0.0, 0.0});
+    #if use_render_target {
+        render_ctx.state.buffer_drawn = false;
+        glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
+        draw_clear(.{0.0, 0.0, 0.0, 0.0});
+    } else {
+        render_ctx.state.buffer_drawn = true;
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 }
 
-render_begin :: inline (time: float, camera: Camera) {
+render_begin :: inline (time: float, camera: Camera, $use_render_target := true) {
     push_model_view_identity();
     push_model_view(get_camera_matrix(camera));
     render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
@@ -69,10 +74,15 @@ render_begin :: inline (time: float, camera: Camera) {
     glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4) + size_of(Vector4), size_of(float), *time);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    render_ctx.state.buffer_drawn = false;
     render_ctx.default_shader = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
-    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
-    draw_clear(.{0.0, 0.0, 0.0, 0.0});
+    #if use_render_target {
+        render_ctx.state.buffer_drawn = false;
+        glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
+        draw_clear(.{0.0, 0.0, 0.0, 0.0});
+    } else {
+        render_ctx.state.buffer_drawn = true;
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 }
 
 render_quad :: inline () {

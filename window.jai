@@ -307,17 +307,21 @@ set_scroll_callback :: (callback: Scroll_Callback) {
     window.callbacks.scroll = callback;
 }
 
-draw_clear :: inline (color: Color) {
+draw_clear :: inline (color: Color, $only_depth := false) {
     glClearColor(color.r, color.g, color.b, color.a);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    #if only_depth {
+        glClear(GL_DEPTH_BUFFER_BIT);
+    } else {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
 }
 
-draw_clear :: (color: Color8) #expand {
-    draw_clear(to_color(color));
+draw_clear :: (color: Color8, $only_depth := false) #expand {
+    draw_clear(to_color(color), only_depth);
 }
 
-draw_clear :: () #expand {
-    draw_clear(window.clear_color);
+draw_clear :: ($only_depth := false) #expand {
+    draw_clear(window.clear_color, only_depth);
 }
 
 set_clear_color :: inline (color: Color) {

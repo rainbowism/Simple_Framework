@@ -1,13 +1,13 @@
-draw_begin :: inline (time: float) {
+draw_begin :: inline (time: float, $use_render_target := true) {
     gpu_begin_frame();
     _profiler_draw_task = gpu_begin_task("Draw", Colors8.Medium_Purple);
-    render_begin(time);
+    render_begin(time, use_render_target);
 }
 
-draw_begin :: inline (time: float, camera: Camera) {
+draw_begin :: inline (time: float, camera: Camera, $use_render_target := true) {
     gpu_begin_frame();
     _profiler_draw_task = gpu_begin_task("Draw", Colors8.Medium_Purple);
-    render_begin(time, camera);
+    render_begin(time, camera, use_render_target);
 }
 
 draw_batch :: batch_draw;
