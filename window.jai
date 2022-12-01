@@ -116,7 +116,6 @@ should_exit :: () -> bool {
         new_time := get_time();
         time.delta64 = new_time - time.last;
         if time.delta64 > MAX_DELTA_TIME  time.delta64 = MAX_DELTA_TIME;
-        time.delta = xx time.delta64;
 
         if !window.time.vsync && window.time.target_fps > 0 && time.delta64 > 0 {
             gpu_scoped_task("WaitForFence", Colors8.Light_Salmon);
@@ -132,6 +131,8 @@ should_exit :: () -> bool {
         } else {
             time.last = new_time;
         }
+
+        time.delta = cast(float) time.delta64;
 
         using window.time;
         if (new_time - fps_last) > TRACK_FPS_STEP {
