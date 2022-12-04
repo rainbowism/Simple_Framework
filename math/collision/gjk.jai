@@ -173,7 +173,7 @@ epa :: (simplex: [] Vector2, shape_a: $A, shape_b: $B, $max_iterations := 32, $e
     supp:     Vector2 = ---;
     edge:     Edge    = ---;
     distance: float   = ---;
-    if winding == {
+    if #complete winding == {
     case .Clockwise;
         for 0..max_iterations-1 {
             edge     = find_closest_edge(polytope, .Clockwise);

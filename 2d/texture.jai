@@ -73,7 +73,8 @@ load_texture :: (
     else if (texture.width * texture.height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
     else                                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    if texture.format == {
+    if #complete texture.format == {
+    case .None;      assert(false, "Failed to decode image format.");
     case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_R8,    xx texture.width, xx texture.height, 0, GL_RED , GL_UNSIGNED_BYTE, image_data);
     case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8,   xx texture.width, xx texture.height, 0, GL_RG  , GL_UNSIGNED_BYTE, image_data);
     case .RGB;       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,  xx texture.width, xx texture.height, 0, GL_RGB , GL_UNSIGNED_BYTE, image_data);
@@ -116,7 +117,8 @@ create_texture :: (
     else if (texture.width * texture.height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
     else                                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    if texture.format == {
+    if #complete texture.format == {
+    case .None;      assert(false, "Failed to decode image format.");
     case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_R8,    xx texture.width, xx texture.height, 0, GL_RED , GL_UNSIGNED_BYTE, image_data);
     case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8,   xx texture.width, xx texture.height, 0, GL_RG  , GL_UNSIGNED_BYTE, image_data);
     case .RGB;       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,  xx texture.width, xx texture.height, 0, GL_RGB , GL_UNSIGNED_BYTE, image_data);
