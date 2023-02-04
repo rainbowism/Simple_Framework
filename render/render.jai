@@ -4,11 +4,11 @@ push_default_framebuffer :: inline () {
     draw_clear();
 }
 
-push_particle_framebuffer :: inline () {
-    batch_draw();
-    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_PARTICLE].fbo);
-    draw_clear(.{1.0, 1.0, 1.0, 0.0});
-}
+// push_particle_framebuffer :: inline () {
+//     batch_draw();
+//     glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_PARTICLE].fbo);
+//     draw_clear(.{1.0, 1.0, 1.0, 0.0});
+// }
 
 push_projection_identity :: inline () {
     render_ctx.state.projection = Matrix4_Identity;
@@ -97,9 +97,9 @@ render_init :: (max_renderables := 8192) {
     glBindBufferRange(GL_UNIFORM_BUFFER, 0, render_ctx.ubo, 0, SHADER_GLOBALS_SIZE);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    init_vertex_buffer(.Texture, *render_ctx.tex_rects, max_renderables, 4, 6);
-    init_vertex_buffer(.Rect,    *render_ctx.rects,     max_renderables, 4, 6);
-    init_vertex_buffer(.Line,    *render_ctx.lines,     max_renderables, 2, 2);
+    init_vertex_buffer(*render_ctx.tex_rects, max_renderables);
+    init_primitive_buffer(.Rect, *render_ctx.rects, max_renderables, 4, 6);
+    init_primitive_buffer(.Line, *render_ctx.lines, max_renderables, 2, 2);
 
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, *render_ctx.max_texture_slot);
     render_ctx.max_texture_slot -= 1;
@@ -124,9 +124,9 @@ render_init :: (max_renderables := 8192) {
     if !success  warn(.Render, "Failed to initialize bloom renderer");
 
     create_default_shaders();
-    render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
+    render_ctx.state.current_depth = RENDER_Z_START;
 
-    trace(.Render, "Render device initialized successfully. [Renderer: %, Version: OpenGL %, GLSL: %]",
+    trace(.Render, "Render device initialized successfully:\n  Renderer: %\n  Version: OpenGL %\n  GLSL: %",
         to_string(glGetString(GL_RENDERER)),
         to_string(glGetString(GL_VERSION)),
         to_string(glGetString(GL_SHADING_LANGUAGE_VERSION)),
@@ -135,7 +135,7 @@ render_init :: (max_renderables := 8192) {
 
 render_begin :: inline (time: float, $use_render_target := true) {
     push_model_view_identity();
-    render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
+    render_ctx.state.current_depth = RENDER_Z_START;
     render_ctx.draw_calls = 0;
 
     glBindBuffer(GL_UNIFORM_BUFFER, render_ctx.ubo);
@@ -144,20 +144,20 @@ render_begin :: inline (time: float, $use_render_target := true) {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     render_ctx.default_shader = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
-    #if use_render_target {
-        render_ctx.state.buffer_drawn = false;
-        glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
-        draw_clear(.{1.0, 1.0, 1.0, 0.0});
-    } else {
-        render_ctx.state.buffer_drawn = true;
+    // #if use_render_target {
+    //     render_ctx.state.buffer_drawn = false;
+    //     glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
+    //     draw_clear(.{1.0, 1.0, 1.0, 0.0});
+    // } else {
+    //     render_ctx.state.buffer_drawn = true;
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
+    // }
 }
 
 render_begin :: inline (time: float, camera: Camera, $use_render_target := true) {
     push_model_view_identity();
     push_model_view(get_camera_matrix(camera));
-    render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
+    render_ctx.state.current_depth = RENDER_Z_START;
     render_ctx.draw_calls = 0;
 
     glBindBuffer(GL_UNIFORM_BUFFER, render_ctx.ubo);
@@ -165,15 +165,15 @@ render_begin :: inline (time: float, camera: Camera, $use_render_target := true)
     glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4) + size_of(Vector4), size_of(float), *time);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    render_ctx.default_shader = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
-    #if use_render_target {
-        render_ctx.state.buffer_drawn = false;
-        glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
-        draw_clear(.{1.0, 1.0, 1.0, 0.0});
-    } else {
-        render_ctx.state.buffer_drawn = true;
+    // render_ctx.default_shader = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
+    // #if use_render_target {
+    //     render_ctx.state.buffer_drawn = false;
+    //     glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
+    //     draw_clear(.{1.0, 1.0, 1.0, 0.0});
+    // } else {
+    //     render_ctx.state.buffer_drawn = true;
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
+    // }
 }
 
 render_quad :: inline () {
@@ -189,8 +189,7 @@ batch_start :: ($type: Render_Type) {
 }
 
 batch_end :: ($type: Render_Type) {
-    DEPTH_OFFSET :: 1.0 / 20000.0;
-    render_ctx.state.current_depth += DEPTH_OFFSET;
+    render_ctx.state.current_depth += RENDER_Z_SHIFT;
     #if type == .Texture {
         if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
     }
@@ -328,6 +327,92 @@ push_vertex :: ($type: Render_Type, pos: Vector2) {
     index += 1;
 }
 
+push_vertex :: (pos: Vector3) {
+    using render_ctx.tex_rects;
+
+    if index >= vertices.count {
+        // warn(.Render, "% vertex buffer overflow.", type);
+        // return;
+        current_draw := render_ctx.draws[render_ctx.draw_counter];
+        batch_draw();
+        render_ctx.draw_counter += 1;
+        render_ctx.draws[render_ctx.draw_counter] = current_draw;
+    }
+
+    vertices[index] = pos;
+    colors[index]   = render_ctx.state.color;
+    uvs[index] = render_ctx.state.uv;
+    render_ctx.draws[render_ctx.draw_counter].count += 1;
+    index += 1;
+}
+
+push_vertex :: (pos: Vector2) {
+    using render_ctx.tex_rects;
+
+    if index >= vertices.count {
+        // warn(.Render, "% vertex buffer overflow.", type);
+        // return;
+        current_draw := render_ctx.draws[render_ctx.draw_counter];
+        batch_draw();
+        render_ctx.draw_counter += 1;
+        render_ctx.draws[render_ctx.draw_counter] = current_draw;
+    }
+
+    v: Vector3 = ---;
+    v.x = pos.x;
+    v.y = pos.y;
+    v.z = render_ctx.state.current_depth;
+
+    vertices[index] = v;
+    colors[index]   = render_ctx.state.color;
+    uvs[index] = render_ctx.state.uv;
+    render_ctx.draws[render_ctx.draw_counter].count += 1;
+    index += 1;
+}
+
+push_primitive :: ($type: Render_Type, pos: Vector3) {
+    #if type == .Texture  #assert("Can't use Render_Type.Texture for `push_primitive`."); else
+    #if type == .Rect     using render_ctx.rects; else
+    #if type == .Line     using render_ctx.lines;
+
+    if index >= vertices.count {
+        // warn(.Render, "% vertex buffer overflow.", type);
+        // return;
+        current_draw := render_ctx.draws[render_ctx.draw_counter];
+        batch_draw();
+        render_ctx.draw_counter += 1;
+        render_ctx.draws[render_ctx.draw_counter] = current_draw;
+    }
+
+    vertices[index] = pos;
+    colors[index]   = render_ctx.state.color;
+    index += 1;
+}
+
+push_primitive :: ($type: Render_Type, pos: Vector2) {
+    #if type == .Texture  #assert("Can't use Render_Type.Texture for `push_primitive`."); else
+    #if type == .Rect     using render_ctx.rects; else
+    #if type == .Line     using render_ctx.lines;
+
+    if index >= vertices.count {
+        // warn(.Render, "% vertex buffer overflow.", type);
+        // return;
+        current_draw := render_ctx.draws[render_ctx.draw_counter];
+        batch_draw();
+        render_ctx.draw_counter += 1;
+        render_ctx.draws[render_ctx.draw_counter] = current_draw;
+    }
+
+    v: Vector3 = ---;
+    v.x = pos.x;
+    v.y = pos.y;
+    v.z = render_ctx.state.current_depth;
+
+    vertices[index] = v;
+    colors[index]   = render_ctx.state.color;
+    index += 1;
+}
+
 push_uv :: (uv: Vector2) {
     render_ctx.state.uv = uv;
 }
@@ -355,9 +440,8 @@ RENDER_TARGET_MAIN     :: 0;
 RENDER_TARGET_PARTICLE :: 1;
 RENDER_TARGET_DEFAULT  :: 2;
 
-#scope_module
-
-RENDER_STARTING_DEPTH :: 0;
+RENDER_Z_START :: 0.0;
+RENDER_Z_SHIFT :: 1.0 / 20000.0;
 
 render_ctx: Render_Context;
 
@@ -372,21 +456,70 @@ quad_vao, quad_vbo: GLuint = ---;
 #scope_file
 
 init_vertex_buffer :: inline (
-    $type:           Render_Type,
     using buffer:    *Vertex_Buffer,
+    max_renderables: s64
+) {
+    count          = max_renderables;
+    vertices.count = max_renderables * 4;
+    colors.count   = vertices.count;
+    uvs.count      = vertices.count;
+    indices.count  = max_renderables * 6;
+    vertices.data  = alloc(size_of(Vector3) * vertices.count);
+    colors.data    = alloc(size_of(Color)   * colors.count);
+    uvs.data       = alloc(size_of(Vector2) * uvs.count);
+    indices.data   = alloc(size_of(GLuint)  * indices.count);
+
+    i_quad:  u32;
+    i_index: s64;
+    while i_index < indices.count {
+        indices[i_index]     = i_quad;
+        indices[i_index + 1] = i_quad + 1;
+        indices[i_index + 2] = i_quad + 2;
+        indices[i_index + 3] = i_quad;
+        indices[i_index + 4] = i_quad + 2;
+        indices[i_index + 5] = i_quad + 3;
+        i_quad  += 4;
+        i_index += 6;
+    }
+
+    glGenVertexArrays(1, *vao);
+    glBindVertexArray(vao);
+
+    glGenBuffers(4, vbo.data);
+    // bind vertices
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+    glBufferData(GL_ARRAY_BUFFER, vertices.count * size_of(Vector3), vertices.data, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_POS);
+    // bind colors
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+    glBufferData(GL_ARRAY_BUFFER, colors.count * size_of(Color), colors.data, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_COLOR);
+    // bind uvs
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+    glBufferData(GL_ARRAY_BUFFER, uvs.count * size_of(Vector2), uvs.data, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_UV1, 2, GL_FLOAT, GL_FALSE, 0, null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_UV1);
+    // bind indices
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[3]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.count * size_of(GLuint), indices.data, GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+}
+
+init_primitive_buffer :: inline (
+    $type:           Render_Type,
+    using buffer:    *Primitive_Buffer,
     max_renderables: s64,
     $vertex_count:   s64,
     $index_count:    s64
 ) {
     count          = max_renderables;
     vertices.count = max_renderables * vertex_count;
-    uvs.count      = vertices.count;
     colors.count   = vertices.count;
     indices.count  = max_renderables * index_count;
     vertices.data  = alloc(size_of(Vector3) * vertices.count);
-    #if type == .Texture {
-        uvs.data = alloc(size_of(Vector2) * uvs.count);
-    }
     colors.data    = alloc(size_of(Color)   * colors.count);
     indices.data   = alloc(size_of(GLuint)  * indices.count);
 
@@ -417,26 +550,19 @@ init_vertex_buffer :: inline (
     glGenVertexArrays(1, *vao);
     glBindVertexArray(vao);
 
-    glGenBuffers(4, vbo.data);
+    glGenBuffers(3, vbo.data);
     // bind vertices
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glBufferData(GL_ARRAY_BUFFER, vertices.count * size_of(Vector3), vertices.data, GL_DYNAMIC_DRAW);
     glVertexAttribPointer(DEFAULT_SHADER_VERTEX_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
     glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_POS);
-    #if type == .Texture {
-        // bind uvs
-        glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-        glBufferData(GL_ARRAY_BUFFER, uvs.count * size_of(Vector2), uvs.data, GL_DYNAMIC_DRAW);
-        glVertexAttribPointer(DEFAULT_SHADER_VERTEX_UV1, 2, GL_FLOAT, GL_FALSE, 0, null);
-        glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_UV1);
-    }
     // bind colors
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
     glBufferData(GL_ARRAY_BUFFER, colors.count * size_of(Color), colors.data, GL_DYNAMIC_DRAW);
     glVertexAttribPointer(DEFAULT_SHADER_VERTEX_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
     glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_COLOR);
     // bind indices
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[3]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.count * size_of(GLuint), indices.data, GL_STATIC_DRAW);
 
     glBindVertexArray(0);
@@ -447,9 +573,7 @@ buffer_sub_data :: inline ($type: Render_Type) -> bool {
     #if type == .Rect     using render_ctx.rects; else
     #if type == .Line     using render_ctx.lines;
 
-    if index == 0 {
-        return false;
-    }
+    if index == 0  return false;
 
     glBindVertexArray(vao);
 
@@ -458,17 +582,17 @@ buffer_sub_data :: inline ($type: Render_Type) -> bool {
     glVertexAttribPointer(DEFAULT_SHADER_VERTEX_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
     glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_POS);
 
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Color), colors.data);
+    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_COLOR);
+
     #if type == .Texture {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector2), uvs.data);
         glVertexAttribPointer(DEFAULT_SHADER_VERTEX_UV1, 2, GL_FLOAT, GL_FALSE, 0, null);
         glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_UV1);
     }
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Color), colors.data);
-    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
-    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_COLOR);
 
     glBindVertexArray(0);
 
@@ -483,11 +607,21 @@ Vertex_Buffer :: struct {
     index:    s64;
     count:    s64;
     vertices: [] Vector3;
-    uvs:      [] Vector2;
     colors:   [] Color;
+    uvs:      [] Vector2;
     indices:  [] GLuint;
     vao:      GLuint;
     vbo:      [4] GLuint;
+}
+
+Primitive_Buffer :: struct {
+    index:    s64;
+    count:    s64;
+    vertices: [] Vector3;
+    colors:   [] Color;
+    indices:  [] GLuint;
+    vao:      GLuint;
+    vbo:      [3] GLuint;
 }
 
 Draw_Call :: struct {
@@ -527,6 +661,6 @@ Render_Context :: struct {
     default_shader: *Shader;
     draws:        [DEFAULT_MAX_DRAWCALLS] Draw_Call;
     tex_rects:    Vertex_Buffer = ---;
-    rects:        Vertex_Buffer = ---;
-    lines:        Vertex_Buffer = ---;
+    rects:        Primitive_Buffer = ---;
+    lines:        Primitive_Buffer = ---;
 }

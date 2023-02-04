@@ -28,8 +28,8 @@ create_shader :: (vert_code: string, frag_code: string, $use_screen_texture := f
     last_shader_id += 1;
     render_ctx.shaders.last_occupied += 1;
     glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_POS,   "vPos");
-    glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_UV1,   "vUV");
     glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_COLOR, "vColor");
+    glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_UV1,   "vUV");
     #if use_screen_texture {
         attach_uniform(shader_ptr, "ScreenTexture", *render_ctx.max_texture_slot);
     }

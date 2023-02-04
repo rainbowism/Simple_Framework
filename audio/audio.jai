@@ -77,7 +77,7 @@ audio_init :: () -> SF_Result {
 
     audio_ctx.is_ready = true;
 
-    trace(.Audio, "Audio device initialized successfully. [Format: %, Channels: %, Sample Rate: %]",
+    trace(.Audio, "Audio device initialized successfully:\n  Format: %\n  Channels: %\n  Sample Rate: %",
         to_string(ma_get_format_name(audio_ctx.device.playback.format)),
         audio_ctx.device.playback.channels,
         audio_ctx.device.sampleRate,

@@ -13,30 +13,30 @@ draw_begin :: inline (time: float, camera: Camera, $use_render_target := true) {
 draw_batch :: batch_draw;
 
 draw_end :: inline () {
-    draw_buffer();
+    // draw_buffer();
     batch_draw();
     gpu_end_task(_profiler_draw_task);
 }
 
-draw_buffer :: ($draw_screen := true) {
-    if render_ctx.state.buffer_drawn  return;
-    batch_draw();
-    glDisable(GL_DEPTH_TEST);
-    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
-    draw_render_texture(render_ctx.target[RENDER_TARGET_PARTICLE]);
-    render_bloom(
-        render_ctx.bloom,
-        render_ctx.target[RENDER_TARGET_MAIN].fbo,
-        render_ctx.target[RENDER_TARGET_PARTICLE].color,
-        0.005
-    );
-    glEnable(GL_DEPTH_TEST);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    draw_clear();
-    #if draw_screen  draw_render_texture(render_ctx.target[RENDER_TARGET_MAIN]);
-    bind_screen_texture();
-    render_ctx.state.buffer_drawn = true;
-}
+// draw_buffer :: ($draw_screen := true) {
+//     if render_ctx.state.buffer_drawn  return;
+//     batch_draw();
+//     glDisable(GL_DEPTH_TEST);
+//     glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
+//     draw_render_texture(render_ctx.target[RENDER_TARGET_PARTICLE]);
+//     render_bloom(
+//         render_ctx.bloom,
+//         render_ctx.target[RENDER_TARGET_MAIN].fbo,
+//         render_ctx.target[RENDER_TARGET_PARTICLE].color,
+//         0.005
+//     );
+//     glEnable(GL_DEPTH_TEST);
+//     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//     draw_clear();
+//     #if draw_screen  draw_render_texture(render_ctx.target[RENDER_TARGET_MAIN]);
+//     bind_screen_texture();
+//     render_ctx.state.buffer_drawn = true;
+// }
 
 bind_screen_texture :: inline () {
     glActiveTexture(GL_TEXTURE0 + cast,no_check(GLuint) render_ctx.max_texture_slot);
@@ -47,8 +47,8 @@ draw_line :: (a: Vector2, b: Vector2, tint := Colors.White) {
     batch_start(.Line);
     {
         push_color(tint);
-        push_vertex(.Line, a);
-        push_vertex(.Line, b);
+        push_primitive(.Line, a);
+        push_primitive(.Line, b);
     }
     batch_end(.Line);
 }
@@ -57,9 +57,9 @@ draw_line :: (a: Vector2, b: Vector2, tints: [2] Color) {
     batch_start(.Line);
     {
         push_color(tints[0]);
-        push_vertex(.Line, a);
+        push_primitive(.Line, a);
         push_color(tints[1]);
-        push_vertex(.Line, b);
+        push_primitive(.Line, b);
     }
     batch_end(.Line);
 }
@@ -80,10 +80,10 @@ draw_circle :: (using circle: *Circle, tint := Colors.White, $segments: int = 32
 
         for 0..segments {
             theta += INCREMENT;
-            push_vertex(.Line, last);
+            push_primitive(.Line, last);
             last.x = tcos(theta) * radius + position.x;
             last.y = tsin(theta) * radius + position.y;
-            push_vertex(.Line, last);
+            push_primitive(.Line, last);
         }
     }
     batch_end(.Line);
@@ -105,10 +105,10 @@ draw_circle :: (position: Vector2, radius: float, tint := Colors.White, $segment
 
         for 0..segments {
             theta += INCREMENT;
-            push_vertex(.Line, last);
+            push_primitive(.Line, last);
             last.x = tcos(theta) * radius + position.x;
             last.y = tsin(theta) * radius + position.y;
-            push_vertex(.Line, last);
+            push_primitive(.Line, last);
         }
     }
     batch_end(.Line);
@@ -119,11 +119,11 @@ draw_poly :: (using polygon: *Polygon($N), tint := Colors.White) {
     {
         push_color(tint);
         for 0..N-2 {
-            push_vertex(.Line, position + points[it]);
-            push_vertex(.Line, position + points[it+1]);
+            push_primitive(.Line, position + points[it]);
+            push_primitive(.Line, position + points[it+1]);
         }
-        push_vertex(.Line, position + points[N-1]);
-        push_vertex(.Line, position + points[0]);
+        push_primitive(.Line, position + points[N-1]);
+        push_primitive(.Line, position + points[0]);
     }
     batch_end(.Line);
 }
@@ -133,10 +133,10 @@ draw_rect :: (obb: *OBB, tint := Colors.White) {
     batch_start(.Rect);
     {
         push_color(tint);
-        push_vertex(.Rect, position + points[0]);
-        push_vertex(.Rect, position + points[1]);
-        push_vertex(.Rect, position + points[2]);
-        push_vertex(.Rect, position + points[3]);
+        push_primitive(.Rect, position + points[0]);
+        push_primitive(.Rect, position + points[1]);
+        push_primitive(.Rect, position + points[2]);
+        push_primitive(.Rect, position + points[3]);
     }
     batch_end(.Rect);
 }
@@ -157,10 +157,10 @@ draw_rect_bottom_center :: (position: Vector2, size: Vector2, tint := Colors.Whi
     batch_start(.Rect);
     {
         push_color(tint);
-        push_vertex(.Rect, tl);
-        push_vertex(.Rect, bl);
-        push_vertex(.Rect, br);
-        push_vertex(.Rect, tr);
+        push_primitive(.Rect, tl);
+        push_primitive(.Rect, bl);
+        push_primitive(.Rect, br);
+        push_primitive(.Rect, tr);
     }
     batch_end(.Rect);
 }
@@ -172,10 +172,10 @@ draw_rect :: (dest: Rect, tint := Colors.White, origin := Vector2.{0, 0}, rotati
     batch_start(.Rect);
     {
         push_color(tint);
-        push_vertex(.Rect, tl);
-        push_vertex(.Rect, bl);
-        push_vertex(.Rect, br);
-        push_vertex(.Rect, tr);
+        push_primitive(.Rect, tl);
+        push_primitive(.Rect, bl);
+        push_primitive(.Rect, br);
+        push_primitive(.Rect, tr);
     }
     batch_end(.Rect);
 }
@@ -187,13 +187,13 @@ draw_rect :: (dest: Rect, tints: [4] Color, origin := Vector2.{0, 0}, rotation: 
     batch_start(.Rect);
     {
         push_color(tints[0]);
-        push_vertex(.Rect, tl);
+        push_primitive(.Rect, tl);
         push_color(tints[1]);
-        push_vertex(.Rect, bl);
+        push_primitive(.Rect, bl);
         push_color(tints[2]);
-        push_vertex(.Rect, br);
+        push_primitive(.Rect, br);
         push_color(tints[3]);
-        push_vertex(.Rect, tr);
+        push_primitive(.Rect, tr);
     }
     batch_end(.Rect);
 }
