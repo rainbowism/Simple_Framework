@@ -185,7 +185,7 @@ insert_line_numbers :: (s: string) -> string {
     //         dwFlags:           DWORD,
     //         dwDesiredAccess:   DWORD
     //     ) -> HANDLE #foreign kernel32;
-    //     kernel32 :: #foreign_system_library "kernel32";
+    //     kernel32 :: #system_library "kernel32";
 
     //     // @PlatformDependence
     //     CREATE_WAITABLE_TIMER_HIGH_RESOLUTION :: 0x00000002;

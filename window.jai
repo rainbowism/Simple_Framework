@@ -14,7 +14,7 @@ Window_Flags :: enum_flags {
     VSync;
 }
 
-init :: () -> SF_Result {
+sf_init :: () -> SF_Result {
     glfwSetErrorCallback(glfw_error_callback);
     if !glfwInit() {
         return .Failed_To_Init_GLFW;
@@ -88,7 +88,7 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 
     update_viewport(width, height);
 
-    time.last = get_time();
+    sf_time.last = get_time();
 
     return .Ok;
 }
@@ -114,31 +114,32 @@ should_exit :: () -> bool {
 
     {
         new_time := get_time();
-        time.delta64 = new_time - time.last;
-        if time.delta64 > MAX_DELTA_TIME  time.delta64 = MAX_DELTA_TIME;
+        sf_time.delta64 = new_time - sf_time.last;
+        if sf_time.delta64 > MAX_DELTA_TIME  sf_time.delta64 = MAX_DELTA_TIME;
 
-        if !window.time.vsync && window.time.target_fps > 0 && time.delta64 > 0 {
+        if !window.time.vsync && window.time.target_fps > 0 && sf_time.delta64 > 0 {
             gpu_scoped_task("WaitForFence", Colors8.Light_Salmon);
 
-            remaining_time := window.time.target_fps_inv - time.delta64;
+            remaining_time := window.time.target_fps_inv - sf_time.delta64;
             if remaining_time > 0 {
                 usleep(cast(s64) (1_000_000.0 * remaining_time), new_time + remaining_time);
-                time.delta64 = get_time() - time.last;
-                time.last = get_time();
+                sf_time.delta64 = get_time() - sf_time.last;
+                sf_time.last = get_time();
             } else {
-                time.last = new_time;
+                sf_time.last = new_time;
             }
         } else {
-            time.last = new_time;
+            sf_time.last = new_time;
         }
 
-        time.delta = cast(float) time.delta64;
+        sf_time.delta = cast(float) sf_time.delta64;
+        sf_time.total += sf_time.delta64;
 
         using window.time;
         if (new_time - fps_last) > TRACK_FPS_STEP {
             fps_last = new_time;
             fps_average -= fps_buffer[fps_index];
-            fps_buffer[fps_index] = time.delta64 * (1.0 / TRACK_FPS_SAMPLES);
+            fps_buffer[fps_index] = sf_time.delta64 * (1.0 / TRACK_FPS_SAMPLES);
             fps_average += fps_buffer[fps_index];
             fps_index = (fps_index + 1) % TRACK_FPS_SAMPLES;
         }
@@ -330,7 +331,7 @@ post_empty_event :: () #expand {
     glfwPostEmptyEvent();
 }
 
-time: struct {
+sf_time: struct {
     total:   float64;
     last:    float64;
     delta64: float64;

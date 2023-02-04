@@ -29,23 +29,24 @@ SF_Result :: enum {
 #load "input.jai";
 #load "profiler.jai";
 
+#load "math/utils.jai";
 #load "math/linalg.jai";
 #load "math/matrix.jai";
 #load "math/noise.jai";
 
 #if !DISABLE_RENDER {
-    #load "2d/texture.jai";
-    #load "2d/font.jai";
-    #load "2d/msdf.jai";
-    #load "2d/render.jai";
-    #load "2d/shader.jai";
-    #load "2d/default_shader.jai";
-    #load "2d/render_layer.jai";
-    #load "2d/render_target.jai";
-    #load "2d/bloom.jai";
-    #load "2d/draw.jai";
-    #load "2d/particles.jai";
-    #load "2d/camera.jai";
+    #load "render/texture.jai";
+    #load "render/font.jai";
+    #load "render/msdf.jai";
+    #load "render/render.jai";
+    #load "render/shader.jai";
+    #load "render/default_shader.jai";
+    #load "render/render_layer.jai";
+    #load "render/render_target.jai";
+    #load "render/bloom.jai";
+    #load "render/draw.jai";
+    #load "render/particles.jai";
+    #load "render/camera.jai";
 }
 
 #if !DISABLE_AUDIO {

@@ -24,7 +24,7 @@ imgui_request_frame :: () -> bool {
 }
 
 imgui_begin :: ($frame_requested := false) {
-    ImGui_Impl_NewFrame(window.handle, window.size.width, window.size.height, time.delta, frame_requested);
+    ImGui_Impl_NewFrame(window.handle, window.size.width, window.size.height, sf_time.delta, frame_requested);
 }
 
 imgui_end :: ($should_render := true) {
