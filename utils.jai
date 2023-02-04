@@ -112,55 +112,6 @@ check_result :: (condition: bool, fmt: string, args: .. Any) #expand {
     exit(1);
 }
 
-#scope_module
-
-temp_c_string :: (s: string) -> *u8 {
-    result: *u8 = talloc(s.count + 1);
-    memcpy(result, s.data, s.count);
-    result[s.count] = 0;
-    return result;
-}
-
-to_string :: (c_string: *u8, count: $T) -> string
-#modify {
-    if (cast(*Type_Info) T).type == .INTEGER return true;    // Accept integers.
-    return false;
-} {
-    s: string = ---;
-    s.data  = c_string;
-    s.count = count;
-    return s;
-}
-
-count_newlines :: (s: string) -> s64 #no_abc {
-    cursor := 0;
-    count  := 0;
-
-    while cursor < s.count {
-        if s[cursor] == #char "\n"  count += 1;
-        cursor += 1;
-    }
-
-    return count;
-}
-
-insert_line_numbers :: (s: string) -> string {
-    builder: String_Builder;
-
-    line_count := count_newlines(s);
-    count      := line_count;
-    digits     := 1;
-    while count > 10 {
-        count  %= 10;
-        digits += 1;
-    }
-
-    lines := split(s, "\n");
-    for 0..line_count-1 {
-        print_to_builder(*builder, "%: %\n", formatInt(it, minimum_digits = digits), lines[it]);
-    }
-    return builder_to_string(*builder, __temporary_allocator);
-}
 
 #if OS == .WINDOWS {
     usleep :: (microseconds: s64, target_time: float64) {
@@ -214,6 +165,56 @@ insert_line_numbers :: (s: string) -> string {
 
         while get_time() < target_time {}
     }
+}
+
+#scope_module
+
+temp_c_string :: (s: string) -> *u8 {
+    result: *u8 = talloc(s.count + 1);
+    memcpy(result, s.data, s.count);
+    result[s.count] = 0;
+    return result;
+}
+
+to_string :: (c_string: *u8, count: $T) -> string
+#modify {
+    if (cast(*Type_Info) T).type == .INTEGER return true;    // Accept integers.
+    return false;
+} {
+    s: string = ---;
+    s.data  = c_string;
+    s.count = count;
+    return s;
+}
+
+count_newlines :: (s: string) -> s64 #no_abc {
+    cursor := 0;
+    count  := 0;
+
+    while cursor < s.count {
+        if s[cursor] == #char "\n"  count += 1;
+        cursor += 1;
+    }
+
+    return count;
+}
+
+insert_line_numbers :: (s: string) -> string {
+    builder: String_Builder;
+
+    line_count := count_newlines(s);
+    count      := line_count;
+    digits     := 1;
+    while count > 10 {
+        count  %= 10;
+        digits += 1;
+    }
+
+    lines := split(s, "\n");
+    for 0..line_count-1 {
+        print_to_builder(*builder, "%: %\n", formatInt(it, minimum_digits = digits), lines[it]);
+    }
+    return builder_to_string(*builder, __temporary_allocator);
 }
 
 #scope_file

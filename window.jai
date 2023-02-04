@@ -93,6 +93,10 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     return .Ok;
 }
 
+sf_exit :: inline () {
+    glfwSetWindowShouldClose(window.handle, GLFW_TRUE);
+}
+
 should_exit :: () -> bool {
     reset_temporary_storage();
 
@@ -151,10 +155,6 @@ should_exit :: () -> bool {
 
 swap_buffers :: inline () {
     glfwSwapBuffers(window.handle);
-}
-
-exit :: inline () {
-    glfwSetWindowShouldClose(window.handle, GLFW_TRUE);
 }
 
 center_window :: () {
