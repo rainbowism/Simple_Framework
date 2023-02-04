@@ -1,43 +1,3 @@
-audio_init :: () -> SF_Result {
-    assert(!audio_ctx.is_ready, "Trying to initialize audio module again!");
-
-    ctx_config := ma_context_config_init();
-    result     := ma_context_init(null, 0, *ctx_config, *audio_ctx.ma_ctx);
-    if result != ma_result.SUCCESS {
-        warn(.Audio, "MA Context couldn't be initialized.");
-        return .Failed_To_Init_Miniaudio;
-    }
-
-    device_config := ma_device_config_init(.playback);
-    device_config.playback.pDeviceID        = null;
-    device_config.playback.format           = .f32;
-    device_config.playback.channels         = 2;
-    device_config.sampleRate                = 48000;
-    device_config.dataCallback              = audio_data_callback;
-    device_config.pUserData                 = *audio_ctx.engine;
-    device_config.performanceProfile        = .low_latency;
-    device_config.noPreSilencedOutputBuffer = 0;
-    device_config.noClip                    = 0;
-    result = ma_device_init(*audio_ctx.ma_ctx, *device_config, *audio_ctx.device);
-    if result != ma_result.SUCCESS {
-        warn(.Audio, "MA Device couldn't be initialized.");
-        return .Failed_To_Init_Miniaudio;
-    }
-
-    engine_config := ma_engine_config_init();
-    engine_config.pDevice  = *audio_ctx.device;
-    engine_config.noDevice = 0;
-    result = ma_engine_init(*engine_config, *audio_ctx.engine);
-    if result != ma_result.SUCCESS {
-        warn(.Audio, "MA Engine couldn't be initialized.");
-        return .Failed_To_Init_Miniaudio;
-    }
-
-    audio_ctx.is_ready = true;
-
-    return .Ok;
-}
-
 create_sound_channel :: (parent: *Sound_Channel = null) -> *Sound_Channel {
     assert(audio_ctx.is_ready, "Tried to create a sound channel before initializing the audio module.");
 
@@ -80,6 +40,52 @@ play_sound :: (sound: *Sound, $restart := true) {
 Sound_Channel :: ma_sound_group;
 
 #scope_module
+audio_init :: () -> SF_Result {
+    assert(!audio_ctx.is_ready, "Trying to initialize audio module again!");
+
+    ctx_config := ma_context_config_init();
+    result     := ma_context_init(null, 0, *ctx_config, *audio_ctx.ma_ctx);
+    if result != ma_result.SUCCESS {
+        warn(.Audio, "Failed to initialize miniaudio context.");
+        return .Failed_To_Init_Miniaudio;
+    }
+
+    device_config := ma_device_config_init(.playback);
+    device_config.playback.pDeviceID        = null;
+    device_config.playback.format           = .f32;
+    device_config.playback.channels         = 2;
+    device_config.sampleRate                = 48000;
+    device_config.dataCallback              = audio_data_callback;
+    device_config.pUserData                 = *audio_ctx.engine;
+    device_config.performanceProfile        = .low_latency;
+    device_config.noPreSilencedOutputBuffer = 0;
+    device_config.noClip                    = 0;
+    result = ma_device_init(*audio_ctx.ma_ctx, *device_config, *audio_ctx.device);
+    if result != ma_result.SUCCESS {
+        warn(.Audio, "Failed to initialize miniaudio playback device.");
+        return .Failed_To_Init_Miniaudio;
+    }
+
+    engine_config := ma_engine_config_init();
+    engine_config.pDevice  = *audio_ctx.device;
+    engine_config.noDevice = 0;
+    result = ma_engine_init(*engine_config, *audio_ctx.engine);
+    if result != ma_result.SUCCESS {
+        warn(.Audio, "Failed to initialize miniaudio mixing engine.");
+        return .Failed_To_Init_Miniaudio;
+    }
+
+    audio_ctx.is_ready = true;
+
+    trace(.Audio, "Audio device initialized successfully. [Format: %, Channels: %, Sample Rate: %]",
+        to_string(ma_get_format_name(audio_ctx.device.playback.format)),
+        audio_ctx.device.playback.channels,
+        audio_ctx.device.sampleRate,
+    );
+
+    return .Ok;
+}
+
 
 audio_ctx: Audio_Context;
 

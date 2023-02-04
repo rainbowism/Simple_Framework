@@ -1,3 +1,88 @@
+push_default_framebuffer :: inline () {
+    batch_draw();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    draw_clear();
+}
+
+push_particle_framebuffer :: inline () {
+    batch_draw();
+    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_PARTICLE].fbo);
+    draw_clear(.{1.0, 1.0, 1.0, 0.0});
+}
+
+push_projection_identity :: inline () {
+    render_ctx.state.projection = Matrix4_Identity;
+}
+
+push_projection :: inline (m: Matrix4) {
+    render_ctx.state.projection *= m;
+}
+
+push_model_view_identity :: inline () {
+    render_ctx.state.model_view = Matrix4_Identity;
+}
+
+push_model_view :: inline (m: Matrix4) {
+    render_ctx.state.model_view *= m;
+}
+
+push_layer :: (clear: bool, one_minus_alpha := false) {
+    render_ctx.layers.index += 1;
+    if render_ctx.layers.index > render_ctx.layers.count {
+        render_ctx.layers.count += 1;
+    }
+}
+
+push_shader :: inline (shader: *Shader) {
+    if render_ctx.draw_counter < 0 {
+        if shader != null {
+            render_ctx.default_shader = shader;
+        }
+        return;
+    }
+    if shader == null {
+        render_ctx.draws[render_ctx.draw_counter].shader = render_ctx.default_shader;
+    } else {
+        render_ctx.draws[render_ctx.draw_counter].shader = shader;
+    }
+}
+
+push_shader :: inline (id: s64) {
+    shader := find_shader(id);
+    push_shader(shader);
+}
+
+push_default_shader_textured :: inline () {
+    push_shader(*render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED]);
+}
+
+push_default_shader_framebuffer :: inline () {
+    push_shader(*render_ctx.shaders.data[DEFAULT_SHADER_FRAMEBUFFER]);
+}
+
+push_texture :: (texture_id: Texture_Id) {
+    if texture_id == 0  return;
+    if render_ctx.draw_counter >= 0 {
+        if render_ctx.draws[render_ctx.draw_counter].texture_id == texture_id  return;
+        if render_ctx.draw_counter + 1 >= DEFAULT_MAX_DRAWCALLS  batch_draw();
+    }
+    render_ctx.draw_counter += 1;
+    render_ctx.draws[render_ctx.draw_counter].texture_id = texture_id;
+    render_ctx.draws[render_ctx.draw_counter].count      = 0;
+    render_ctx.draws[render_ctx.draw_counter].shader     = render_ctx.default_shader;
+}
+
+push_texture :: (slot: GLuint, texture_id: Texture_Id) {
+    glActiveTexture(GL_TEXTURE0 + slot);
+    glBindTexture(GL_TEXTURE_2D, texture_id);
+}
+
+push_texture :: (slot: GLuint, texture: Texture) {
+    inline push_texture(slot, texture.id);
+}
+
+#scope_module
+
 render_init :: (max_renderables := 8192) {
     success: bool = ---;
     render_ctx.target[0], success = create_render_target();
@@ -40,6 +125,12 @@ render_init :: (max_renderables := 8192) {
 
     create_default_shaders();
     render_ctx.state.current_depth = RENDER_STARTING_DEPTH;
+
+    trace(.Render, "Render device initialized successfully. [Renderer: %, Version: OpenGL %, GLSL: %]",
+        to_string(glGetString(GL_RENDERER)),
+        to_string(glGetString(GL_VERSION)),
+        to_string(glGetString(GL_SHADING_LANGUAGE_VERSION)),
+    );
 }
 
 render_begin :: inline (time: float, $use_render_target := true) {
@@ -56,7 +147,7 @@ render_begin :: inline (time: float, $use_render_target := true) {
     #if use_render_target {
         render_ctx.state.buffer_drawn = false;
         glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
-        draw_clear(.{0.0, 0.0, 0.0, 0.0});
+        draw_clear(.{1.0, 1.0, 1.0, 0.0});
     } else {
         render_ctx.state.buffer_drawn = true;
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -78,7 +169,7 @@ render_begin :: inline (time: float, camera: Camera, $use_render_target := true)
     #if use_render_target {
         render_ctx.state.buffer_drawn = false;
         glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
-        draw_clear(.{0.0, 0.0, 0.0, 0.0});
+        draw_clear(.{1.0, 1.0, 1.0, 0.0});
     } else {
         render_ctx.state.buffer_drawn = true;
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -89,18 +180,6 @@ render_quad :: inline () {
     glBindVertexArray(quad_vao);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
-}
-
-push_particle_framebuffer :: inline () {
-    batch_draw();
-    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_PARTICLE].fbo);
-    draw_clear(.{0.0, 0.0, 0.0, 0.0});
-}
-
-push_default_framebuffer :: inline () {
-    batch_draw();
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    draw_clear();
 }
 
 batch_start :: ($type: Render_Type) {
@@ -196,77 +275,6 @@ push_screen_size :: inline (width: s32, height: s32) {
     glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4), size_of(Vector2), *screen_size);
     glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4) + size_of(Vector2), size_of(Vector2), *pixel_size);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-}
-
-push_projection_identity :: inline () {
-    render_ctx.state.projection = Matrix4_Identity;
-}
-
-push_projection :: inline (m: Matrix4) {
-    render_ctx.state.projection *= m;
-}
-
-push_model_view_identity :: inline () {
-    render_ctx.state.model_view = Matrix4_Identity;
-}
-
-push_model_view :: inline (m: Matrix4) {
-    render_ctx.state.model_view *= m;
-}
-
-push_layer :: (clear: bool, one_minus_alpha := false) {
-    render_ctx.layers.index += 1;
-    if render_ctx.layers.index > render_ctx.layers.count {
-        render_ctx.layers.count += 1;
-    }
-}
-
-push_shader :: inline (shader: *Shader) {
-    if render_ctx.draw_counter < 0 {
-        if shader != null {
-            render_ctx.default_shader = shader;
-        }
-        return;
-    }
-    if shader == null {
-        render_ctx.draws[render_ctx.draw_counter].shader = render_ctx.default_shader;
-    } else {
-        render_ctx.draws[render_ctx.draw_counter].shader = shader;
-    }
-}
-
-push_shader :: inline (id: s64) {
-    shader := find_shader(id);
-    push_shader(shader);
-}
-
-push_default_shader_textured :: inline () {
-    push_shader(*render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED]);
-}
-
-push_default_shader_framebuffer :: inline () {
-    push_shader(*render_ctx.shaders.data[DEFAULT_SHADER_FRAMEBUFFER]);
-}
-
-push_texture :: (texture_id: Texture_Id) {
-    if texture_id == 0  return;
-    if render_ctx.draw_counter >= 0 {
-        if render_ctx.draws[render_ctx.draw_counter].texture_id == texture_id  return;
-        if render_ctx.draw_counter + 1 >= DEFAULT_MAX_DRAWCALLS  batch_draw();
-    }
-    render_ctx.draw_counter += 1;
-    render_ctx.draws[render_ctx.draw_counter].texture_id = texture_id;
-    render_ctx.draws[render_ctx.draw_counter].count      = 0;
-    render_ctx.draws[render_ctx.draw_counter].shader     = render_ctx.default_shader;
-}
-
-push_texture :: (slot: GLuint, texture_id: Texture_Id) {
-    glActiveTexture(GL_TEXTURE0 + slot);
-    glBindTexture(GL_TEXTURE_2D, texture_id);
-}
-
-push_texture :: (slot: GLuint, texture: Texture) {
-    inline push_texture(slot, texture.id);
 }
 
 push_vertex :: ($type: Render_Type, pos: Vector3) {

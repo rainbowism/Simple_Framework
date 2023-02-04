@@ -1,13 +1,3 @@
-imgui_init :: () {
-    ImGui_Impl_CreateContext();
-    ImGui.StyleColorsDark();
-    ImGui_Impl_Init(window.handle);
-}
-
-imgui_force_frame :: () {
-    ui.requested_frames += 1;
-}
-
 imgui_request_frame :: () -> bool {
     using ui;
     mx, my: float;
@@ -23,6 +13,18 @@ imgui_request_frame :: () -> bool {
     return true;
 }
 
+imgui_force_frame :: () {
+    ui.requested_frames += 1;
+}
+
+imgui_filename :: (filename: string) {
+    if filename.count == 0 {
+        ui.io.IniFilename = null;
+        return;
+    }
+    ui.io.IniFilename = filename.data;
+}
+
 imgui_begin :: ($frame_requested := false) {
     ImGui_Impl_NewFrame(window.handle, window.size.width, window.size.height, sf_time.delta, frame_requested);
 }
@@ -30,6 +32,14 @@ imgui_begin :: ($frame_requested := false) {
 imgui_end :: ($should_render := true) {
     #if should_render  ImGui.Render();
     ImGui_Impl_RenderDrawData(ImGui.GetDrawData());
+}
+
+#scope_module
+
+imgui_init :: () {
+    ImGui_Impl_CreateContext();
+    ImGui.StyleColorsDark();
+    ImGui_Impl_Init(window.handle);
 }
 
 imgui_load_font :: (filepath: string, font_size: float) -> *ImGui.ImFont {
@@ -50,14 +60,6 @@ imgui_ctrl :: () -> bool {
 
 imgui_alt :: () -> bool {
     return ui.io.KeyAlt;
-}
-
-imgui_filename :: (filename: string) {
-    if filename.count == 0 {
-        ui.io.IniFilename = null;
-        return;
-    }
-    ui.io.IniFilename = filename.data;
 }
 
 ImGui_Impl_KeyCallback :: (key: s32, scancode: s32, action: s32, mods: s32) #c_call {

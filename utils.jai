@@ -106,21 +106,20 @@ error :: ($log_type: Log_Type, fmt: string, args: .. Any, flags := Log_Flags.NON
     log(log_type, .ERROR, fmt, ..args, flags = flags | .ERROR, loc = loc);
 }
 
+check_result :: (condition: bool, fmt: string, args: .. Any) #expand {
+    if !condition  return;
+    error(fmt, ..args);
+    exit(1);
+}
+
+#scope_module
+
 temp_c_string :: (s: string) -> *u8 {
     result: *u8 = talloc(s.count + 1);
     memcpy(result, s.data, s.count);
     result[s.count] = 0;
     return result;
 }
-
-check_result :: (condition: bool, fmt: string, args: .. Any) #expand {
-    if condition {
-        error(fmt, ..args);
-        exit(-1);
-    }
-}
-
-#scope_module
 
 to_string :: (c_string: *u8, count: $T) -> string
 #modify {
