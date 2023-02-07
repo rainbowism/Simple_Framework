@@ -4,11 +4,11 @@ push_default_framebuffer :: inline () {
     draw_clear();
 }
 
-// push_particle_framebuffer :: inline () {
-//     batch_draw();
-//     glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_PARTICLE].fbo);
-//     draw_clear(.{1.0, 1.0, 1.0, 0.0});
-// }
+push_particle_framebuffer :: inline () {
+    batch_draw();
+    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_PARTICLE].fbo);
+    draw_clear(.{0.0, 0.0, 0.0, 0.0});
+}
 
 push_projection_identity :: inline () {
     render_ctx.state.projection = Matrix4_Identity;
@@ -144,14 +144,14 @@ render_begin :: inline (time: float, $use_render_target := true) {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     render_ctx.default_shader = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
-    // #if use_render_target {
-    //     render_ctx.state.buffer_drawn = false;
-    //     glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
-    //     draw_clear(.{1.0, 1.0, 1.0, 0.0});
-    // } else {
-    //     render_ctx.state.buffer_drawn = true;
+    #if use_render_target {
+        render_ctx.state.buffer_drawn = false;
+        glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
+        draw_clear(.{0.0, 0.0, 0.0, 0.0});
+    } else {
+        render_ctx.state.buffer_drawn = true;
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // }
+    }
 }
 
 render_begin :: inline (time: float, camera: Camera, $use_render_target := true) {
@@ -165,18 +165,18 @@ render_begin :: inline (time: float, camera: Camera, $use_render_target := true)
     glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4) + size_of(Vector4), size_of(float), *time);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    // render_ctx.default_shader = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
-    // #if use_render_target {
-    //     render_ctx.state.buffer_drawn = false;
-    //     glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
-    //     draw_clear(.{1.0, 1.0, 1.0, 0.0});
-    // } else {
-    //     render_ctx.state.buffer_drawn = true;
+    render_ctx.default_shader = *render_ctx.shaders.data[DEFAULT_SHADER_TEXTURED];
+    #if use_render_target {
+        render_ctx.state.buffer_drawn = false;
+        glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
+        draw_clear(.{0.0, 0.0, 0.0, 0.0});
+    } else {
+        render_ctx.state.buffer_drawn = true;
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // }
+    }
 }
 
-render_quad :: inline () {
+render_quad :: () {
     glBindVertexArray(quad_vao);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
@@ -461,12 +461,12 @@ init_vertex_buffer :: inline (
 ) {
     count          = max_renderables;
     vertices.count = max_renderables * 4;
-    colors.count   = vertices.count;
     uvs.count      = vertices.count;
+    colors.count   = vertices.count;
     indices.count  = max_renderables * 6;
     vertices.data  = alloc(size_of(Vector3) * vertices.count);
-    colors.data    = alloc(size_of(Color)   * colors.count);
     uvs.data       = alloc(size_of(Vector2) * uvs.count);
+    colors.data    = alloc(size_of(Color)   * colors.count);
     indices.data   = alloc(size_of(GLuint)  * indices.count);
 
     i_quad:  u32;
@@ -491,16 +491,16 @@ init_vertex_buffer :: inline (
     glBufferData(GL_ARRAY_BUFFER, vertices.count * size_of(Vector3), vertices.data, GL_DYNAMIC_DRAW);
     glVertexAttribPointer(DEFAULT_SHADER_VERTEX_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
     glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_POS);
-    // bind colors
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-    glBufferData(GL_ARRAY_BUFFER, colors.count * size_of(Color), colors.data, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
-    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_COLOR);
     // bind uvs
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
     glBufferData(GL_ARRAY_BUFFER, uvs.count * size_of(Vector2), uvs.data, GL_DYNAMIC_DRAW);
     glVertexAttribPointer(DEFAULT_SHADER_VERTEX_UV1, 2, GL_FLOAT, GL_FALSE, 0, null);
     glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_UV1);
+    // bind colors
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+    glBufferData(GL_ARRAY_BUFFER, colors.count * size_of(Color), colors.data, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_COLOR);
     // bind indices
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[3]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.count * size_of(GLuint), indices.data, GL_STATIC_DRAW);
@@ -554,13 +554,13 @@ init_primitive_buffer :: inline (
     // bind vertices
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glBufferData(GL_ARRAY_BUFFER, vertices.count * size_of(Vector3), vertices.data, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
-    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_POS);
+    glVertexAttribPointer(DEFAULT_SHADER_PRIMITIVE_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_PRIMITIVE_POS);
     // bind colors
     glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
     glBufferData(GL_ARRAY_BUFFER, colors.count * size_of(Color), colors.data, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
-    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_COLOR);
+    glVertexAttribPointer(DEFAULT_SHADER_PRIMITIVE_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_PRIMITIVE_COLOR);
     // bind indices
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.count * size_of(GLuint), indices.data, GL_STATIC_DRAW);
@@ -577,21 +577,31 @@ buffer_sub_data :: inline ($type: Render_Type) -> bool {
 
     glBindVertexArray(vao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector3), vertices.data);
-    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
-    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_POS);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Color), colors.data);
-    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
-    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_COLOR);
-
     #if type == .Texture {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector3), vertices.data);
+        glVertexAttribPointer(DEFAULT_SHADER_VERTEX_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
+        glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_POS);
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector2), uvs.data);
         glVertexAttribPointer(DEFAULT_SHADER_VERTEX_UV1, 2, GL_FLOAT, GL_FALSE, 0, null);
         glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_UV1);
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Color), colors.data);
+        glVertexAttribPointer(DEFAULT_SHADER_VERTEX_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
+        glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_COLOR);
+    } else {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector3), vertices.data);
+        glVertexAttribPointer(DEFAULT_SHADER_PRIMITIVE_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
+        glEnableVertexAttribArray(DEFAULT_SHADER_PRIMITIVE_POS);
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Color), colors.data);
+        glVertexAttribPointer(DEFAULT_SHADER_PRIMITIVE_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
+        glEnableVertexAttribArray(DEFAULT_SHADER_PRIMITIVE_COLOR);
     }
 
     glBindVertexArray(0);
@@ -607,8 +617,8 @@ Vertex_Buffer :: struct {
     index:    s64;
     count:    s64;
     vertices: [] Vector3;
-    colors:   [] Color;
     uvs:      [] Vector2;
+    colors:   [] Color;
     indices:  [] GLuint;
     vao:      GLuint;
     vbo:      [4] GLuint;

@@ -15,7 +15,7 @@ Shader :: struct {
     uniforms: [..] Uniform;
 }
 
-create_shader :: (vert_code: string, frag_code: string, $use_screen_texture := false) -> *Shader {
+create_shader :: (vert_code: string, frag_code: string, $use_screen_texture := false, $binding_type: enum { Vertex; Primitive; } = .Vertex) -> *Shader {
     program := create_gl_program(vert_code, frag_code);
     if program == 0  return null;
     shader_ptr := *render_ctx.shaders.data[render_ctx.shaders.last_occupied];
@@ -27,9 +27,14 @@ create_shader :: (vert_code: string, frag_code: string, $use_screen_texture := f
     shader_ptr.program = program;
     last_shader_id += 1;
     render_ctx.shaders.last_occupied += 1;
-    glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_POS,   "vPos");
-    glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_COLOR, "vColor");
-    glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_UV1,   "vUV");
+    #if binding_type == .Vertex {
+        glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_POS,   "vPos");
+        glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_UV1,   "vUV");
+        glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_COLOR, "vColor");
+    } else {
+        glBindAttribLocation(program, DEFAULT_SHADER_PRIMITIVE_POS, "vPos");
+        glBindAttribLocation(program, DEFAULT_SHADER_PRIMITIVE_COLOR, "vColor");
+    }
     #if use_screen_texture {
         attach_uniform(shader_ptr, "ScreenTexture", *render_ctx.max_texture_slot);
     }
@@ -214,7 +219,7 @@ create_gl_shader :: (code: string, $type: enum { Vertex; Fragment; }) -> GLuint,
 
 create_default_shaders :: () {
     create_shader(VERT_SHADER_RECT, FRAG_SHADER_TEXTURED_RECT);
-    create_shader(VERT_SHADER_RECT, FRAG_SHADER_COLORED_RECT);
+    create_shader(VERT_SHADER_PRIMITIVE, FRAG_SHADER_COLORED_RECT, false, .Primitive);
     create_shader(VERT_SHADER_FRAMEBUFFER, FRAG_SHADER_TEXTURED_RECT);
     create_shader(VERT_SHADER_FRAMEBUFFER, FRAG_SHADER_BLOOM);
     create_shader(VERT_SHADER_FRAMEBUFFER, FRAG_SHADER_BLOOM_DOWNSAMPLE);
