@@ -307,12 +307,21 @@ Colors8 :: struct #type_info_none {
 ONE_OVER_255 :: 1.0 / 255.0;
 
 make_color :: (r: float, g: float, b: float, a: float) -> Color {
-    c: Color = ---;
-    c.r = r;
-    c.g = g;
-    c.b = b;
-    c.a = a;
-    return c;
+    v: Color = ---;
+    v.r = r;
+    v.g = g;
+    v.b = b;
+    v.a = a;
+    return v;
+}
+
+make_color :: (c: Color, a: float) -> Color {
+    v: Color = ---;
+    v.r = c.r;
+    v.g = c.g;
+    v.b = c.b;
+    v.a = a;
+    return v;
 }
 
 rgba :: make_color;

@@ -112,11 +112,11 @@ render_init :: (max_renderables := 8192) {
     glBindBuffer(GL_ARRAY_BUFFER, quad_vbo);
     glBufferData(GL_ARRAY_BUFFER, quad_vertices.count * size_of(float), quad_vertices.data, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_POS, 3, GL_FLOAT, GL_FALSE, 5 * size_of(float), null);
-    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_POS);
+    glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_POS, 3, GL_FLOAT, GL_FALSE, 5 * size_of(float), null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_POS);
 
-    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_UV1, 2, GL_FLOAT, GL_FALSE, 5 * size_of(float), xx (3 * size_of(float)));
-    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_UV1);
+    glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_UV1, 2, GL_FLOAT, GL_FALSE, 5 * size_of(float), xx (3 * size_of(float)));
+    glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_UV1);
 
     glBindVertexArray(0);
 
@@ -489,18 +489,18 @@ init_vertex_buffer :: inline (
     // bind vertices
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glBufferData(GL_ARRAY_BUFFER, vertices.count * size_of(Vector3), vertices.data, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
-    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_POS);
+    glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_POS);
     // bind uvs
     glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
     glBufferData(GL_ARRAY_BUFFER, uvs.count * size_of(Vector2), uvs.data, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_UV1, 2, GL_FLOAT, GL_FALSE, 0, null);
-    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_UV1);
+    glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_UV1, 2, GL_FLOAT, GL_FALSE, 0, null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_UV1);
     // bind colors
     glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
     glBufferData(GL_ARRAY_BUFFER, colors.count * size_of(Color), colors.data, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(DEFAULT_SHADER_VERTEX_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
-    glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_COLOR);
+    glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_COLOR);
     // bind indices
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[3]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.count * size_of(GLuint), indices.data, GL_STATIC_DRAW);
@@ -554,13 +554,13 @@ init_primitive_buffer :: inline (
     // bind vertices
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glBufferData(GL_ARRAY_BUFFER, vertices.count * size_of(Vector3), vertices.data, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(DEFAULT_SHADER_PRIMITIVE_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
-    glEnableVertexAttribArray(DEFAULT_SHADER_PRIMITIVE_POS);
+    glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_POS);
     // bind colors
     glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
     glBufferData(GL_ARRAY_BUFFER, colors.count * size_of(Color), colors.data, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(DEFAULT_SHADER_PRIMITIVE_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
-    glEnableVertexAttribArray(DEFAULT_SHADER_PRIMITIVE_COLOR);
+    glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
+    glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_COLOR);
     // bind indices
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.count * size_of(GLuint), indices.data, GL_STATIC_DRAW);
@@ -580,28 +580,28 @@ buffer_sub_data :: inline ($type: Render_Type) -> bool {
     #if type == .Texture {
         glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector3), vertices.data);
-        glVertexAttribPointer(DEFAULT_SHADER_VERTEX_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
-        glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_POS);
+        glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
+        glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_POS);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector2), uvs.data);
-        glVertexAttribPointer(DEFAULT_SHADER_VERTEX_UV1, 2, GL_FLOAT, GL_FALSE, 0, null);
-        glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_UV1);
+        glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_UV1, 2, GL_FLOAT, GL_FALSE, 0, null);
+        glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_UV1);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Color), colors.data);
-        glVertexAttribPointer(DEFAULT_SHADER_VERTEX_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
-        glEnableVertexAttribArray(DEFAULT_SHADER_VERTEX_COLOR);
+        glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
+        glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_COLOR);
     } else {
         glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector3), vertices.data);
-        glVertexAttribPointer(DEFAULT_SHADER_PRIMITIVE_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
-        glEnableVertexAttribArray(DEFAULT_SHADER_PRIMITIVE_POS);
+        glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
+        glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_POS);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Color), colors.data);
-        glVertexAttribPointer(DEFAULT_SHADER_PRIMITIVE_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
-        glEnableVertexAttribArray(DEFAULT_SHADER_PRIMITIVE_COLOR);
+        glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
+        glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_COLOR);
     }
 
     glBindVertexArray(0);

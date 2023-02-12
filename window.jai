@@ -298,6 +298,10 @@ set_scroll_callback :: (callback: Scroll_Callback) {
     window.callbacks.scroll = callback;
 }
 
+set_resize_callback :: (callback: Resize_Callback) {
+    window.callbacks.resize = callback;
+}
+
 draw_clear :: inline (color: Color, $only_depth := false) {
     glClearColor(color.r, color.g, color.b, color.a);
     #if only_depth {
@@ -347,6 +351,7 @@ update_viewport :: (width: s32, height: s32) {
     window.size.width  = width;
     window.size.height = height;
     #if !DISABLE_RENDER  push_screen_size(width, height);
+    if window.callbacks.resize != null  window.callbacks.resize(width, height);
 }
 
 initialized: bool;
@@ -361,6 +366,7 @@ Key_Callback    :: #type (key: s32, scancode: s32, action: s32, mods: s32);
 Mouse_Callback  :: #type (button: s32, action: s32, mods: s32);
 Text_Callback   :: #type (codepoint: u32);
 Scroll_Callback :: #type (x_offset: float64, y_offset: float64);
+Resize_Callback :: #type (width: s32, height: s32);
 
 Window_Context :: struct {
     ctx:    Context;
@@ -388,10 +394,11 @@ Window_Context :: struct {
     }
 
     callbacks: struct {
-        key: Key_Callback;
-        mouse: Mouse_Callback;
-        text: Text_Callback;
+        key:    Key_Callback;
+        mouse:  Mouse_Callback;
+        text:   Text_Callback;
         scroll: Scroll_Callback;
+        resize: Resize_Callback;
     }
 
     clear_color: Color = Colors.Black;

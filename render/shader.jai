@@ -15,8 +15,17 @@ Shader :: struct {
     uniforms: [..] Uniform;
 }
 
-create_shader :: (vert_code: string, frag_code: string, $use_screen_texture := false, $binding_type: enum { Vertex; Primitive; } = .Vertex) -> *Shader {
-    program := create_gl_program(vert_code, frag_code);
+Binding_Flags :: enum_flags {
+    Position;
+    UV;
+    Color;
+};
+
+Default_Binding_Flags :: Binding_Flags.Position | .UV | .Color;
+Primitive_Binding_Flags :: Binding_Flags.Position | .Color;
+
+create_shader :: (vert_code: string, frag_code: string, $use_screen_texture := false, $binding_flags := Default_Binding_Flags) -> *Shader {
+    program := create_gl_program(vert_code, frag_code, binding_flags);
     if program == 0  return null;
     shader_ptr := *render_ctx.shaders.data[render_ctx.shaders.last_occupied];
     #if DEBUG {
@@ -27,14 +36,6 @@ create_shader :: (vert_code: string, frag_code: string, $use_screen_texture := f
     shader_ptr.program = program;
     last_shader_id += 1;
     render_ctx.shaders.last_occupied += 1;
-    #if binding_type == .Vertex {
-        glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_POS,   "vPos");
-        glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_UV1,   "vUV");
-        glBindAttribLocation(program, DEFAULT_SHADER_VERTEX_COLOR, "vColor");
-    } else {
-        glBindAttribLocation(program, DEFAULT_SHADER_PRIMITIVE_POS, "vPos");
-        glBindAttribLocation(program, DEFAULT_SHADER_PRIMITIVE_COLOR, "vColor");
-    }
     #if use_screen_texture {
         attach_uniform(shader_ptr, "ScreenTexture", *render_ctx.max_texture_slot);
     }
@@ -151,7 +152,7 @@ apply_uniform :: (using uniform: Uniform) {
     }
 }
 
-create_gl_program :: (vert_code: string, frag_code: string) -> GLuint {
+create_gl_program :: (vert_code: string, frag_code: string, $binding_flags := Default_Binding_Flags) -> GLuint {
     success: bool;
     vert_shader, frag_shader: GLuint;
     vert_shader, success = create_gl_shader(vert_code, .Vertex);
@@ -164,6 +165,11 @@ create_gl_program :: (vert_code: string, frag_code: string) -> GLuint {
     program := glCreateProgram();
     glAttachShader(program, vert_shader);
     glAttachShader(program, frag_shader);
+
+    #if binding_flags & .Position  glBindAttribLocation(program, DEFAULT_SHADER_ATTRIB_POS,   "vPos");
+    #if binding_flags & .UV        glBindAttribLocation(program, DEFAULT_SHADER_ATTRIB_UV1,   "vUV");
+    #if binding_flags & .Color     glBindAttribLocation(program, DEFAULT_SHADER_ATTRIB_COLOR, "vColor");
+
     glLinkProgram(program);
 
     gl_success: GLint;
@@ -219,7 +225,7 @@ create_gl_shader :: (code: string, $type: enum { Vertex; Fragment; }) -> GLuint,
 
 create_default_shaders :: () {
     create_shader(VERT_SHADER_RECT, FRAG_SHADER_TEXTURED_RECT);
-    create_shader(VERT_SHADER_PRIMITIVE, FRAG_SHADER_COLORED_RECT, false, .Primitive);
+    create_shader(VERT_SHADER_PRIMITIVE, FRAG_SHADER_COLORED_RECT, binding_flags = Primitive_Binding_Flags);
     create_shader(VERT_SHADER_FRAMEBUFFER, FRAG_SHADER_TEXTURED_RECT);
     create_shader(VERT_SHADER_FRAMEBUFFER, FRAG_SHADER_BLOOM);
     create_shader(VERT_SHADER_FRAMEBUFFER, FRAG_SHADER_BLOOM_DOWNSAMPLE);

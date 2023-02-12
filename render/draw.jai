@@ -90,9 +90,7 @@ draw_circle :: (using circle: *Circle, tint := Colors.White, $segments: int = 32
 }
 
 draw_circle :: (position: Vector2, radius: float, tint := Colors.White, $segments: int = 32) {
-    INCREMENT :: 1.0 / segments;
-
-    position := position;
+    INCREMENT :: 2.0 / segments;
 
     last: Vector2 = ---;
     theta: float;
