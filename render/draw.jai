@@ -44,49 +44,38 @@ bind_screen_texture :: inline () {
 }
 
 draw_line :: (a: Vector2, b: Vector2, tint := Colors.White) {
-    batch_start(.Line);
-    {
-        push_color(tint);
-        push_primitive(.Line, a);
-        push_primitive(.Line, b);
-    }
-    batch_end(.Line);
+    push_color(tint);
+    push_primitive(.Line, a);
+    push_primitive(.Line, b);
+    push_depth();
 }
 
 draw_line :: (a: Vector2, b: Vector2, tints: [2] Color) {
-    batch_start(.Line);
-    {
-        push_color(tints[0]);
-        push_primitive(.Line, a);
-        push_color(tints[1]);
-        push_primitive(.Line, b);
-    }
-    batch_end(.Line);
+    push_color(tints[0]);
+    push_primitive(.Line, a);
+    push_color(tints[1]);
+    push_primitive(.Line, b);
+    push_depth();
 }
 
 draw_circle :: (using circle: *Circle, tint := Colors.White, $segments: int = 32) {
-    INCREMENT :: 1.0 / segments;
-
-    position := circle.position;
+    INCREMENT :: 2.0 / segments;
 
     last: Vector2 = ---;
     theta: float;
 
-    batch_start(.Line);
-    {
-        push_color(tint);
-        last.x = tcos(0) * radius + position.x;
-        last.y = tsin(0) * radius + position.y;
+    push_color(tint);
+    last.x = tcos(0) * circle.radius + circle.position.x;
+    last.y = tsin(0) * circle.radius + circle.position.y;
 
-        for 0..segments {
-            theta += INCREMENT;
-            push_primitive(.Line, last);
-            last.x = tcos(theta) * radius + position.x;
-            last.y = tsin(theta) * radius + position.y;
-            push_primitive(.Line, last);
-        }
+    for 0..segments {
+        theta += INCREMENT;
+        push_primitive(.Line, last);
+        last.x = tcos(theta) * circle.radius + circle.position.x;
+        last.y = tsin(theta) * circle.radius + circle.position.y;
+        push_primitive(.Line, last);
     }
-    batch_end(.Line);
+    push_depth();
 }
 
 draw_circle :: (position: Vector2, radius: float, tint := Colors.White, $segments: int = 32) {
@@ -95,48 +84,88 @@ draw_circle :: (position: Vector2, radius: float, tint := Colors.White, $segment
     last: Vector2 = ---;
     theta: float;
 
-    batch_start(.Line);
-    {
-        push_color(tint);
-        last.x = tcos(0) * radius + position.x;
-        last.y = tsin(0) * radius + position.y;
+    push_color(tint);
+    last.x = tcos(0) * radius + position.x;
+    last.y = tsin(0) * radius + position.y;
 
-        for 0..segments {
-            theta += INCREMENT;
-            push_primitive(.Line, last);
-            last.x = tcos(theta) * radius + position.x;
-            last.y = tsin(theta) * radius + position.y;
-            push_primitive(.Line, last);
-        }
+    for 0..segments {
+        theta += INCREMENT;
+        push_primitive(.Line, last);
+        last.x = tcos(theta) * radius + position.x;
+        last.y = tsin(theta) * radius + position.y;
+        push_primitive(.Line, last);
     }
-    batch_end(.Line);
+    push_depth();
+}
+
+draw_filled_circle :: (using circle: *Circle, tint := Colors.White, $segments: int = 32) {
+    INCREMENT :: 2.0 / segments;
+
+    last: Vector2 = ---;
+    theta: float;
+
+    push_color(tint);
+    for 0..segments/2 {
+        last.x = tcos(theta) * circle.radius + circle.position.x;
+        last.y = tsin(theta) * circle.radius + circle.position.y;
+        push_primitive(.Rect, last);
+        theta += INCREMENT;
+        last.x = tcos(theta) * circle.radius + circle.position.x;
+        last.y = tsin(theta) * circle.radius + circle.position.y;
+        push_primitive(.Rect, last);
+        push_primitive(.Rect, circle.position);
+        theta += INCREMENT;
+        last.x = tcos(theta) * circle.radius + circle.position.x;
+        last.y = tsin(theta) * circle.radius + circle.position.y;
+        push_primitive(.Rect, last);
+    }
+    push_depth();
+}
+
+draw_filled_circle :: (position: Vector2, radius: float, tint := Colors.White, $segments: int = 32) {
+    INCREMENT :: 2.0 / segments;
+
+    last: Vector2 = ---;
+    rect: Rect = ---;
+    theta: float;
+
+    push_color(tint);
+    for 0..segments/2 {
+        last.x = tcos(theta) * radius + position.x;
+        last.y = tsin(theta) * radius + position.y;
+        push_primitive(.Rect, last);
+        theta += INCREMENT;
+        last.x = tcos(theta) * radius + position.x;
+        last.y = tsin(theta) * radius + position.y;
+        push_primitive(.Rect, last);
+        push_primitive(.Rect, position);
+        theta += INCREMENT;
+        last.x = tcos(theta) * radius + position.x;
+        last.y = tsin(theta) * radius + position.y;
+        push_primitive(.Rect, last);
+    }
+    push_depth();
 }
 
 draw_poly :: (using polygon: *Polygon($N), tint := Colors.White) {
-    batch_start(.Line);
-    {
-        push_color(tint);
-        for 0..N-2 {
-            push_primitive(.Line, position + points[it]);
-            push_primitive(.Line, position + points[it+1]);
-        }
-        push_primitive(.Line, position + points[N-1]);
-        push_primitive(.Line, position + points[0]);
+    push_color(tint);
+    for 0..N-2 {
+        push_primitive(.Line, position + points[it]);
+        push_primitive(.Line, position + points[it+1]);
     }
-    batch_end(.Line);
+    push_primitive(.Line, position + points[N-1]);
+    push_primitive(.Line, position + points[0]);
+    push_depth();
 }
 
 draw_rect :: (obb: *OBB, tint := Colors.White) {
     position := oobb.position;
-    batch_start(.Rect);
-    {
-        push_color(tint);
-        push_primitive(.Rect, position + points[0]);
-        push_primitive(.Rect, position + points[1]);
-        push_primitive(.Rect, position + points[2]);
-        push_primitive(.Rect, position + points[3]);
-    }
-    batch_end(.Rect);
+    push_color(tint);
+    push_primitive(.Rect, position + points[0]);
+    push_primitive(.Rect, position + points[1]);
+    push_primitive(.Rect, position + points[2]);
+    push_primitive(.Rect, position + points[3]);
+    push_depth();
 }
 
 draw_rect_bottom_center :: (position: Vector2, size: Vector2, tint := Colors.White, rotation: float = 0.0) {
@@ -152,48 +181,39 @@ draw_rect_bottom_center :: (position: Vector2, size: Vector2, tint := Colors.Whi
     br.x = tr.x;
     br.y = bl.y;
 
-    batch_start(.Rect);
-    {
-        push_color(tint);
-        push_primitive(.Rect, tl);
-        push_primitive(.Rect, bl);
-        push_primitive(.Rect, br);
-        push_primitive(.Rect, tr);
-    }
-    batch_end(.Rect);
+    push_color(tint);
+    push_primitive(.Rect, tl);
+    push_primitive(.Rect, bl);
+    push_primitive(.Rect, br);
+    push_primitive(.Rect, tr);
+    push_depth();
 }
 
 draw_rect :: (dest: Rect, tint := Colors.White, origin := Vector2.{0, 0}, rotation: float = 0.0) {
     tl, tr, bl, br: Vector2 = ---;
     rotate_quad();
 
-    batch_start(.Rect);
-    {
-        push_color(tint);
-        push_primitive(.Rect, tl);
-        push_primitive(.Rect, bl);
-        push_primitive(.Rect, br);
-        push_primitive(.Rect, tr);
-    }
-    batch_end(.Rect);
+    push_color(tint);
+    push_primitive(.Rect, tl);
+    push_primitive(.Rect, bl);
+    push_primitive(.Rect, br);
+    push_primitive(.Rect, tr);
+    push_depth();
 }
 
 draw_rect :: (dest: Rect, tints: [4] Color, origin := Vector2.{0, 0}, rotation: float = 0.0) {
     tl, tr, bl, br: Vector2 = ---;
     rotate_quad();
 
-    batch_start(.Rect);
-    {
-        push_color(tints[0]);
-        push_primitive(.Rect, tl);
-        push_color(tints[1]);
-        push_primitive(.Rect, bl);
-        push_color(tints[2]);
-        push_primitive(.Rect, br);
-        push_color(tints[3]);
-        push_primitive(.Rect, tr);
-    }
-    batch_end(.Rect);
+    push_color(tints[0]);
+    push_primitive(.Rect, tl);
+    push_color(tints[1]);
+    push_primitive(.Rect, bl);
+    push_color(tints[2]);
+    push_primitive(.Rect, br);
+    push_color(tints[3]);
+    push_primitive(.Rect, tr);
+    push_depth();
 }
 
 draw_texture :: inline (
@@ -308,7 +328,7 @@ draw_texture :: (
     rotate_quad();
 
     push_texture(texture.id);
-    batch_start(.Texture);
+    batch_start();
     {
         push_color(tint);
 
@@ -332,7 +352,7 @@ draw_texture :: (
             push_vertex(.Texture, tr);
         }
     }
-    batch_end(.Texture);
+    batch_end();
 }
 
 draw_text :: (font: Font, text: string, position: Vector2, tint := Colors.White) {

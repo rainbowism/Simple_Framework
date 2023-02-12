@@ -182,34 +182,30 @@ render_quad :: () {
     glBindVertexArray(0);
 }
 
-batch_start :: ($type: Render_Type) {
-    #if type == .Texture {
-        if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
-    }
+batch_start :: () {
+    if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
 }
 
-batch_end :: ($type: Render_Type) {
+batch_end :: () {
     render_ctx.state.current_depth += RENDER_Z_SHIFT;
-    #if type == .Texture {
-        if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
-    }
+    if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
 }
 
 batch_draw :: () {
-    should_render_primitives := buffer_sub_data(.Rect);
-    should_render_primitives |= buffer_sub_data(.Line);
-
-    if should_render_primitives {
+    if buffer_sub_data(.Rect) {
         glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_COLORED].program);
-
-        if render_ctx.rects.index > 0 {
             glBindVertexArray(render_ctx.rects.vao);
             glDrawElements(GL_TRIANGLES, xx (render_ctx.rects.index / 4 * 6), GL_UNSIGNED_INT, null);
             render_ctx.rects.index = 0;
-        }
+        glBindVertexArray(0);
+        glUseProgram(0);
+    }
+
+    if buffer_sub_data(.Line) {
+        glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_COLORED].program);
         if render_ctx.lines.index > 0 {
             glBindVertexArray(render_ctx.lines.vao);
-            glDrawElements(GL_LINES,     xx render_ctx.lines.index,           GL_UNSIGNED_INT, null);
+            glDrawElements(GL_LINES, xx render_ctx.lines.index, GL_UNSIGNED_INT, null);
             render_ctx.lines.index = 0;
         }
         glBindVertexArray(0);
@@ -411,6 +407,10 @@ push_primitive :: ($type: Render_Type, pos: Vector2) {
     vertices[index] = v;
     colors[index]   = render_ctx.state.color;
     index += 1;
+}
+
+push_depth :: () {
+    render_ctx.state.current_depth += RENDER_Z_SHIFT;
 }
 
 push_uv :: (uv: Vector2) {
