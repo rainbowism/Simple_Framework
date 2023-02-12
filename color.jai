@@ -2,18 +2,24 @@ LabA :: struct {
     L, a, b, A: float;
 #place L;
     using #as value: Vector4;
+#place L;
+    floats: [4] float;
 }
 
 Color :: struct {
     r, g, b, a: float;
 #place r;
     using #as value: Vector4;
+#place r;
+    floats: [4] float;
 }
 
 Color8 :: struct {
     r, g, b, a: u8;
 #place r;
     value: u32;
+#place r;
+    values: [4] u8;
 }
 
 Colors :: struct #type_info_none {
