@@ -34,6 +34,14 @@ imgui_end :: ($should_render := true) {
     ImGui_Impl_RenderDrawData(ImGui.GetDrawData());
 }
 
+imgui_used_mouse :: () -> bool {
+    return ui.io.WantCaptureMouse;
+}
+
+imgui_used_keyboard :: () -> bool {
+    return ui.io.WantCaptureKeyboard;
+}
+
 #scope_module
 
 imgui_init :: () {
