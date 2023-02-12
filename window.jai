@@ -282,6 +282,10 @@ set_window_focused :: () {
     glfwFocusWindow(window.handle);
 }
 
+set_focus_callback :: (callback: Focus_Callback) {
+    window.callbacks.focus = callback;
+}
+
 set_key_callback :: (callback: Key_Callback) {
     window.callbacks.key = callback;
 }
@@ -362,6 +366,7 @@ TRACK_FPS_SAMPLES         :: 120;
 TRACK_FPS_SAMPLE_DURATION :: 4.0;
 TRACK_FPS_STEP            :: TRACK_FPS_SAMPLE_DURATION / TRACK_FPS_SAMPLES;
 
+Focus_Callback  :: #type (focused: bool);
 Key_Callback    :: #type (key: s32, scancode: s32, action: s32, mods: s32);
 Mouse_Callback  :: #type (button: s32, action: s32, mods: s32);
 Text_Callback   :: #type (codepoint: u32);
@@ -394,6 +399,7 @@ Window_Context :: struct {
     }
 
     callbacks: struct {
+        focus:  Focus_Callback;
         key:    Key_Callback;
         mouse:  Mouse_Callback;
         text:   Text_Callback;
@@ -423,6 +429,9 @@ glfw_window_size_callback :: (handle: *GLFWwindow, width: s32, height: s32) #c_c
 
 glfw_window_focus_callback :: (handle: *GLFWwindow, focused: s32) #c_call {
     window.focused = focused >= 1;
+    push_context window.ctx {
+        if window.callbacks.focus != null  window.callbacks.focus(window.focused);
+    }
 }
 
 glfw_key_callback :: (glfw_win: *GLFWwindow, key: s32, scancode: s32, action: s32, mods: s32) #c_call {
