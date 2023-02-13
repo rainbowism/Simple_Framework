@@ -330,6 +330,24 @@ make_color :: (c: Color, a: float) -> Color {
     return v;
 }
 
+make_color :: (rgb: u32) -> Color {
+    v: Color = ---;
+    v.r = (cast(float) ((rgb >> 16) & 0xFF)) / 255.0;
+    v.g = (cast(float) ((rgb >>  8) & 0xFF)) / 255.0;
+    v.b = (cast(float) ((rgb      ) & 0xFF)) / 255.0;
+    v.a = 1.0;
+    return v;
+}
+
+make_color :: (rgb: u32, a: float) -> Color {
+    v: Color = ---;
+    v.r = (cast(float) ((rgb >> 16) & 0xFF)) / 255.0;
+    v.g = (cast(float) ((rgb >>  8) & 0xFF)) / 255.0;
+    v.b = (cast(float) ((rgb      ) & 0xFF)) / 255.0;
+    v.a = a;
+    return v;
+}
+
 rgba :: make_color;
 
 make_color8 :: (r: u8, g: u8, b: u8, a: u8) -> Color8 {
