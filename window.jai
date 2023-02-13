@@ -12,6 +12,7 @@ Window_Flags :: enum_flags {
     Fullscreen;
     Centered;
     VSync;
+    MSAA;
 }
 
 sf_init :: () -> SF_Result {
@@ -35,6 +36,9 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_VISIBLE, 0);
+    if flags & .MSAA {
+        glfwWindowHint(GLFW_SAMPLES, 4);
+    }
 
     window.size.x = xx width;
     window.size.y = xx height;
