@@ -1,3 +1,11 @@
+circle_intersect :: inline (a: Vector2, b: Vector2, radius: float) -> bool {
+    return in_radius(a - b, radius);
+}
+
+in_radius :: inline (v: Vector2, radius: float) -> bool {
+    return v.x * v.x + v.y * v.y >= radius * radius;
+}
+
 Rect :: struct {
     x, y:          float;
     width, height: float;

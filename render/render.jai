@@ -469,17 +469,17 @@ init_vertex_buffer :: inline (
     colors.data    = alloc(size_of(Color)   * colors.count);
     indices.data   = alloc(size_of(GLuint)  * indices.count);
 
-    i_quad:  u32;
-    i_index: s64;
-    while i_index < indices.count {
-        indices[i_index]     = i_quad;
-        indices[i_index + 1] = i_quad + 1;
-        indices[i_index + 2] = i_quad + 2;
-        indices[i_index + 3] = i_quad;
-        indices[i_index + 4] = i_quad + 2;
-        indices[i_index + 5] = i_quad + 3;
-        i_quad  += 4;
-        i_index += 6;
+    it_quad:  u32;
+    it_index: s64;
+    while it_index < indices.count {
+        defer it_quad  += 4;
+        defer it_index += 6;
+        indices[it_index]     = it_quad;
+        indices[it_index + 1] = it_quad + 1;
+        indices[it_index + 2] = it_quad + 2;
+        indices[it_index + 3] = it_quad;
+        indices[it_index + 4] = it_quad + 2;
+        indices[it_index + 5] = it_quad + 3;
     }
 
     glGenVertexArrays(1, *vao);
@@ -524,26 +524,26 @@ init_primitive_buffer :: inline (
     indices.data   = alloc(size_of(GLuint)  * indices.count);
 
     #if index_count == 6 {
-        i_quad:  u32;
-        i_index: s64;
-        while i_index < indices.count {
-            indices[i_index]     = i_quad;
-            indices[i_index + 1] = i_quad + 1;
-            indices[i_index + 2] = i_quad + 2;
-            indices[i_index + 3] = i_quad;
-            indices[i_index + 4] = i_quad + 2;
-            indices[i_index + 5] = i_quad + 3;
-            i_quad  += xx vertex_count;
-            i_index += index_count;
+        it_quad:  u32;
+        it_index: s64;
+        while it_index < indices.count {
+            defer it_quad  += xx vertex_count;
+            defer it_index += index_count;
+            indices[it_index]     = it_quad;
+            indices[it_index + 1] = it_quad + 1;
+            indices[it_index + 2] = it_quad + 2;
+            indices[it_index + 3] = it_quad;
+            indices[it_index + 4] = it_quad + 2;
+            indices[it_index + 5] = it_quad + 3;
         }
     } else #if index_count == 2 {
-        i_quad:  u32;
-        i_index: s64;
-        while i_index < indices.count {
-            indices[i_index]     = i_quad;
-            indices[i_index + 1] = i_quad + 1;
-            i_quad  += xx vertex_count;
-            i_index += index_count;
+        it_quad:  u32;
+        it_index: s64;
+        while it_index < indices.count {
+            defer it_quad  += xx vertex_count;
+            defer it_index += index_count;
+            indices[it_index]     = it_quad;
+            indices[it_index + 1] = it_quad + 1;
         }
     }
 
