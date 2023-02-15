@@ -33,6 +33,8 @@ SF_Result :: enum {
 #load "math/matrix.jai";
 #load "math/noise.jai";
 
+#load "crypto/md5.jai";
+
 #if !DISABLE_RENDER {
     #load "render/texture.jai";
     #load "render/font.jai";

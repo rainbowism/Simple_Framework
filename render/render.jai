@@ -81,13 +81,24 @@ push_texture :: (slot: GLuint, texture: Texture) {
     inline push_texture(slot, texture.id);
 }
 
+push_custom_screen_size :: inline (width: s32, height: s32) {
+    render_ctx.state.projection = make_ortho_matrix(0, xx width, xx height, 0, -1, 1);
+    screen_size := make_vector2(xx width, xx height);
+    pixel_size  := 1.0 / screen_size;
+    glBindBuffer(GL_UNIFORM_BUFFER, render_ctx.ubo);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, size_of(Matrix4), render_ctx.state.projection.floats.data);
+    glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4), size_of(Vector2), *screen_size);
+    glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4) + size_of(Vector2), size_of(Vector2), *pixel_size);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
 #scope_module
 
 render_init :: (max_renderables := 8192) {
     success: bool = ---;
-    render_ctx.target[0], success = create_render_target();
+    render_ctx.target[RENDER_TARGET_MAIN], success = create_render_target();
     if !success  warn(.Render, "Failed to initialize main Render_Target");
-    render_ctx.target[1], success = create_render_target();
+    render_ctx.target[RENDER_TARGET_PARTICLE], success = create_render_target();
     if !success  warn(.Render, "Failed to initialize particle Render_Target");
 
     SHADER_GLOBALS_SIZE :: 2 * size_of(Matrix4) + 2 * size_of(Vector2) + size_of(float);
@@ -262,14 +273,7 @@ push_screen_size :: inline (width: s32, height: s32) {
     resize_render_target(render_ctx.target[RENDER_TARGET_MAIN], width, height);
     resize_render_target(render_ctx.target[RENDER_TARGET_PARTICLE], width, height);
     resize_render_bloom(render_ctx.bloom, width, height);
-    render_ctx.state.projection = make_ortho_matrix(0, xx width, xx height, 0, -1, 1);
-    screen_size := make_vector2(xx width, xx height);
-    pixel_size  := 1.0 / screen_size;
-    glBindBuffer(GL_UNIFORM_BUFFER, render_ctx.ubo);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, size_of(Matrix4), render_ctx.state.projection.floats.data);
-    glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4), size_of(Vector2), *screen_size);
-    glBufferSubData(GL_UNIFORM_BUFFER, 2 * size_of(Matrix4) + size_of(Vector2), size_of(Vector2), *pixel_size);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    push_custom_screen_size(width, height);
 }
 
 push_vertex :: ($type: Render_Type, pos: Vector3) {

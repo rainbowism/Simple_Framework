@@ -47,7 +47,6 @@ resize_render_target :: (render_target: Render_Target, width: s32, height: s32) 
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, render_target.rbo);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, xx width, xx height);
-    glViewport(0, 0, xx width, xx height);
 }
 
 draw_render_texture :: (render_target: Render_Target, $additive := false) {

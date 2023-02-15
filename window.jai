@@ -343,6 +343,11 @@ post_empty_event :: () #expand {
     glfwPostEmptyEvent();
 }
 
+reset_viewport :: inline () {
+    glViewport(0, 0, xx window.size.width, xx window.size.height);
+    #if !DISABLE_RENDER  push_custom_screen_size(window.size.width, window.size.height);
+}
+
 sf_time: struct {
     total:   float64;
     last:    float64;
