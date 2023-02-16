@@ -67,6 +67,7 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 
     glfwSetInputMode(window.handle, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
     glfwSetInputMode(window.handle, GLFW_STICKY_KEYS, GLFW_TRUE);
+    glfwSetCursorPosCallback  (window.handle, glfw_cursor_position_callback);
     glfwSetWindowSizeCallback (window.handle, glfw_window_size_callback);
     glfwSetWindowFocusCallback(window.handle, glfw_window_focus_callback);
 	glfwSetKeyCallback        (window.handle, glfw_key_callback);
@@ -74,6 +75,7 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 	glfwSetCharCallback       (window.handle, glfw_text_callback);
 	glfwSetScrollCallback     (window.handle, glfw_scroll_callback);
     glfwSetCursorPosCallback  (window.handle, glfw_cursor_position_callback);
+    glfwSetDropCallback       (window.handle, glfw_drop_callback);
 
     set_vsync(flags & .VSync > 0);
 
@@ -311,6 +313,10 @@ set_resize_callback :: (callback: Resize_Callback) {
     window.callbacks.resize = callback;
 }
 
+set_drop_callback :: (callback: Drop_Callback) {
+    window.callbacks.drop = callback;
+}
+
 draw_clear :: inline (color: Color, $only_depth := false) {
     glClearColor(color.r, color.g, color.b, color.a);
     #if only_depth {
@@ -382,6 +388,7 @@ Mouse_Callback  :: #type (button: s32, action: s32, mods: s32);
 Text_Callback   :: #type (codepoint: u32);
 Scroll_Callback :: #type (x_offset: float64, y_offset: float64);
 Resize_Callback :: #type (width: s32, height: s32);
+Drop_Callback   :: #type (count: s32, paths: **u8);
 
 Window_Context :: struct {
     ctx:    Context;
@@ -415,6 +422,7 @@ Window_Context :: struct {
         text:   Text_Callback;
         scroll: Scroll_Callback;
         resize: Resize_Callback;
+        drop:   Drop_Callback;
     }
 
     clear_color: Color = Colors.Black;
@@ -427,6 +435,11 @@ glfw_error_callback :: (error: s32, description: *u8) #c_call {
     push_context window.ctx {
         print("GLFW error %: %\n", error, to_string(description));
     }
+}
+
+glfw_cursor_position_callback :: (glfw_win: *GLFWwindow, x: float64, y: float64) #c_call {
+    mouse_pos.x = xx x;
+    mouse_pos.y = xx y;
 }
 
 glfw_window_size_callback :: (handle: *GLFWwindow, width: s32, height: s32) #c_call {
@@ -475,9 +488,10 @@ glfw_scroll_callback :: (glfw_win: *GLFWwindow, x_offset: float64, y_offset: flo
 	}
 }
 
-glfw_cursor_position_callback :: (glfw_win: *GLFWwindow, x: float64, y: float64) #c_call {
-    mouse_pos.x = xx x;
-    mouse_pos.y = xx y;
+glfw_drop_callback :: (glfw_win: *GLFWwindow, count: s32, paths: **u8) #c_call {
+    push_context window.ctx {
+        if window.callbacks.drop != null  window.callbacks.drop(count, paths);
+	}
 }
 
 #import "Basic";
