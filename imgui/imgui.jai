@@ -42,20 +42,40 @@ imgui_used_keyboard :: () -> bool {
     return ui.io.WantCaptureKeyboard;
 }
 
+imgui_load_font :: (filepath: string, font_size: float, oversample_h: s32 = 2, oversample_v: s32 = 2) -> *ImGui.ImFont {
+    config: ImGui.ImFontConfig;
+    ImGui.ImFontConfig.Constructor(*config);
+    config.OversampleH = oversample_h;
+    config.OversampleV = oversample_v;
+
+    ImGui.ImFontAtlas.Clear(ui.io.Fonts);
+    font := ImGui.ImFontAtlas.AddFontFromFileTTF(ui.io.Fonts, temp_c_string(filepath), font_size, *config);
+    ImGui.ImFontAtlas.Build(ui.io.Fonts);
+    ImGui_Impl_CreateFontsTexture();
+    ui.io.FontDefault = font;
+    return font;
+}
+
+imgui_load_font :: (font_buffer: [] u8, font_size: float, oversample_h: s32 = 2, oversample_v: s32 = 2) -> *ImGui.ImFont {
+    config: ImGui.ImFontConfig;
+    ImGui.ImFontConfig.Constructor(*config);
+    config.OversampleH = oversample_h;
+    config.OversampleV = oversample_v;
+
+    ImGui.ImFontAtlas.Clear(ui.io.Fonts);
+    font := ImGui.ImFontAtlas.AddFontFromMemoryTTF(ui.io.Fonts, font_buffer.data, xx font_buffer.count, font_size, *config);
+    ImGui.ImFontAtlas.Build(ui.io.Fonts);
+    ImGui_Impl_CreateFontsTexture();
+    ui.io.FontDefault = font;
+    return font;
+}
+
 #scope_module
 
 imgui_init :: () {
     ImGui_Impl_CreateContext();
     ImGui.StyleColorsDark();
     ImGui_Impl_Init(window.handle);
-}
-
-imgui_load_font :: (filepath: string, font_size: float) -> *ImGui.ImFont {
-    font := ImGui.ImFontAtlas.AddFontFromFileTTF(ui.io.Fonts, temp_c_string(filepath), font_size);
-    ImGui.ImFontAtlas.Build(ui.io.Fonts);
-    ImGui_Impl_CreateFontsTexture();
-    ui.io.FontDefault = font;
-    return font;
 }
 
 imgui_shift :: () -> bool {
