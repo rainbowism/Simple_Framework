@@ -9,7 +9,7 @@ Pixel_Format :: enum s32 {
 }
 
 Image :: struct {
-    pixels: *u8;
+    data:   *u8;
     width:  s32;
     height: s32;
     format: Pixel_Format;
@@ -41,10 +41,16 @@ Wrap_Mode :: enum GLenum {
 SWIZZLE_RGB_MASK   :: GLint.[GL_RED, GL_RED, GL_RED, GL_ONE];
 SWIZZLE_ALPHA_MASK :: GLint.[GL_ONE, GL_ONE, GL_ONE, GL_RED];
 
-create_image :: (filepath: string) -> Image {
+load_image :: (filepath: string) -> Image {
     path := temp_c_string(filepath);
     image: Image = ---;
-    image.data = stbi_load(path, *image.width, *image.height, *image.format, PixelFormat.RGBA);
+    image.data = stbi_load(path, *image.width, *image.height, cast(*s32) *image.format, 0);
+    return image;
+}
+
+load_from_memory :: (buffer: string) -> Image {
+    image: Image = ---;
+    image.data = stbi_load_from_memory(buffer.data, cast,no_check(s32) buffer.count, *image.width, *image.height, cast(*s32) *image.format, 0);
     return image;
 }
 
@@ -98,8 +104,6 @@ create_texture :: (
     mag_sampling := Sampling_Mode.Linear,
     wrap_mode    := Wrap_Mode.Clamp_To_Edge
 ) -> Texture {
-    path := temp_c_string(filepath);
-
     texture: Texture = ---;
     texture.width  = image.width;
     texture.height = image.height;
@@ -119,12 +123,12 @@ create_texture :: (
 
     if #complete texture.format == {
     case .None;      assert(false, "Failed to decode image format.");
-    case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_R8,    xx texture.width, xx texture.height, 0, GL_RED , GL_UNSIGNED_BYTE, image_data);
-    case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8,   xx texture.width, xx texture.height, 0, GL_RG  , GL_UNSIGNED_BYTE, image_data);
-    case .RGB;       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,  xx texture.width, xx texture.height, 0, GL_RGB , GL_UNSIGNED_BYTE, image_data);
-    case .RGBA;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, xx texture.width, xx texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_R8,    xx texture.width, xx texture.height, 0, GL_RED , GL_UNSIGNED_BYTE, image.data);
+    case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8,   xx texture.width, xx texture.height, 0, GL_RG  , GL_UNSIGNED_BYTE, image.data);
+    case .RGB;       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,  xx texture.width, xx texture.height, 0, GL_RGB , GL_UNSIGNED_BYTE, image.data);
+    case .RGBA;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, xx texture.width, xx texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.data);
     case;
-        warn(.Render, "Parsed invalid texture format for file: %", filepath);
+        warn(.Render, "Parsed invalid texture format for image.");
         return .{};
     }
 
