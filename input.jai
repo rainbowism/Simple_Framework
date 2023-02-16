@@ -1,5 +1,9 @@
 // @Todo(sushi): Add key modifier support
 
+clear_input_buffers :: () {
+    input_state = .{};
+}
+
 swap_input_buffers :: () {
     memcpy(input_state.key_last.data,   input_state.key_cur.data,   GLFW_KEY_LAST + 1);
     memcpy(input_state.mouse_last.data, input_state.mouse_cur.data, GLFW_MOUSE_BUTTON_LAST + 1);
@@ -194,7 +198,9 @@ Mouse :: enum {
 
 #scope_module
 
-input_state: struct {
+input_state: Input_State;
+
+Input_State :: struct {
     key_cur:    [GLFW_KEY_LAST + 1] bool;
     key_last:   [GLFW_KEY_LAST + 1] bool;
     mouse_cur:  [GLFW_MOUSE_BUTTON_LAST + 1] bool;

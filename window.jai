@@ -282,8 +282,9 @@ get_window_focused :: () -> bool {
     return window.focused;
 }
 
-set_window_focused :: () {
+set_window_focused :: ($clear_input := false) {
     glfwFocusWindow(window.handle);
+    #if clear_input  clear_input_buffers();
 }
 
 set_focus_callback :: (callback: Focus_Callback) {
