@@ -350,6 +350,16 @@ post_empty_event :: () #expand {
     glfwPostEmptyEvent();
 }
 
+get_mouse_pos :: ($cached := false) -> Vector2 {
+    #if cached {
+        return mouse_pos;
+    } else {
+        x, y: float64;
+        glfwGetCursorPos(window.handle, *x, *y);
+        return .{cast(float) x, cast(float) y};
+    }
+}
+
 reset_viewport :: inline () {
     glViewport(0, 0, xx window.size.width, xx window.size.height);
     #if !DISABLE_RENDER  push_custom_screen_size(window.size.width, window.size.height);
