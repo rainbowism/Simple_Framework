@@ -17,8 +17,8 @@ Image :: struct {
 
 Texture :: struct {
     id:     Texture_Id;
-    width:  s32;
-    height: s32;
+    width:  float;
+    height: float;
     format: Pixel_Format;
 }
 
@@ -64,8 +64,11 @@ load_texture :: (
     path := temp_c_string(filepath);
 
     texture: Texture = ---;
-    image_data := stbi_load(path, *texture.width, *texture.height, xx *texture.format, xx pixel_format);
+    width, height: s32 = ---;
+    image_data := stbi_load(path, *width, *height, xx *texture.format, xx pixel_format);
     defer stbi_image_free(image_data);
+    texture.width  = cast(float) width;
+    texture.height = cast(float) height;
 
     glGenTextures(1, *texture.id);  assert(texture.id != 0);
     glBindTexture(GL_TEXTURE_2D, texture.id);
@@ -74,10 +77,10 @@ load_texture :: (
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     xx wrap_mode);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     xx wrap_mode);
 
-         if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
-    else if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
-    else if (texture.width * texture.height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
-    else                                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
+         if (width * height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
+    else if (width * height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    else if (width * height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
+    else                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     if #complete texture.format == {
     case .None;      assert(false, "Failed to decode image format.");
@@ -105,8 +108,8 @@ create_texture :: (
     wrap_mode    := Wrap_Mode.Clamp_To_Edge
 ) -> Texture {
     texture: Texture = ---;
-    texture.width  = image.width;
-    texture.height = image.height;
+    texture.width  = cast(float) image.width;
+    texture.height = cast(float) image.height;
     texture.format = image.format;
 
     glGenTextures(1, *texture.id);  assert(texture.id != 0);
@@ -116,10 +119,10 @@ create_texture :: (
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     xx wrap_mode);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     xx wrap_mode);
 
-         if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
-    else if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
-    else if (texture.width * texture.height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
-    else                                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
+         if (width * height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
+    else if (width * height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    else if (width * height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
+    else                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     if #complete texture.format == {
     case .None;      assert(false, "Failed to decode image format.");

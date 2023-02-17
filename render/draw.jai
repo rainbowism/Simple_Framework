@@ -220,12 +220,12 @@ draw_texture :: inline (
     texture: Texture,
     pos: Vector2,
     tint := Colors.White,
-    origin := Vector2.{0, 0},
+    origin := Vector2.{0.5, 1.0},
     rotation: float = 0.0
 ) {
     source, dest: Rect;
-    source.width  = xx texture.width;
-    source.height = xx texture.height;
+    source.width  = texture.width;
+    source.height = texture.height;
     dest.x        = pos.x;
     dest.y        = pos.y;
     dest.width    = source.width;
@@ -243,12 +243,12 @@ draw_texture :: inline (
     pos: Vector2,
     scale: float,
     tint := Colors.White,
-    origin := Vector2.{0, 0},
+    origin := Vector2.{0.5, 1.0},
     rotation: float = 0.0
 ) {
     source, dest: Rect;
-    source.width  = xx texture.width;
-    source.height = xx texture.height;
+    source.width  = texture.width;
+    source.height = texture.height;
     dest.x        = pos.x;
     dest.y        = pos.y;
     dest.width    = source.width * scale;
@@ -266,12 +266,12 @@ draw_texture :: inline (
     pos: Vector2,
     scale: Vector2,
     tint := Colors.White,
-    origin := Vector2.{0, 0},
+    origin := Vector2.{0.5, 1.0},
     rotation: float = 0.0
 ) {
     source, dest: Rect;
-    source.width  = xx texture.width;
-    source.height = xx texture.height;
+    source.width  = texture.width;
+    source.height = texture.height;
     dest.x        = pos.x;
     dest.y        = pos.y;
     dest.width    = source.width * scale.x;
@@ -290,12 +290,12 @@ draw_texture :: inline (
     dst: Vector2,
     size: Vector2,
     tint := Colors.White,
-    origin := Vector2.{0, 0},
+    origin := Vector2.{0.5, 1.0},
     rotation: float = 0.0
 ) {
     source, dest: Rect = ---;
-    source.x = src.x;
-    source.y = src.y;
+    source.x      = src.x;
+    source.y      = src.y;
     source.width  = size.x;
     source.height = size.y;
     dest.x        = dst.x;
@@ -315,17 +315,17 @@ draw_texture :: (
     source: Rect,
     dest: Rect,
     tint := Colors.White,
-    origin := Vector2.{0, 0},
+    origin := Vector2.{0.5, 1.0},
     rotation: float = 0.0,
     $flip_x := false
 ) {
     if texture.id == 0  return;
 
-    width:  float = 1.0 / cast(float) texture.width;
-    height: float = 1.0 / cast(float) texture.height;
+    width:  float = 1.0 / texture.width;
+    height: float = 1.0 / texture.height;
 
     tl, tr, bl, br: Vector2 = ---;
-    rotate_quad();
+    rotate_quad(true);
 
     push_texture(texture.id);
     batch_start();
@@ -385,10 +385,15 @@ draw_text :: (msdf: MSDF_Font, text: string, position: Vector2, size: float, tin
 
 #scope_file
 
-rotate_quad :: () #expand {
+rotate_quad :: ($relative_origin := false) #expand {
     if `rotation == 0 {
-        x := `dest.x - `origin.x;
-        y := `dest.y - `origin.y;
+        #if relative_origin {
+            x := `dest.x - `origin.x * `source.width;
+            y := `dest.y - `origin.y * `source.height;
+        } else {
+            x := `dest.x - `origin.x;
+            y := `dest.y - `origin.y;
+        }
 
         `tl.x = x;
         `tl.y = y;
@@ -403,8 +408,13 @@ rotate_quad :: () #expand {
         theta_cos := tcos(`rotation);
         x := `dest.x;
         y := `dest.y;
-        dx := -`origin.x;
-        dy := -`origin.y;
+        #if relative_origin {
+            dx := -`origin.x * `source.width;
+            dy := -`origin.y * `source.height;
+        } else {
+            dx := -`origin.x;
+            dy := -`origin.y;
+        }
 
         `tl.x = x + dx * theta_cos - dy * theta_sin;
         `tl.y = y + dx * theta_sin + dy * theta_cos;
