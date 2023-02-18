@@ -173,6 +173,10 @@ Polygon :: struct (N: int) {
     points:     [N] Vector2;
 }
 
+SAT_Polygon :: struct (N: int) {
+    points: [N] Vector2;
+}
+
 Triangle :: Polygon(3);
 OBB      :: Polygon(4);
 Pentagon :: Polygon(5);
@@ -218,5 +222,3 @@ create_regular_pentagon :: (position: Vector2, radius: float, angle: float = 0, 
     memcpy(pentagon.points.data, pentagon.vertices.data, pentagon.vertices.count * size_of(Vector2));
     return pentagon;
 }
-
-#load "collision/gjk.jai";

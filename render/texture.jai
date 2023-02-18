@@ -13,6 +13,9 @@ Image :: struct {
     width:  s32;
     height: s32;
     format: Pixel_Format;
+
+#place width;
+    size: Point2;
 }
 
 Texture :: struct {
@@ -20,6 +23,9 @@ Texture :: struct {
     width:  float;
     height: float;
     format: Pixel_Format;
+
+#place width;
+    size: Vector2;
 }
 
 Sampling_Mode :: enum GLenum {

@@ -316,8 +316,7 @@ draw_texture :: (
     dest: Rect,
     tint := Colors.White,
     origin := Vector2.{0.5, 1.0},
-    rotation: float = 0.0,
-    $flip_x := false
+    rotation: float = 0.0
 ) {
     if texture.id == 0  return;
 
@@ -332,7 +331,41 @@ draw_texture :: (
     {
         push_color(tint);
 
-        #if flip_x {
+        push_uv(source.x * width, source.y * height);
+        push_vertex(.Texture, tl);
+        push_uv(source.x * width, (source.y + source.height) * height);
+        push_vertex(.Texture, bl);
+        push_uv((source.x + source.width) * width, (source.y + source.height) * height);
+        push_vertex(.Texture, br);
+        push_uv((source.x + source.width) * width, source.y * height);
+        push_vertex(.Texture, tr);
+    }
+    batch_end();
+}
+
+draw_texture :: (
+    texture: Texture,
+    source: Rect,
+    dest: Rect,
+    flip_x: bool,
+    tint := Colors.White,
+    origin := Vector2.{0.5, 1.0},
+    rotation: float = 0.0
+) {
+    if texture.id == 0  return;
+
+    width:  float = 1.0 / texture.width;
+    height: float = 1.0 / texture.height;
+
+    tl, tr, bl, br: Vector2 = ---;
+    rotate_quad(true);
+
+    push_texture(texture.id);
+    batch_start();
+    {
+        push_color(tint);
+
+        if flip_x {
             push_uv((source.x + source.width) * width, source.y * height);
             push_vertex(.Texture, tl);
             push_uv((source.x + source.width) * width, (source.y + source.height) * height);

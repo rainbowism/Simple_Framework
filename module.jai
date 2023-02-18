@@ -29,9 +29,12 @@ SF_Result :: enum {
 #load "profiler.jai";
 
 #load "math/utils.jai";
-#load "math/linalg.jai";
 #load "math/matrix.jai";
 #load "math/noise.jai";
+#load "math/linalg.jai";
+
+#load "math/collision/gjk.jai";
+#load "math/collision/sat.jai";
 
 #load "data/cache.jai";
 
