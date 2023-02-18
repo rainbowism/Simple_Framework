@@ -1,9 +1,29 @@
-circle_intersect :: inline (a: Vector2, b: Vector2, radius: float) -> bool {
-    return in_radius(a - b, radius);
+circle_intersecting :: inline (a: Vector2, b: Vector2, radius: float) -> bool {
+    return inside_radius(a - b, radius);
 }
 
-in_radius :: inline (v: Vector2, radius: float) -> bool {
+circle_not_intersecting :: inline (a: Vector2, b: Vector2, radius: float) -> bool {
+    return outside_radius(a - b, radius);
+}
+
+inside_radius :: inline (v: Vector2, radius: float) -> bool {
+    return v.x * v.x + v.y * v.y <= radius * radius;
+}
+
+outside_radius :: inline (v: Vector2, radius: float) -> bool {
     return v.x * v.x + v.y * v.y >= radius * radius;
+}
+
+point_in_rect :: inline (point: Vector2, a: Vector2, b: Vector2, c: Vector2) -> bool {
+    ab := b - a;
+    am := point - a;
+    bc := c - b;
+    bm := point - b;
+    dot_ab_am := dot(ab, am);
+    dot_ab_ab := dot(ab, ab);
+    dot_bc_bm := dot(bc, bm);
+    dot_bc_bc := dot(bc, bc);
+    return 0 <= dot_ab_am && dot_ab_am <= dot_ab_ab && 0 <= dot_bc_bm && dot_bc_bm <= dot_bc_bc;
 }
 
 Rect :: struct {
