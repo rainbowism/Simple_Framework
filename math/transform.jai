@@ -6,15 +6,13 @@ Transform :: struct {
     _31: float;
     _32: float;
 #place _11;
+    x_basis:  Vector2;
+    y_basis:  Vector2;
+    position: Vector2;
+#place _11;
     columns: [3] Vector2;
 #place _11;
     floats: [6] float;
-#place _11;
-    x_basis: Vector2;
-#place _21;
-    y_basis: Vector2;
-#place _31;
-    position: Vector2;
 }
 
 tdotx :: inline (using transform: Transform, v: Vector2) -> float #must { return _11 * v.x + _21 * v.y; }
@@ -38,7 +36,7 @@ make_xform :: (position: Vector2, theta: float, scale: Vector2) -> Transform #mu
     r._21 = -tsin(theta) * scale.y;
     r._22 =  tcos(theta) * scale.y;
     r.position = position;
-    return transform;
+    return r;
 }
 
 make_xform :: (position: Vector2, x_basis: Vector2, y_basis: Vector2) -> Transform #must {
@@ -94,7 +92,7 @@ set_rotation_scale :: (transform: Transform, theta: float, scale: Vector2) -> Tr
     r._21 = -tsin(theta) * scale.y;
     r._22 =  tcos(theta) * scale.y;
     r.position = transform.position;
-    return transform;
+    return r;
 }
 
 set_rotation_scale_skew :: (transform: Transform, theta: float, scale: Vector2, skew: float) -> Transform #must {
@@ -104,7 +102,7 @@ set_rotation_scale_skew :: (transform: Transform, theta: float, scale: Vector2, 
     r._21 = -tsin(theta + skew) * scale.y;
     r._22 =  tcos(theta + skew) * scale.y;
     r.position = transform.position;
-    return transform;
+    return r;
 }
 
 inverse :: (transform: Transform) -> Transform #must {
@@ -145,8 +143,7 @@ operator * :: (left: Transform, right: Transform) -> Transform #must {
 }
 
 get_rotation :: (transform: Transform) -> float #must {
-    // @Todo(sushi): Remove factors of PI.
-    return atan2(transform._12 * PI, transform._11 * PI) * INV_PI;
+    return tatan2(transform._12, transform._11);
 }
 
 get_scale :: (transform: Transform) -> Vector2 #must {
@@ -161,4 +158,12 @@ get_skew :: (transform: Transform) -> float #must {
 	determinant := basis_determinant(transform);
     // @Todo(sushi): Remove factors of PI.
 	return acos(dot(unit_vector(transform.x_basis), sign(determinant) * unit_vector(transform.y_basis))) * INV_PI - 0.5;
+}
+
+test_transform :: () {
+    for 1..20 {
+        theta := cast(float) it * 0.1;
+        info("rotation: % = %", theta, get_rotation(make_xform(.{0, 0}, theta)));
+        info("scale:    % = %", theta, get_scale(make_xform(.{0, 0}, 0, .{theta, theta})));
+    }
 }
