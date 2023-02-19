@@ -28,6 +28,8 @@ SF_Result :: enum {
 #load "input.jai";
 #load "profiler.jai";
 
+#load "math/cephes.jai";
+#load "math/transform.jai";
 #load "math/utils.jai";
 #load "math/matrix.jai";
 #load "math/noise.jai";
