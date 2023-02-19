@@ -455,7 +455,7 @@ ImGui_Impl_RenderDrawData :: (draw_data: *ImGui.ImDrawData) {
 #scope_file
 
 UI_State :: struct {
-    ctx:         *ImGui.Context;
+    ctx:         *ImGui.ImGuiContext;
     io:          *ImGui.IO;
     handle:      *GLFWwindow;
     initialized: bool;
