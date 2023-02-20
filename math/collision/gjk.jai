@@ -157,7 +157,7 @@ gjk_epa :: (shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0.000_1
 }
 
 epa :: (simplex: [] Vector2, shape_a: $A, shape_b: $B, $max_iterations := 32, $epsilon := 0.000_1) -> Vector2 {
-    // @Cleanup(sushi): This is REALLY SLOW!
+    // @Speed(sushi): This is REALLY SLOW!
     polytope: [..] Vector2;
     array_copy(*polytope, simplex);
 

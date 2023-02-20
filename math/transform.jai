@@ -85,47 +85,57 @@ xform_inv :: (transform: Transform, v: Vector2) -> Vector2 #must {
     return r;
 }
 
-set_rotation_scale :: (transform: Transform, theta: float, scale: Vector2) -> Transform #must {
-    r: Transform = ---;
-    r._11 =  tcos(theta) * scale.x;
-    r._12 =  tsin(theta) * scale.x;
-    r._21 = -tsin(theta) * scale.y;
-    r._22 =  tcos(theta) * scale.y;
-    r.position = transform.position;
-    return r;
+set_rotation_scale :: (transform: *Transform, theta: float, scale: Vector2) {
+    transform._11 =  tcos(theta) * scale.x;
+    transform._12 =  tsin(theta) * scale.x;
+    transform._21 = -tsin(theta) * scale.y;
+    transform._22 =  tcos(theta) * scale.y;
 }
 
-set_rotation_scale_skew :: (transform: Transform, theta: float, scale: Vector2, skew: float) -> Transform #must {
-    r: Transform = ---;
-    r._11 =  tcos(theta)        * scale.x;
-    r._12 =  tsin(theta)        * scale.x;
-    r._21 = -tsin(theta + skew) * scale.y;
-    r._22 =  tcos(theta + skew) * scale.y;
-    r.position = transform.position;
-    return r;
+set_rotation_scale_skew :: (transform: *Transform, theta: float, scale: Vector2, skew: float) {
+    transform._11 =  tcos(theta)        * scale.x;
+    transform._12 =  tsin(theta)        * scale.x;
+    transform._21 = -tsin(theta + skew) * scale.y;
+    transform._22 =  tcos(theta + skew) * scale.y;
 }
 
-inverse :: (transform: Transform) -> Transform #must {
-    r := transform;
-    value := r._12;
-    r._12  = r._21;
-    r._21  = value;
-    r.position = inline basis_xform(r, -r.position);
-    return r;
+inverse :: (transform: *Transform) {
+    value        := transform._12;
+    transform._12 = transform._21;
+    transform._21 = value;
+    transform.position = inline basis_xform(transform, -transform.position);
 }
 
-affine_inverse :: (transform: Transform) -> Transform #must {
+affine_inverse :: (transform: *Transform) {
     determinant     := basis_determinant(transform);
     inv_determinant := 1.0 / determinant;
 
-    r := transform;
-    value := r._11;
-    r._11  = r._22;
-    r._22  = value;
-    r.x_basis *= Vector2.{ inv_determinant, -inv_determinant};
-    r.y_basis *= Vector2.{-inv_determinant,  inv_determinant};
-    r.position = inline basis_xform(r, -r.position);
-    return r;
+    value        := transform._11;
+    transform._11 = transform._22;
+    transform._22 = value;
+    transform.x_basis *= Vector2.{ inv_determinant, -inv_determinant};
+    transform.y_basis *= Vector2.{-inv_determinant,  inv_determinant};
+    transform.position = inline basis_xform(transform, -transform.position);
+}
+
+set_rotation_scale :: (transform: Transform, theta: float, scale: Vector2) -> Transform #must {
+    inline set_rotation_scale(*transform, theta, scale);
+    return transform;
+}
+
+set_rotation_scale_skew :: (transform: Transform, theta: float, scale: Vector2, skew: float) -> Transform #must {
+    inline set_rotation_scale_skew(*transform, theta, scale, skew);
+    return transform;
+}
+
+inverse :: (transform: Transform) -> Transform #must {
+    inline inverse(*transform);
+    return transform;
+}
+
+affine_inverse :: (transform: Transform) -> Transform #must {
+    inline affine_inverse(*transform);
+    return transform;
 }
 
 operator * :: (left: Transform, right: Transform) -> Transform #must {
