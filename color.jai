@@ -348,6 +348,10 @@ make_color :: (rgb: u32, a: float) -> Color {
     return v;
 }
 
+to_u32 :: (color: Color) -> u32 {
+    return to_color8(color).value;
+}
+
 rgba :: make_color;
 
 make_color8 :: (r: u8, g: u8, b: u8, a: u8) -> Color8 {
