@@ -15,7 +15,7 @@ Image :: struct {
     format: Pixel_Format;
 
 #place width;
-    size: Point2;
+    size: Point2 = ---;
 }
 
 Texture :: struct {
@@ -25,7 +25,7 @@ Texture :: struct {
     format: Pixel_Format;
 
 #place width;
-    size: Vector2;
+    size: Vector2 = ---;
 }
 
 Sampling_Mode :: enum GLenum {

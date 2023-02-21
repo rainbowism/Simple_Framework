@@ -5,14 +5,15 @@ Transform :: struct {
     _22: float = 1.0;
     _31: float;
     _32: float;
+
 #place _11;
-    x_basis:  Vector2;
-    y_basis:  Vector2;
-    position: Vector2;
+    x_basis:  Vector2 = ---;
+    y_basis:  Vector2 = ---;
+    position: Vector2 = ---;
 #place _11;
-    columns: [3] Vector2;
+    columns: [3] Vector2 = ---;
 #place _11;
-    floats: [6] float;
+    floats: [6] float = ---;
 }
 
 tdotx :: inline (using transform: Transform, v: Vector2) -> float #must { return _11 * v.x + _21 * v.y; }
@@ -167,7 +168,8 @@ get_scale :: (transform: Transform) -> Vector2 #must {
 get_skew :: (transform: Transform) -> float #must {
 	determinant := basis_determinant(transform);
     // @Todo(sushi): Remove factors of PI.
-	return acos(dot(unit_vector(transform.x_basis), sign(determinant) * unit_vector(transform.y_basis))) * INV_PI - 0.5;
+	// return acos(dot(unit_vector(transform.x_basis), sign(determinant) * unit_vector(transform.y_basis))) * INV_PI - 0.5;
+    return 0.0;
 }
 
 test_transform :: () {
