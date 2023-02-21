@@ -492,4 +492,4 @@ imgui_free :: (ptr: *void, userdata: *void) #c_call {
 #import "Math";
 #import "glfw";
 #import "GL";
-ImGui :: #import "ImGui";
+ImGui :: #import "ImGuiDocking";

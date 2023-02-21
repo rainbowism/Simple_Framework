@@ -280,7 +280,7 @@ set_depth_test :: (enable: bool) {
     }
 }
 
-get_window_focused :: () -> bool {
+get_window_focused :: inline () -> bool {
     return window.focused;
 }
 

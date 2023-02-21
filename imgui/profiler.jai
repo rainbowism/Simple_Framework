@@ -127,4 +127,4 @@ add_rect               :: ImGui.ImDrawList.AddRect;
 add_rect_filled        :: ImGui.ImDrawList.AddRectFilled;
 add_convex_poly_filled :: ImGui.ImDrawList.AddConvexPolyFilled;
 
-ImGui :: #import "ImGui";
+ImGui :: #import "ImGuiDocking";
