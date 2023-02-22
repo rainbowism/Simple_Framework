@@ -34,6 +34,14 @@ imgui_end :: ($should_render := true) {
     ImGui_Impl_RenderDrawData(ImGui.GetDrawData());
 }
 
+imgui_update_flags :: inline (flags: ImGui.ConfigFlags, $disable := false) {
+    #if disable {
+        ui.io.ConfigFlags_ &= ~flags;
+    } else {
+        ui.io.ConfigFlags_ |= flags;
+    }
+}
+
 imgui_used_mouse :: () -> bool {
     return ui.io.WantCaptureMouse;
 }
@@ -156,25 +164,53 @@ ImGui_Impl_Init :: (native_window_handle: *void) -> bool {
     handle = xx native_window_handle;
 
     // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array.
-    io.KeyMap[ImGui.Key.Tab]        = xx GLFW_KEY_TAB;
-    io.KeyMap[ImGui.Key.LeftArrow]  = xx GLFW_KEY_LEFT;
-    io.KeyMap[ImGui.Key.RightArrow] = xx GLFW_KEY_RIGHT;
-    io.KeyMap[ImGui.Key.UpArrow]    = xx GLFW_KEY_UP;
-    io.KeyMap[ImGui.Key.DownArrow]  = xx GLFW_KEY_DOWN;
-    io.KeyMap[ImGui.Key.PageUp]     = xx GLFW_KEY_PAGE_UP;
-    io.KeyMap[ImGui.Key.PageDown]   = xx GLFW_KEY_PAGE_DOWN;
-    io.KeyMap[ImGui.Key.Home]       = xx GLFW_KEY_HOME;
-    io.KeyMap[ImGui.Key.End]        = xx GLFW_KEY_END;
-    io.KeyMap[ImGui.Key.Delete]     = xx GLFW_KEY_DELETE;
-    io.KeyMap[ImGui.Key.Backspace]  = xx GLFW_KEY_BACKSPACE;
-    io.KeyMap[ImGui.Key.Enter]      = xx GLFW_KEY_ENTER;
-    io.KeyMap[ImGui.Key.Escape]     = xx GLFW_KEY_ESCAPE;
-    io.KeyMap[ImGui.Key.A]          = xx GLFW_KEY_A;
-    io.KeyMap[ImGui.Key.C]          = xx GLFW_KEY_C;
-    io.KeyMap[ImGui.Key.V]          = xx GLFW_KEY_V;
-    io.KeyMap[ImGui.Key.X]          = xx GLFW_KEY_X;
-    io.KeyMap[ImGui.Key.Y]          = xx GLFW_KEY_Y;
-    io.KeyMap[ImGui.Key.Z]          = xx GLFW_KEY_Z;
+    io.KeyMap[ImGui.Key.Tab]            = xx GLFW_KEY_TAB;
+    io.KeyMap[ImGui.Key.LeftArrow]      = xx GLFW_KEY_LEFT;
+    io.KeyMap[ImGui.Key.RightArrow]     = xx GLFW_KEY_RIGHT;
+    io.KeyMap[ImGui.Key.UpArrow]        = xx GLFW_KEY_UP;
+    io.KeyMap[ImGui.Key.DownArrow]      = xx GLFW_KEY_DOWN;
+    io.KeyMap[ImGui.Key.PageUp]         = xx GLFW_KEY_PAGE_UP;
+    io.KeyMap[ImGui.Key.PageDown]       = xx GLFW_KEY_PAGE_DOWN;
+    io.KeyMap[ImGui.Key.Home]           = xx GLFW_KEY_HOME;
+    io.KeyMap[ImGui.Key.End]            = xx GLFW_KEY_END;
+    io.KeyMap[ImGui.Key.Insert]         = xx GLFW_KEY_INSERT;
+    io.KeyMap[ImGui.Key.Delete]         = xx GLFW_KEY_DELETE;
+    io.KeyMap[ImGui.Key.Backspace]      = xx GLFW_KEY_BACKSPACE;
+    io.KeyMap[ImGui.Key.Space]          = xx GLFW_KEY_SPACE;
+    io.KeyMap[ImGui.Key.Enter]          = xx GLFW_KEY_ENTER;
+    io.KeyMap[ImGui.Key.Escape]         = xx GLFW_KEY_ESCAPE;
+    io.KeyMap[ImGui.Key.LeftCtrl]       = xx GLFW_KEY_LEFT_SHIFT;
+    io.KeyMap[ImGui.Key.LeftShift]      = xx GLFW_KEY_LEFT_CONTROL;
+    io.KeyMap[ImGui.Key.LeftAlt]        = xx GLFW_KEY_LEFT_ALT;
+    io.KeyMap[ImGui.Key.LeftSuper]      = xx GLFW_KEY_LEFT_SUPER;
+    io.KeyMap[ImGui.Key.RightCtrl]      = xx GLFW_KEY_RIGHT_SHIFT;
+    io.KeyMap[ImGui.Key.RightShift]     = xx GLFW_KEY_RIGHT_CONTROL;
+    io.KeyMap[ImGui.Key.RightAlt]       = xx GLFW_KEY_RIGHT_ALT;
+    io.KeyMap[ImGui.Key.RightSuper]     = xx GLFW_KEY_RIGHT_SUPER;
+    io.KeyMap[ImGui.Key.Menu]           = xx GLFW_KEY_MENU;
+    io.KeyMap[ImGui.Key.KeypadDecimal]  = xx GLFW_KEY_KP_DECIMAL;
+    io.KeyMap[ImGui.Key.KeypadDivide]   = xx GLFW_KEY_KP_DIVIDE;
+    io.KeyMap[ImGui.Key.KeypadMultiply] = xx GLFW_KEY_KP_MULTIPLY;
+    io.KeyMap[ImGui.Key.KeypadSubtract] = xx GLFW_KEY_KP_SUBTRACT;
+    io.KeyMap[ImGui.Key.KeypadAdd]      = xx GLFW_KEY_KP_ADD;
+    io.KeyMap[ImGui.Key.KeypadEnter]    = xx GLFW_KEY_KP_ENTER;
+    io.KeyMap[ImGui.Key.KeypadEqual]    = xx GLFW_KEY_KP_EQUAL;
+    _0_Key_Offset :: ImGui.Key._0 - GLFW_KEY_0;
+    for ImGui.Key._0..ImGui.Key._9-1 {
+        io.KeyMap[it] = xx (it - _0_Key_Offset);
+    }
+    A_Key_Offset :: ImGui.Key.A - GLFW_KEY_A;
+    for ImGui.Key.A..ImGui.Key.Z-1 {
+        io.KeyMap[it] = xx (it - A_Key_Offset);
+    }
+    F1_Key_Offset :: ImGui.Key.F1 - GLFW_KEY_F1;
+    for ImGui.Key.F1..ImGui.Key.F12-1 {
+        io.KeyMap[it] = xx (it - F1_Key_Offset);
+    }
+    KP0_Key_Offset :: ImGui.Key.Keypad0 - GLFW_KEY_KP_0;
+    for ImGui.Key.Keypad0..ImGui.Key.Keypad9-1 {
+        io.KeyMap[it] = xx (it - KP0_Key_Offset);
+    }
 
     // io.RenderDrawListsFn = ImGui_Impl_RenderDrawLists;   // Alternatively you can set this to NULL and call ImGui::GetDrawData() after ImGui::Render() to get the same ImGui.ImDrawData pointer.
     io.SetClipboardTextFn = ImGui_Impl_SetClipboardText;
