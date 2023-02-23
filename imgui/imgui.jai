@@ -179,12 +179,12 @@ ImGui_Impl_Init :: (native_window_handle: *void) -> bool {
     io.KeyMap[ImGui.Key.Space]          = xx GLFW_KEY_SPACE;
     io.KeyMap[ImGui.Key.Enter]          = xx GLFW_KEY_ENTER;
     io.KeyMap[ImGui.Key.Escape]         = xx GLFW_KEY_ESCAPE;
-    io.KeyMap[ImGui.Key.LeftCtrl]       = xx GLFW_KEY_LEFT_SHIFT;
-    io.KeyMap[ImGui.Key.LeftShift]      = xx GLFW_KEY_LEFT_CONTROL;
+    io.KeyMap[ImGui.Key.LeftCtrl]       = xx GLFW_KEY_LEFT_CONTROL;
+    io.KeyMap[ImGui.Key.LeftShift]      = xx GLFW_KEY_LEFT_SHIFT;
     io.KeyMap[ImGui.Key.LeftAlt]        = xx GLFW_KEY_LEFT_ALT;
     io.KeyMap[ImGui.Key.LeftSuper]      = xx GLFW_KEY_LEFT_SUPER;
-    io.KeyMap[ImGui.Key.RightCtrl]      = xx GLFW_KEY_RIGHT_SHIFT;
-    io.KeyMap[ImGui.Key.RightShift]     = xx GLFW_KEY_RIGHT_CONTROL;
+    io.KeyMap[ImGui.Key.RightCtrl]      = xx GLFW_KEY_RIGHT_CONTROL;
+    io.KeyMap[ImGui.Key.RightShift]     = xx GLFW_KEY_RIGHT_SHIFT;
     io.KeyMap[ImGui.Key.RightAlt]       = xx GLFW_KEY_RIGHT_ALT;
     io.KeyMap[ImGui.Key.RightSuper]     = xx GLFW_KEY_RIGHT_SUPER;
     io.KeyMap[ImGui.Key.Menu]           = xx GLFW_KEY_MENU;
