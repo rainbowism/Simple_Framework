@@ -135,12 +135,12 @@ tsin_or_cos :: (x: float64, $IS_SIN: bool) -> float64 #must {
     sf := << cast(*s64)*x;
     exponent := cast(s32) ((sf >> 52) & 0x7ff);
     if exponent == 0x7ff {  // It is nan or inf. Replace with an intrinsic.
-        if isnan(x) return x;  // @Cleanup: Redundancies...
+        if isnan(x)  return x;  // Cleanup: Redundancies...
 
         // It's not nan, so it's inf.
 
         // :MathError
-        // @Incomplete: Do we signal errors in any other way? Programmer-only error log?
+        // Incomplete: Do we signal errors in any other way? Programmer-only error log?
 	    // mtherr( "sin", DOMAIN );
 	    return FLOAT64_NAN;
     }
@@ -297,7 +297,7 @@ tatan :: inline (x: float64) -> float64 {
 
     /* range reduction */
 
-    flag: s16;  // @Cleanup: Remove flag?
+    flag: s16;  // Cleanup: Remove flag?
 
     y: float64 = ---;
     if x > T3P8 {

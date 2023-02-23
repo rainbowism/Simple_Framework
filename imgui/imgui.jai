@@ -42,12 +42,16 @@ imgui_update_flags :: inline (flags: ImGui.ConfigFlags, $disable := false) {
     }
 }
 
-imgui_used_mouse :: () -> bool {
+imgui_want_mouse :: inline () -> bool {
     return ui.io.WantCaptureMouse;
 }
 
-imgui_used_keyboard :: () -> bool {
+imgui_want_keyboard :: inline () -> bool {
     return ui.io.WantCaptureKeyboard;
+}
+
+imgui_want_text_input :: inline () -> bool {
+    return ui.io.WantTextInput;
 }
 
 imgui_load_font :: (filepath: string, font_size: float, oversample_h: s32 = 2, oversample_v: s32 = 2) -> *ImGui.ImFont {
