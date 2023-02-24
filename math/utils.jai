@@ -31,6 +31,15 @@ is_approx_zero :: inline (value: float, $epsilon: float = 0.00001) -> bool #must
     return abs(value) < epsilon;
 }
 
+is_approx_equal :: inline (a: Vector2, b: Vector2, $epsilon: float = 0.00001) -> bool #must {
+    if a == b  return true; // Handle infinity cases.
+    return length_squared(abs(a - b)) < epsilon;
+}
+
+is_approx_zero :: inline (value: Vector2, $epsilon: float = 0.00001) -> bool #must {
+    return abs(value.x) < epsilon && abs(value.y) < epsilon;
+}
+
 inv_lerp :: inline (a: float, b: float, value: float) -> float #must {
     return (value - a) / (b - a);
 }
