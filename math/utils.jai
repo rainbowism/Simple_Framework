@@ -1,12 +1,5 @@
 INV_PI :: 1.0 / PI;
 
-operator - :: (a: Vector2) -> Vector2 {
-    r: Vector2 = ---;
-    r.x = -a.x;
-    r.y = -a.y;
-    return r;
-}
-
 operator / :: (a: Vector2, b: int) -> Vector2 {
     r: Vector2 = ---;
     r.x = a.x / b;
