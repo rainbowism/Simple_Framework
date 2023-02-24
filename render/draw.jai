@@ -223,7 +223,9 @@ draw_texture :: inline (
     origin := Vector2.{0.5, 1.0},
     rotation: float = 0.0
 ) {
-    source, dest: Rect;
+    source, dest: Rect = ---;
+    source.x      = 0;
+    source.y      = 0;
     source.width  = texture.width;
     source.height = texture.height;
     dest.x        = pos.x;
@@ -246,7 +248,9 @@ draw_texture :: inline (
     origin := Vector2.{0.5, 1.0},
     rotation: float = 0.0
 ) {
-    source, dest: Rect;
+    source, dest: Rect = ---;
+    source.x      = 0;
+    source.y      = 0;
     source.width  = texture.width;
     source.height = texture.height;
     dest.x        = pos.x;
@@ -269,7 +273,9 @@ draw_texture :: inline (
     origin := Vector2.{0.5, 1.0},
     rotation: float = 0.0
 ) {
-    source, dest: Rect;
+    source, dest: Rect = ---;
+    source.x      = 0;
+    source.y      = 0;
     source.width  = texture.width;
     source.height = texture.height;
     dest.x        = pos.x;
@@ -382,6 +388,50 @@ draw_texture :: (
             push_uv((source.x + source.width) * width, (source.y + source.height) * height);
             push_vertex(.Texture, br);
             push_uv((source.x + source.width) * width, source.y * height);
+            push_vertex(.Texture, tr);
+        }
+    }
+    batch_end();
+}
+
+draw_texture :: (
+    texture: Texture,
+    transform: Transform,
+    flip_x: bool = false,
+    tint := Colors.White,
+    origin := Vector2.{0.5, 1.0}
+) {
+    if texture.id == 0  return;
+
+    offset: Vector2 = -texture.size * origin;
+
+    tl := xform(transform, .{offset.x, offset.y});
+    tr := xform(transform, .{texture.width + offset.x, offset.y});
+    bl := xform(transform, .{offset.x, texture.height + offset.y});
+    br := xform(transform, .{texture.width + offset.x, texture.height + offset.y});
+
+    push_texture(texture.id);
+    batch_start();
+    {
+        push_color(tint);
+
+        if flip_x {
+            push_uv(1, 0);
+            push_vertex(.Texture, tl);
+            push_uv(1, 1);
+            push_vertex(.Texture, bl);
+            push_uv(0, 1);
+            push_vertex(.Texture, br);
+            push_uv(0, 0);
+            push_vertex(.Texture, tr);
+        } else {
+            push_uv(0, 0);
+            push_vertex(.Texture, tl);
+            push_uv(0, 1);
+            push_vertex(.Texture, bl);
+            push_uv(1, 1);
+            push_vertex(.Texture, br);
+            push_uv(1, 0);
             push_vertex(.Texture, tr);
         }
     }
