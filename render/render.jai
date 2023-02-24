@@ -214,11 +214,9 @@ batch_draw :: () {
 
     if buffer_sub_data(.Line) {
         glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_COLORED].program);
-        if render_ctx.lines.index > 0 {
-            glBindVertexArray(render_ctx.lines.vao);
-            glDrawElements(GL_LINES, xx render_ctx.lines.index, GL_UNSIGNED_INT, null);
-            render_ctx.lines.index = 0;
-        }
+        glBindVertexArray(render_ctx.lines.vao);
+        glDrawElements(GL_LINES, xx render_ctx.lines.index, GL_UNSIGNED_INT, null);
+        render_ctx.lines.index = 0;
         glBindVertexArray(0);
         glUseProgram(0);
     }
@@ -584,28 +582,15 @@ buffer_sub_data :: inline ($type: Render_Type) -> bool {
     #if type == .Texture {
         glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector3), vertices.data);
-        glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
-        glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_POS);
-
         glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector2), uvs.data);
-        glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_UV1, 2, GL_FLOAT, GL_FALSE, 0, null);
-        glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_UV1);
-
         glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Color), colors.data);
-        glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
-        glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_COLOR);
     } else {
         glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector3), vertices.data);
-        glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
-        glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_POS);
-
         glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Color), colors.data);
-        glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_COLOR, 4, GL_FLOAT, GL_FALSE, 0, null);
-        glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_COLOR);
     }
 
     glBindVertexArray(0);
