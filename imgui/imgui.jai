@@ -77,7 +77,7 @@ imgui_load_font :: (filepath: string, font_size: float, oversample_h: s32 = 2, o
     return font;
 }
 
-imgui_load_font :: (font_buffer: [] u8, font_size: float, oversample_h: s32 = 2, oversample_v: s32 = 2, icons_path: *u8 = null, icon_scale := 0.75) -> *ImGui.ImFont {
+imgui_load_font_from_memory :: (font_buffer: string, font_size: float, oversample_h: s32 = 2, oversample_v: s32 = 2, icons_path: *u8 = null, icon_scale := 0.75) -> *ImGui.ImFont {
     config: ImGui.ImFontConfig;
     ImGui.ImFontConfig.Constructor(*config);
     config.OversampleH = oversample_h;

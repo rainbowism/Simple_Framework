@@ -56,7 +56,7 @@ load_image :: (filepath: string) -> Image {
 
 load_from_memory :: (buffer: string) -> Image {
     image: Image = ---;
-    image.data = stbi_load_from_memory(buffer.data, cast,no_check(s32) buffer.count, *image.width, *image.height, cast(*s32) *image.format, 0);
+    image.data = stbi_load_from_memory(buffer.data, cast,no_check(s32) buffer.count, *image.width, *image.height, cast,no_check(*s32) *image.format, 0);
     return image;
 }
 
