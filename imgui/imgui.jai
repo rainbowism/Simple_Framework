@@ -63,8 +63,10 @@ imgui_load_font :: (filepath: string, font_size: float, oversample_h: s32 = 2, o
     if icons_path {
         ImGui.ImFontConfig.Constructor(*config);
         config.MergeMode = true;
-        config.GlyphMinAdvanceX = font_size;
-        ImGui.ImFontAtlas.AddFontFromFileTTF(ui.io.Fonts, icons_path, font_size, *config, Font_Awesome_Glyphs.data);
+        config.GlyphMinAdvanceX = font_size * icon_scale;
+        config.OversampleH = oversample_h;
+        config.OversampleV = oversample_v;
+        ImGui.ImFontAtlas.AddFontFromFileTTF(ui.io.Fonts, icons_path, font_size * icon_scale, *config, Font_Awesome_Glyphs.data);
     }
 
     ImGui.ImFontAtlas.Clear(ui.io.Fonts);
@@ -88,6 +90,8 @@ imgui_load_font :: (font_buffer: [] u8, font_size: float, oversample_h: s32 = 2,
         ImGui.ImFontConfig.Constructor(*config);
         config.MergeMode = true;
         config.GlyphMinAdvanceX = font_size * icon_scale;
+        config.OversampleH = oversample_h;
+        config.OversampleV = oversample_v;
         ImGui.ImFontAtlas.AddFontFromFileTTF(ui.io.Fonts, icons_path, font_size * icon_scale, *config, Font_Awesome_Glyphs.data);
     }
 

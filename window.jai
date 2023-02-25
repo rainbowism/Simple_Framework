@@ -77,6 +77,8 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     glfwSetCursorPosCallback  (window.handle, glfw_cursor_position_callback);
     glfwSetDropCallback       (window.handle, glfw_drop_callback);
 
+    create_cursors(window.handle);
+
     set_vsync(flags & .VSync > 0);
 
     glEnable(GL_BLEND);
@@ -289,6 +291,10 @@ set_window_focused :: ($clear_input := false) {
     #if clear_input  clear_input_buffers();
 }
 
+set_mouse_cursor :: (cursor := Mouse_Cursor.Arrow) {
+    glfwSetCursor(window.handle, cursors[cursor]);
+}
+
 set_focus_callback :: (callback: Focus_Callback) {
     window.callbacks.focus = callback;
 }
@@ -439,7 +445,37 @@ Window_Context :: struct {
 }
 window: Window_Context;
 
+Mouse_Cursor :: enum {
+    Arrow;
+    IBeam;
+    Crosshair;
+    Hand;
+    Resize_NS;
+    Resize_EW;
+    Resize_NESW;
+    Resize_NWSE;
+    Resize_All;
+    Not_Allowed;
+
+    Max_Cursors;
+}
+
 #scope_file
+
+cursors: [Mouse_Cursor.Max_Cursors] *GLFWcursor;
+
+create_cursors :: (glfw_win: *GLFWwindow) {
+    cursors[Mouse_Cursor.Arrow]       = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+    cursors[Mouse_Cursor.IBeam]       = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
+    cursors[Mouse_Cursor.Crosshair]   = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
+    cursors[Mouse_Cursor.Hand]        = glfwCreateStandardCursor(GLFW_POINTING_HAND_CURSOR);
+    cursors[Mouse_Cursor.Resize_NS]   = glfwCreateStandardCursor(GLFW_RESIZE_NS_CURSOR);
+    cursors[Mouse_Cursor.Resize_EW]   = glfwCreateStandardCursor(GLFW_RESIZE_EW_CURSOR);
+    cursors[Mouse_Cursor.Resize_NESW] = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
+    cursors[Mouse_Cursor.Resize_NWSE] = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
+    cursors[Mouse_Cursor.Resize_All]  = glfwCreateStandardCursor(GLFW_RESIZE_ALL_CURSOR);
+    cursors[Mouse_Cursor.Not_Allowed] = glfwCreateStandardCursor(GLFW_NOT_ALLOWED_CURSOR);
+}
 
 glfw_error_callback :: (error: s32, description: *u8) #c_call {
     push_context window.ctx {
