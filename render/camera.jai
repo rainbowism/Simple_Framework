@@ -24,3 +24,13 @@ get_camera_bounds :: (using camera: Camera, canvas_size: Vector2) -> SAT_Rect {
     r.br = xform(transform, canvas_size - offset);
     return r;
 }
+
+get_xform :: inline (using camera: Camera) -> Transform {
+    return make_xform(position, rotation, Vector2.{1.0, 1.0} / zoom);
+}
+
+get_xform_inv :: inline (using camera: Camera) -> Transform {
+    transform := make_xform(position, rotation, Vector2.{1.0, 1.0} / zoom);
+    affine_inverse(*transform);
+    return transform;
+}

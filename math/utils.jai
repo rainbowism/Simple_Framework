@@ -134,3 +134,7 @@ cross :: cross_product;
 cross_product :: inline (a: Vector2, b: Vector2) -> float #must {
     return a.x * b.y - a.y * b.x;
 }
+
+angle_to :: (a: Vector2, b: Vector2) -> float #must {
+    return tatan2(cross(a, b), dot(a, b));
+}
