@@ -14,3 +14,13 @@ get_camera_matrix :: (using camera: Camera) -> Matrix4 {
 
     return m;
 }
+
+get_camera_bounds :: (using camera: Camera, canvas_size: Vector2) -> SAT_Rect {
+    transform := make_xform(position, rotation, Vector2.{1.0, 1.0} / zoom);
+    r: SAT_Rect = ---;
+    r.tl = xform(transform, -offset);
+    r.tr = xform(transform, .{canvas_size.x - offset.x, -offset.y});
+    r.bl = xform(transform, .{-offset.x, canvas_size.y - offset.y});
+    r.br = xform(transform, canvas_size - offset);
+    return r;
+}

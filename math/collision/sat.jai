@@ -1,3 +1,17 @@
+SAT_Polygon :: struct (N: int) {
+    points: [N] Vector2;
+}
+
+SAT_Rect :: struct {
+    using #as polygon: SAT_Polygon(4);
+
+#place polygon;
+    tl: Vector2 = ---;
+    tr: Vector2 = ---;
+    br: Vector2 = ---;
+    bl: Vector2 = ---;
+}
+
 project_axis_normalized :: (current_point: Vector2, next_point: Vector2) -> Vector2 {
     axis: Vector2 = ---;
     axis.x = -(next_point.y - current_point.y);

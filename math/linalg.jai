@@ -194,10 +194,6 @@ Polygon :: struct (N: int) {
     points:     [N] Vector2;
 }
 
-SAT_Polygon :: struct (N: int) {
-    points: [N] Vector2;
-}
-
 Triangle :: Polygon(3);
 OBB      :: Polygon(4);
 Pentagon :: Polygon(5);
