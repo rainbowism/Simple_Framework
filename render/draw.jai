@@ -58,6 +58,35 @@ draw_line :: (a: Vector2, b: Vector2, tints: [2] Color) {
     push_depth();
 }
 
+draw_line :: (a: Vector2, b: Vector2, tint: Color, opacity: float) {
+    new_tint: Color = ---;
+    new_tint.r = tint.r;
+    new_tint.g = tint.g;
+    new_tint.b = tint.b;
+    new_tint.a = tint.a * opacity;
+    push_color(new_tint);
+    push_primitive(.Line, a);
+    push_primitive(.Line, b);
+    push_depth();
+}
+
+draw_line :: (a: Vector2, b: Vector2, tints: [2] Color, opacity: float) {
+    new_tint: Color = ---;
+    new_tint.r = tints[0].r;
+    new_tint.g = tints[0].g;
+    new_tint.b = tints[0].b;
+    new_tint.a = tints[0].a * opacity;
+    push_color(new_tint);
+    push_primitive(.Line, a);
+    new_tint.r = tints[1].r;
+    new_tint.g = tints[1].g;
+    new_tint.b = tints[1].b;
+    new_tint.a = tints[1].a * opacity;
+    push_color(new_tint);
+    push_primitive(.Line, b);
+    push_depth();
+}
+
 draw_circle :: (using circle: *Circle, tint := Colors.White, $segments: int = 32) {
     INCREMENT :: 2.0 / segments;
 
