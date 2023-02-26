@@ -20,6 +20,14 @@ tdotx :: inline (using transform: Transform, v: Vector2) -> float #must { return
 tdoty :: inline (using transform: Transform, v: Vector2) -> float #must { return _12 * v.x + _22 * v.y; }
 basis_determinant :: inline (using transform: Transform) -> float #must { return _11 * _22 - _12 * _21; }
 
+make_xform :: (position: Vector2, x_basis: Vector2, y_basis: Vector2) -> Transform #must {
+    r: Transform = ---;
+    r.x_basis = x_basis;
+    r.y_basis = y_basis;
+    r.position = position;
+    return r;
+}
+
 make_xform :: (position: Vector2, theta: float) -> Transform #must {
     r: Transform = ---;
     r._11 = tcos(theta);
@@ -36,14 +44,6 @@ make_xform :: (position: Vector2, theta: float, scale: Vector2) -> Transform #mu
     r._12 =  tsin(theta) * scale.x;
     r._21 = -tsin(theta) * scale.y;
     r._22 =  tcos(theta) * scale.y;
-    r.position = position;
-    return r;
-}
-
-make_xform :: (position: Vector2, x_basis: Vector2, y_basis: Vector2) -> Transform #must {
-    r: Transform = ---;
-    r.x_basis = x_basis;
-    r.y_basis = y_basis;
     r.position = position;
     return r;
 }

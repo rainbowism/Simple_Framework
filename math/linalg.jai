@@ -182,6 +182,15 @@ distance_to_line_fast :: (position: Vector2, a: Vector2, b: Vector2) -> float {
     return abs((position.x - a.x) * (-b.y + a.y) + (position.y - a.y) * (b.x - a.x));
 }
 
+ortho_project :: (direction: Vector2, v: Vector2) -> Vector2 {
+    normalize_or_zero(*direction);
+    return direction * dot(v, direction);
+}
+
+ortho_project :: (a: Vector2, b: Vector2, v: Vector2) -> Vector2 {
+    return inline ortho_project(b - a, v);
+}
+
 Circle :: struct {
     using position: Vector2;
     radius:         float;
