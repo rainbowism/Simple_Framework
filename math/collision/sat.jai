@@ -69,3 +69,11 @@ sat :: (shape_a: SAT_Polygon($A), shape_b: SAT_Polygon($B)) -> bool #must #no_ab
 
     return true;
 }
+
+point_in_rect :: inline (point: Vector2, rect: SAT_Rect) -> bool {
+    if cross(rect.points[1] - rect.points[0], point - rect.points[0]) < 0  return false;
+    if cross(rect.points[2] - rect.points[1], point - rect.points[1]) < 0  return false;
+    if cross(rect.points[3] - rect.points[2], point - rect.points[2]) < 0  return false;
+    if cross(rect.points[0] - rect.points[3], point - rect.points[3]) < 0  return false;
+    return true;
+}
