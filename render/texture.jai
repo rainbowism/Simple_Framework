@@ -132,10 +132,10 @@ create_texture :: (
 
     if #complete texture.format == {
     case .None;      assert(false, "Failed to decode image format.");
-    case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_R8,    xx texture.width, xx texture.height, 0, GL_RED , GL_UNSIGNED_BYTE, image.data);
-    case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8,   xx texture.width, xx texture.height, 0, GL_RG  , GL_UNSIGNED_BYTE, image.data);
-    case .RGB;       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,  xx texture.width, xx texture.height, 0, GL_RGB , GL_UNSIGNED_BYTE, image.data);
-    case .RGBA;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, xx texture.width, xx texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.data);
+    case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_R8,    xx image.width, xx image.height, 0, GL_RED , GL_UNSIGNED_BYTE, image.data);
+    case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8,   xx image.width, xx image.height, 0, GL_RG  , GL_UNSIGNED_BYTE, image.data);
+    case .RGB;       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,  xx image.width, xx image.height, 0, GL_RGB , GL_UNSIGNED_BYTE, image.data);
+    case .RGBA;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, xx image.width, xx image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.data);
     case;
         warn(.Render, "Parsed invalid texture format for image.");
         return .{};
@@ -152,8 +152,8 @@ create_grayscale_texture :: (buffer: [] $T, width: s32, height: s32, wrap_mode :
     return true;
 } {
     texture: Texture = ---;
-    texture.width  = width;
-    texture.height = height;
+    texture.width  = cast(float) width;
+    texture.height = cast(float) height;
 
     glGenTextures(1, *texture.id);  assert(texture.id != 0);
     glBindTexture(GL_TEXTURE_2D, texture.id);
@@ -162,15 +162,15 @@ create_grayscale_texture :: (buffer: [] $T, width: s32, height: s32, wrap_mode :
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     xx wrap_mode);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     xx wrap_mode);
 
-         if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
-    else if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
-    else if (texture.width * texture.height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
+         if (width * height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
+    else if (width * height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    else if (width * height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
     else                                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     #if T == u8 {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, xx texture.width, xx texture.height, 0, GL_RED, GL_UNSIGNED_BYTE, buffer.data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, xx width, xx height, 0, GL_RED, GL_UNSIGNED_BYTE, buffer.data);
     } else {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, xx texture.width, xx texture.height, 0, GL_RED, GL_FLOAT, buffer.data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, xx width, xx height, 0, GL_RED, GL_FLOAT, buffer.data);
     }
 
     #if swizzle_rgb {
@@ -185,8 +185,8 @@ create_grayscale_texture :: (buffer: [] $T, width: s32, height: s32, wrap_mode :
 
 create_font_texture :: (buffer: [] u8, width: s32, height: s32, wrap_mode := Wrap_Mode.Clamp_To_Edge) -> Texture {
     texture: Texture = ---;
-    texture.width  = width;
-    texture.height = height;
+    texture.width  = cast(float) width;
+    texture.height = cast(float) height;
 
     glGenTextures(1, *texture.id);  assert(texture.id != 0);
     glBindTexture(GL_TEXTURE_2D, texture.id);
@@ -195,12 +195,12 @@ create_font_texture :: (buffer: [] u8, width: s32, height: s32, wrap_mode := Wra
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     xx wrap_mode);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     xx wrap_mode);
 
-         if (texture.width * texture.height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
-    else if (texture.width * texture.height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
-    else if (texture.width * texture.height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
+         if (width * height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
+    else if (width * height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
+    else if (width * height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
     else                                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, xx texture.width, xx texture.height, 0, GL_RG, GL_UNSIGNED_BYTE, buffer.data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, xx width, xx height, 0, GL_RG, GL_UNSIGNED_BYTE, buffer.data);
 
     swizzle_mask :: GLint.[GL_RED, GL_RED, GL_RED, GL_GREEN];
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_mask.data);
