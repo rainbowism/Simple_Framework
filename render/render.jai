@@ -376,7 +376,7 @@ push_primitive :: ($type: Render_Type, pos: Vector3) {
     if index >= vertices.count {
         // warn(.Render, "% vertex buffer overflow.", type);
         // return;
-        current_draw := render_ctx.draws[render_ctx.draw_counter];
+        current_draw := render_ctx.draws[render_ctx.draw_counter+1];
         batch_draw();
         render_ctx.draw_counter += 1;
         render_ctx.draws[render_ctx.draw_counter] = current_draw;
@@ -395,7 +395,7 @@ push_primitive :: ($type: Render_Type, pos: Vector2) {
     if index >= vertices.count {
         // warn(.Render, "% vertex buffer overflow.", type);
         // return;
-        current_draw := render_ctx.draws[render_ctx.draw_counter];
+        current_draw := render_ctx.draws[render_ctx.draw_counter+1];
         batch_draw();
         render_ctx.draw_counter += 1;
         render_ctx.draws[render_ctx.draw_counter] = current_draw;
