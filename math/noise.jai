@@ -117,12 +117,45 @@ get_fractal_4d :: inline (contexts: [] *osn_context, x: float, y: float, z: floa
     return xx (sum / max_value);
 }
 
-get_single_1d :: (seed: u64, position: $T) -> u64 {
+// @Todo(sushi): Reimplement u64 hashing with better primes
+// get_single_1d :: (seed: u64, position: $T) -> u64 {
+//     bits_1 :: 0xB5297A4D;
+//     bits_2 :: 0x68E31DA4;
+//     bits_3 :: 0x1B56C4E9;
+
+//     mangled := cast,no_check(u64) position;
+//     mangled *= bits_1;
+//     mangled += seed;
+//     mangled ^= mangled >> 8;
+//     mangled += bits_2;
+//     mangled ^= mangled << 8;
+//     mangled *= bits_3;
+//     mangled ^= mangled >> 8;
+//     return mangled;
+// }
+
+// get_single_2d :: (seed: u64, x: $T, y: T) -> u64 {
+//     return inline get_single_1d(seed, x + (y * PRIME_Y));
+// }
+
+// get_single_3d :: (seed: u64, x: $T, y: T, z: T) -> u64 {
+//     return inline get_single_1d(seed, x + (y * PRIME_Y) + (z * PRIME_Z));
+// }
+
+// get_single_4d :: (seed: u64, x: $T, y: T, z: T, w: T) -> u64 {
+//     return inline get_single_1d(seed, x + (y * PRIME_Y) + (z * PRIME_Z) + (w * PRIME_W));
+// }
+
+// get_single_5d :: (seed: u64, x: $T, y: T, z: T, w: T, v: T) -> u64 {
+//     return inline get_single_1d(seed, x + (y * PRIME_Y) + (z * PRIME_Z) + (w * PRIME_W) + (v * PRIME_V));
+// }
+
+get_single_1d :: (seed: u32, position: $T) -> u32 {
     bits_1 :: 0xB5297A4D;
     bits_2 :: 0x68E31DA4;
     bits_3 :: 0x1B56C4E9;
 
-    mangled := cast,no_check(u64) position;
+    mangled := cast,no_check(u32) position;
     mangled *= bits_1;
     mangled += seed;
     mangled ^= mangled >> 8;
@@ -133,28 +166,28 @@ get_single_1d :: (seed: u64, position: $T) -> u64 {
     return mangled;
 }
 
-get_single_2d :: (seed: u64, x: s64, y: s64) -> u64 {
+get_single_2d :: (seed: u32, x: $T, y: T) -> u32 {
     return inline get_single_1d(seed, x + (y * PRIME_Y));
 }
 
-get_single_3d :: (seed: u64, x: s64, y: s64, z: s64) -> u64 {
+get_single_3d :: (seed: u32, x: $T, y: T, z: T) -> u32 {
     return inline get_single_1d(seed, x + (y * PRIME_Y) + (z * PRIME_Z));
 }
 
-get_single_4d :: (seed: u64, x: s64, y: s64, z: s64, w: s64) -> u64 {
+get_single_4d :: (seed: u32, x: $T, y: T, z: T, w: T) -> u32 {
     return inline get_single_1d(seed, x + (y * PRIME_Y) + (z * PRIME_Z) + (w * PRIME_W));
 }
 
-get_single_5d :: (seed: u64, x: s64, y: s64, z: s64, w: s64, v: s64) -> u64 {
+get_single_5d :: (seed: u32, x: $T, y: T, z: T, w: T, v: T) -> u32 {
     return inline get_single_1d(seed, x + (y * PRIME_Y) + (z * PRIME_Z) + (w * PRIME_W) + (v * PRIME_V));
 }
 
-get_single_float :: (seed: u64, position: $T) -> float {
+get_single_float :: (seed: u32, position: $T) -> float {
     randint := (inline get_single_1d(seed, position)) & MASK;
     return randint / cast(float) MASK;
 }
 
-get_single_float :: (seed: u64, x: s64, y: s64) -> float {
+get_single_float :: (seed: u32, x: $T, y: T) -> float {
     randint := (inline get_single_2d(seed, x, y)) & MASK;
     return randint / cast(float) MASK;
 }
