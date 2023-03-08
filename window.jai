@@ -33,7 +33,7 @@ sf_init :: () -> SF_Result {
 create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.None, modules_to_init: Module_Types) -> SF_Result {
     glfwDefaultWindowHints();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_VISIBLE, 0);
     if flags & .MSAA {
@@ -83,7 +83,9 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 
     glEnable(GL_BLEND);
     glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_DEPTH_TEST);
+    glDepthFunc(GL_NEVER);
+    // glEnable(GL_DEPTH_TEST);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glFrontFace(GL_CCW);
 

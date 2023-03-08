@@ -21,8 +21,8 @@ draw_end :: inline () {
 draw_buffer :: ($draw_screen := true) {
     if render_ctx.state.buffer_drawn  return;
     batch_draw();
-    glDisable(GL_DEPTH_TEST);
-    defer glEnable(GL_DEPTH_TEST);
+    // glDisable(GL_DEPTH_TEST);
+    // defer glEnable(GL_DEPTH_TEST);
     glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
     draw_render_texture(render_ctx.target[RENDER_TARGET_PARTICLE]);
     render_bloom(
@@ -367,13 +367,13 @@ draw_texture :: (
         push_color(tint);
 
         push_uv(source.x * width, source.y * height);
-        push_vertex(.Texture, tl);
+        push_vertex(tl);
         push_uv(source.x * width, (source.y + source.height) * height);
-        push_vertex(.Texture, bl);
+        push_vertex(bl);
         push_uv((source.x + source.width) * width, (source.y + source.height) * height);
-        push_vertex(.Texture, br);
+        push_vertex(br);
         push_uv((source.x + source.width) * width, source.y * height);
-        push_vertex(.Texture, tr);
+        push_vertex(tr);
     }
     batch_end();
 }
@@ -402,22 +402,22 @@ draw_texture :: (
 
         if flip_x {
             push_uv((source.x + source.width) * width, source.y * height);
-            push_vertex(.Texture, tl);
+            push_vertex(tl);
             push_uv((source.x + source.width) * width, (source.y + source.height) * height);
-            push_vertex(.Texture, bl);
+            push_vertex(bl);
             push_uv(source.x * width, (source.y + source.height) * height);
-            push_vertex(.Texture, br);
+            push_vertex(br);
             push_uv(source.x * width, source.y * height);
-            push_vertex(.Texture, tr);
+            push_vertex(tr);
         } else {
             push_uv(source.x * width, source.y * height);
-            push_vertex(.Texture, tl);
+            push_vertex(tl);
             push_uv(source.x * width, (source.y + source.height) * height);
-            push_vertex(.Texture, bl);
+            push_vertex(bl);
             push_uv((source.x + source.width) * width, (source.y + source.height) * height);
-            push_vertex(.Texture, br);
+            push_vertex(br);
             push_uv((source.x + source.width) * width, source.y * height);
-            push_vertex(.Texture, tr);
+            push_vertex(tr);
         }
     }
     batch_end();
@@ -446,22 +446,22 @@ draw_texture :: (
 
         if flip_x {
             push_uv(1, 0);
-            push_vertex(.Texture, tl);
+            push_vertex(tl);
             push_uv(1, 1);
-            push_vertex(.Texture, bl);
+            push_vertex(bl);
             push_uv(0, 1);
-            push_vertex(.Texture, br);
+            push_vertex(br);
             push_uv(0, 0);
-            push_vertex(.Texture, tr);
+            push_vertex(tr);
         } else {
             push_uv(0, 0);
-            push_vertex(.Texture, tl);
+            push_vertex(tl);
             push_uv(0, 1);
-            push_vertex(.Texture, bl);
+            push_vertex(bl);
             push_uv(1, 1);
-            push_vertex(.Texture, br);
+            push_vertex(br);
             push_uv(1, 0);
-            push_vertex(.Texture, tr);
+            push_vertex(tr);
         }
     }
     batch_end();
@@ -477,22 +477,41 @@ draw_text :: (font: Font, text: string, position: Vector2, tint := Colors.White)
     }
 }
 
-draw_text :: (msdf: MSDF_Font, text: string, position: Vector2, size: float, tint := Colors.White) {
-    offset := position;
-    current_tint := tint;
+// @Incomplete(sushi): Make an MSDF font drawing pipeline.
+draw_text :: (msdf: MSDF_Font, text: string, position: Vector2, size: float, thickness: float = 0.0, rotation := 0.0, tint := Colors.White) {
+    origin: Vector2;
+
+    width:  float = 1.0 / msdf.texture.width;
+    height: float = 1.0 / msdf.texture.height;
+    tl, tr, bl, br: Vector2 = ---;
 
     last_char: u8 = 0;
 
+    // @Cleanup(sushi): Add pixel range to the MSDF_Font definition.
+    push_glyph_call(msdf.texture.id, tint, .{12.0, thickness});
+    batch_start();
+    push_color(tint);
     for 0..text.count-1 {
         if text[it] < msdf.starting_glyph || text[it] >= (msdf.starting_glyph + msdf.glyphs.count)  continue;
-        offset.x += get_kerning(msdf, text[it], last_char) * size;
-        glyph := msdf.glyphs[text[it] - msdf.starting_glyph];
-        dest := (glyph.plane * size) + offset;
-        current_tint.a = size / dest.width;
-        draw_texture(msdf.texture, glyph.atlas, dest, tint);
-        offset.x += glyph.advance_x * size;
+        origin.x -= get_kerning(msdf, text[it], last_char) * size;
+        glyph  := msdf.glyphs[text[it] - msdf.starting_glyph];
+        source := glyph.atlas;
+        dest   := glyph.plane * size + position;
+
+        rotate_quad(false);
+        push_uv(source.x * width, source.y * height);
+        push_vertex(tl);
+        push_uv(source.x * width, (source.y + source.height) * height);
+        push_vertex(bl);
+        push_uv((source.x + source.width) * width, (source.y + source.height) * height);
+        push_vertex(br);
+        push_uv((source.x + source.width) * width, source.y * height);
+        push_vertex(tr);
+
+        origin.x -= glyph.advance_x * size;
         last_char = text[it];
     }
+    batch_end();
 }
 
 #scope_file

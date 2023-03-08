@@ -166,9 +166,9 @@ create_gl_program :: (vert_code: string, frag_code: string, $binding_flags := De
     glAttachShader(program, vert_shader);
     glAttachShader(program, frag_shader);
 
-    #if binding_flags & .Position  glBindAttribLocation(program, DEFAULT_SHADER_ATTRIB_POS,   "vPos");
-    #if binding_flags & .UV        glBindAttribLocation(program, DEFAULT_SHADER_ATTRIB_UV1,   "vUV");
-    #if binding_flags & .Color     glBindAttribLocation(program, DEFAULT_SHADER_ATTRIB_COLOR, "vColor");
+    #if binding_flags & .Position     glBindAttribLocation(program, DEFAULT_SHADER_ATTRIB_POS,         "vPos");
+    #if binding_flags & .UV           glBindAttribLocation(program, DEFAULT_SHADER_ATTRIB_UV1,         "vUV");
+    #if binding_flags & .Color        glBindAttribLocation(program, DEFAULT_SHADER_ATTRIB_COLOR,       "vColor");
 
     glLinkProgram(program);
 
@@ -224,8 +224,9 @@ create_gl_shader :: (code: string, $type: enum { Vertex; Fragment; }) -> GLuint,
 }
 
 create_default_shaders :: () {
-    create_shader(VERT_SHADER_RECT, FRAG_SHADER_TEXTURED_RECT);
+    create_shader(VERT_SHADER_RECT,      FRAG_SHADER_TEXTURED_RECT);
     create_shader(VERT_SHADER_PRIMITIVE, FRAG_SHADER_COLORED_RECT, binding_flags = Primitive_Binding_Flags);
+    create_shader(VERT_SHADER_RECT,      FRAG_SHADER_TEXT);
     create_shader(VERT_SHADER_FRAMEBUFFER, FRAG_SHADER_TEXTURED_RECT);
     create_shader(VERT_SHADER_FRAMEBUFFER, FRAG_SHADER_BLOOM);
     create_shader(VERT_SHADER_FRAMEBUFFER, FRAG_SHADER_BLOOM_DOWNSAMPLE);

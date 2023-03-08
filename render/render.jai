@@ -1,3 +1,10 @@
+Render_Type :: enum s32 {
+    Texture;
+    Rect;
+    Line;
+    Glyph;
+}
+
 push_default_framebuffer :: inline () {
     batch_draw();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -69,6 +76,7 @@ push_texture :: (texture_id: Texture_Id) {
     render_ctx.draw_counter += 1;
     render_ctx.draws[render_ctx.draw_counter].texture_id = texture_id;
     render_ctx.draws[render_ctx.draw_counter].count      = 0;
+    render_ctx.draws[render_ctx.draw_counter].type       = .Texture;
     render_ctx.draws[render_ctx.draw_counter].shader     = render_ctx.default_shader;
 }
 
@@ -194,33 +202,15 @@ render_quad :: () {
 }
 
 batch_start :: () {
-    if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
+    if render_ctx.draw_counter  >= DEFAULT_MAX_DRAWCALLS  batch_draw();
 }
 
 batch_end :: () {
     render_ctx.state.current_depth += RENDER_Z_SHIFT;
-    if render_ctx.draw_counter >= DEFAULT_MAX_DRAWCALLS  batch_draw();
+    if render_ctx.draw_counter  >= DEFAULT_MAX_DRAWCALLS  batch_draw();
 }
 
 batch_draw :: () {
-    if buffer_sub_data(.Rect) {
-        glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_COLORED].program);
-            glBindVertexArray(render_ctx.rects.vao);
-            glDrawElements(GL_TRIANGLES, xx (render_ctx.rects.index / 4 * 6), GL_UNSIGNED_INT, null);
-            render_ctx.rects.index = 0;
-        glBindVertexArray(0);
-        glUseProgram(0);
-    }
-
-    if buffer_sub_data(.Line) {
-        glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_COLORED].program);
-        glBindVertexArray(render_ctx.lines.vao);
-        glDrawElements(GL_LINES, xx render_ctx.lines.index, GL_UNSIGNED_INT, null);
-        render_ctx.lines.index = 0;
-        glBindVertexArray(0);
-        glUseProgram(0);
-    }
-
     if buffer_sub_data(.Texture) && render_ctx.draw_counter >= 0 {
         glBindVertexArray(render_ctx.tex_rects.vao);
 
@@ -228,18 +218,23 @@ batch_draw :: () {
 
         vertex_offset: s64;
         for 0..render_ctx.draw_counter {
-            glUseProgram(render_ctx.draws[it].shader.program);
-            for uniform: render_ctx.draws[it].shader.uniforms {
-                apply_uniform(uniform);
+            if render_ctx.draws[it].type == .Texture {
+                glUseProgram(render_ctx.draws[it].shader.program);
+                for uniform: render_ctx.draws[it].shader.uniforms {
+                    apply_uniform(uniform);
 
-                #if 0 {
-                    if uniform.type == GLint {
-                        name: string = ---;
-                        name.data = uniform.name;
-                        name.count = c_style_strlen(uniform.name);
-                        info("%: loc=% data=%", name, uniform.location, << cast(*GLint) uniform.data);
+                    #if 0 {
+                        if uniform.type == GLint {
+                            name: string = ---;
+                            name.data = uniform.name;
+                            name.count = c_style_strlen(uniform.name);
+                            info("%: loc=% data=%", name, uniform.location, << cast(*GLint) uniform.data);
+                        }
                     }
                 }
+            } else {
+                glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_TEXT].program);
+                glUniform2fv(DEFAULT_SHADER_UNIFORM_TEXT_PARAMS, 1, cast(*GLfloat) *render_ctx.draws[it].text_params);
             }
 
             glBindTexture(GL_TEXTURE_2D, render_ctx.draws[it].texture_id);
@@ -265,6 +260,24 @@ batch_draw :: () {
         render_ctx.draw_calls += render_ctx.draw_counter + 1;
         render_ctx.draw_counter = -1;
     }
+
+    if buffer_sub_data(.Rect) {
+        glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_COLORED].program);
+            glBindVertexArray(render_ctx.rects.vao);
+            glDrawElements(GL_TRIANGLES, xx (render_ctx.rects.index / 4 * 6), GL_UNSIGNED_INT, null);
+            render_ctx.rects.index = 0;
+        glBindVertexArray(0);
+        glUseProgram(0);
+    }
+
+    if buffer_sub_data(.Line) {
+        glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_COLORED].program);
+        glBindVertexArray(render_ctx.lines.vao);
+        glDrawElements(GL_LINES, xx render_ctx.lines.index, GL_UNSIGNED_INT, null);
+        render_ctx.lines.index = 0;
+        glBindVertexArray(0);
+        glUseProgram(0);
+    }
 }
 
 push_screen_size :: inline (width: s32, height: s32) {
@@ -272,76 +285,6 @@ push_screen_size :: inline (width: s32, height: s32) {
     resize_render_target(render_ctx.target[RENDER_TARGET_PARTICLE], width, height);
     resize_render_bloom(render_ctx.bloom, width, height);
     push_custom_screen_size(width, height);
-}
-
-push_vertex :: ($type: Render_Type, pos: Vector3) {
-    #if type == .Texture  using render_ctx.tex_rects; else
-    #if type == .Rect     using render_ctx.rects; else
-    #if type == .Line     using render_ctx.lines;
-
-    if index >= vertices.count {
-        // warn(.Render, "% vertex buffer overflow.", type);
-        // return;
-        current_draw := render_ctx.draws[render_ctx.draw_counter];
-        batch_draw();
-        render_ctx.draw_counter += 1;
-        render_ctx.draws[render_ctx.draw_counter] = current_draw;
-    }
-
-    vertices[index] = pos;
-    colors[index]   = render_ctx.state.color;
-    #if type == .Texture {
-        uvs[index] = render_ctx.state.uv;
-        render_ctx.draws[render_ctx.draw_counter].count += 1;
-    }
-    index += 1;
-}
-
-push_vertex :: ($type: Render_Type, pos: Vector2) {
-    #if type == .Texture  using render_ctx.tex_rects; else
-    #if type == .Rect     using render_ctx.rects; else
-    #if type == .Line     using render_ctx.lines;
-
-    if index >= vertices.count {
-        // warn(.Render, "% vertex buffer overflow.", type);
-        // return;
-        current_draw := render_ctx.draws[render_ctx.draw_counter];
-        batch_draw();
-        render_ctx.draw_counter += 1;
-        render_ctx.draws[render_ctx.draw_counter] = current_draw;
-    }
-
-    v: Vector3 = ---;
-    v.x = pos.x;
-    v.y = pos.y;
-    v.z = render_ctx.state.current_depth;
-
-    vertices[index] = v;
-    colors[index]   = render_ctx.state.color;
-    #if type == .Texture {
-        uvs[index] = render_ctx.state.uv;
-        render_ctx.draws[render_ctx.draw_counter].count += 1;
-    }
-    index += 1;
-}
-
-push_vertex :: (pos: Vector3) {
-    using render_ctx.tex_rects;
-
-    if index >= vertices.count {
-        // warn(.Render, "% vertex buffer overflow.", type);
-        // return;
-        current_draw := render_ctx.draws[render_ctx.draw_counter];
-        batch_draw();
-        render_ctx.draw_counter += 1;
-        render_ctx.draws[render_ctx.draw_counter] = current_draw;
-    }
-
-    vertices[index] = pos;
-    colors[index]   = render_ctx.state.color;
-    uvs[index] = render_ctx.state.uv;
-    render_ctx.draws[render_ctx.draw_counter].count += 1;
-    index += 1;
 }
 
 push_vertex :: (pos: Vector2) {
@@ -356,34 +299,10 @@ push_vertex :: (pos: Vector2) {
         render_ctx.draws[render_ctx.draw_counter] = current_draw;
     }
 
-    v: Vector3 = ---;
-    v.x = pos.x;
-    v.y = pos.y;
-    v.z = render_ctx.state.current_depth;
-
-    vertices[index] = v;
-    colors[index]   = render_ctx.state.color;
-    uvs[index] = render_ctx.state.uv;
-    render_ctx.draws[render_ctx.draw_counter].count += 1;
-    index += 1;
-}
-
-push_primitive :: ($type: Render_Type, pos: Vector3) {
-    #if type == .Texture  #assert("Can't use Render_Type.Texture for `push_primitive`."); else
-    #if type == .Rect     using render_ctx.rects; else
-    #if type == .Line     using render_ctx.lines;
-
-    if index >= vertices.count {
-        // warn(.Render, "% vertex buffer overflow.", type);
-        // return;
-        current_draw := render_ctx.draws[render_ctx.draw_counter+1];
-        batch_draw();
-        render_ctx.draw_counter += 1;
-        render_ctx.draws[render_ctx.draw_counter] = current_draw;
-    }
-
     vertices[index] = pos;
     colors[index]   = render_ctx.state.color;
+    uvs[index]      = render_ctx.state.uv;
+    render_ctx.draws[render_ctx.draw_counter].count += 1;
     index += 1;
 }
 
@@ -401,12 +320,7 @@ push_primitive :: ($type: Render_Type, pos: Vector2) {
         render_ctx.draws[render_ctx.draw_counter] = current_draw;
     }
 
-    v: Vector3 = ---;
-    v.x = pos.x;
-    v.y = pos.y;
-    v.z = render_ctx.state.current_depth;
-
-    vertices[index] = v;
+    vertices[index] = pos;
     colors[index]   = render_ctx.state.color;
     index += 1;
 }
@@ -428,14 +342,17 @@ push_color :: (color: Color) {
     render_ctx.state.color = color;
 }
 
-Render_Type :: enum {
-    Texture;
-    Rect;
-    Line;
+push_glyph_call :: (texture_id: Texture_Id, color: Color, text_params: Vector2) {
+    if render_ctx.draw_counter + 1 >= DEFAULT_MAX_DRAWCALLS  batch_draw();
+    render_ctx.draw_counter += 1;
+    render_ctx.draws[render_ctx.draw_counter].texture_id  = texture_id;
+    render_ctx.draws[render_ctx.draw_counter].count       = 0;
+    render_ctx.draws[render_ctx.draw_counter].type        = .Glyph;
+    render_ctx.draws[render_ctx.draw_counter].text_params = text_params;
 }
 
-get_draw_counter :: () -> int {
-    return render_ctx.draw_counter;
+get_draw_calls :: () -> int {
+    return render_ctx.draw_calls;
 }
 
 RENDER_TARGET_MAIN     :: 0;
@@ -466,7 +383,7 @@ init_vertex_buffer :: inline (
     uvs.count      = vertices.count;
     colors.count   = vertices.count;
     indices.count  = max_renderables * 6;
-    vertices.data  = alloc(size_of(Vector3) * vertices.count);
+    vertices.data  = alloc(size_of(Vector2) * vertices.count);
     uvs.data       = alloc(size_of(Vector2) * uvs.count);
     colors.data    = alloc(size_of(Color)   * colors.count);
     indices.data   = alloc(size_of(GLuint)  * indices.count);
@@ -490,8 +407,8 @@ init_vertex_buffer :: inline (
     glGenBuffers(4, vbo.data);
     // bind vertices
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-    glBufferData(GL_ARRAY_BUFFER, vertices.count * size_of(Vector3), vertices.data, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
+    glBufferData(GL_ARRAY_BUFFER, vertices.count * size_of(Vector2), vertices.data, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_POS, 2, GL_FLOAT, GL_FALSE, 0, null);
     glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_POS);
     // bind uvs
     glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
@@ -521,7 +438,7 @@ init_primitive_buffer :: inline (
     vertices.count = max_renderables * vertex_count;
     colors.count   = vertices.count;
     indices.count  = max_renderables * index_count;
-    vertices.data  = alloc(size_of(Vector3) * vertices.count);
+    vertices.data  = alloc(size_of(Vector2) * vertices.count);
     colors.data    = alloc(size_of(Color)   * colors.count);
     indices.data   = alloc(size_of(GLuint)  * indices.count);
 
@@ -555,8 +472,8 @@ init_primitive_buffer :: inline (
     glGenBuffers(3, vbo.data);
     // bind vertices
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-    glBufferData(GL_ARRAY_BUFFER, vertices.count * size_of(Vector3), vertices.data, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_POS, 3, GL_FLOAT, GL_FALSE, 0, null);
+    glBufferData(GL_ARRAY_BUFFER, vertices.count * size_of(Vector2), vertices.data, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(DEFAULT_SHADER_ATTRIB_POS, 2, GL_FLOAT, GL_FALSE, 0, null);
     glEnableVertexAttribArray(DEFAULT_SHADER_ATTRIB_POS);
     // bind colors
     glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
@@ -572,6 +489,7 @@ init_primitive_buffer :: inline (
 
 buffer_sub_data :: inline ($type: Render_Type) -> bool {
     #if type == .Texture  using render_ctx.tex_rects; else
+    #if type == .Glyph    using render_ctx.text_glyphs; else
     #if type == .Rect     using render_ctx.rects; else
     #if type == .Line     using render_ctx.lines;
 
@@ -586,6 +504,11 @@ buffer_sub_data :: inline ($type: Render_Type) -> bool {
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector2), uvs.data);
         glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Color), colors.data);
+    } else #if type == .Glyph {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector3), vertices.data);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector2), uvs.data);
     } else {
         glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, index * size_of(Vector3), vertices.data);
@@ -605,7 +528,7 @@ DEFAULT_MAX_SHADERS   :: 64;
 Vertex_Buffer :: struct {
     index:    s64;
     count:    s64;
-    vertices: [] Vector3;
+    vertices: [] Vector2;
     uvs:      [] Vector2;
     colors:   [] Color;
     indices:  [] GLuint;
@@ -616,7 +539,7 @@ Vertex_Buffer :: struct {
 Primitive_Buffer :: struct {
     index:    s64;
     count:    s64;
-    vertices: [] Vector3;
+    vertices: [] Vector2;
     colors:   [] Color;
     indices:  [] GLuint;
     vao:      GLuint;
@@ -626,7 +549,12 @@ Primitive_Buffer :: struct {
 Draw_Call :: struct {
     texture_id: Texture_Id;
     count:      s32;
-    shader:     *Shader;
+    type:       Render_Type;
+
+    union {
+        text_params: Vector2;
+        shader:     *Shader;
+    }
 }
 
 Render_Context :: struct {
@@ -658,8 +586,8 @@ Render_Context :: struct {
     draw_calls:   s64;
     draw_counter: s64 = -1;
     default_shader: *Shader;
-    draws:        [DEFAULT_MAX_DRAWCALLS] Draw_Call;
-    tex_rects:    Vertex_Buffer = ---;
-    rects:        Primitive_Buffer = ---;
-    lines:        Primitive_Buffer = ---;
+    draws:     [DEFAULT_MAX_DRAWCALLS] Draw_Call;
+    tex_rects: Vertex_Buffer = ---;
+    rects:     Primitive_Buffer = ---;
+    lines:     Primitive_Buffer = ---;
 }
