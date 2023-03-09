@@ -33,13 +33,12 @@ load_msdf :: (msdf_filename: string, texture: Texture) -> *MSDF_Font, bool {
     msdf_data, success := read_entire_file(msdf_filename);
     if !success  return null, false;
 
-    data := msdf_data.data;
-    defer free(data);
-    magic_number: u32 = << cast(*u32) data;
+    defer free(msdf_data);
+    magic_number: u32 = << cast(*u32) msdf_data.data;
 
     if magic_number != MSDF_MAGIC  return null, false;
 
-    offset := data + 4;
+    offset := msdf_data.data + 4;
 
     msdf := New(MSDF_Font);
     memcpy(*msdf.data, offset, size_of(MSDF_Data));
@@ -87,6 +86,7 @@ load_msdf :: (msdf_filename: string, texture: Texture) -> *MSDF_Font, bool {
 }
 
 free_msdf :: (msdf: *MSDF_Font) {
+    free_texture(msdf.texture);
     free(msdf.glyphs.data);
     free(msdf.kerning.data);
     free(msdf);

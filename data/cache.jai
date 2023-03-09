@@ -9,7 +9,7 @@ MD5_Cache :: struct (Value_Type: Type) {
 
 Texture_Cache :: MD5_Cache(Texture);
 
-init_cache :: (cache: *MD5_Cache($T), allocator: Allocator = context.allocator) {
+init_cache :: (cache: *MD5_Cache($T), allocator := context.allocator) {
     cache.table.allocator = allocator;
     init(*cache.table);
 }

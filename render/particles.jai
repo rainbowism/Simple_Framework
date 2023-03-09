@@ -43,7 +43,7 @@ create_emitter :: (
     emitter.spawn_particle = spawn_callback;
     emitter.sim_particle = sim_callback;
     emitter.interval_per_particle = 1.0 / particles_per_second;
-    emitter.origin = xy(cast(float) texture.width, cast(float) texture.height) * 0.5;
+    emitter.origin = .{0.5, 0.5};
     return emitter;
 }
 

@@ -1,6 +1,6 @@
 Render_Bloom :: struct(chain_length: int) {
     fbo:  GLuint;
-    strength: float = 0.1;
+    strength: float = 0.35;
     mip_chain: [chain_length] Bloom_Mip;
 }
 

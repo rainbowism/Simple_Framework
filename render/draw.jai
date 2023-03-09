@@ -21,15 +21,12 @@ draw_end :: inline () {
 draw_buffer :: ($draw_screen := true) {
     if render_ctx.state.buffer_drawn  return;
     batch_draw();
-    // glDisable(GL_DEPTH_TEST);
-    // defer glEnable(GL_DEPTH_TEST);
-    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
     draw_render_texture(render_ctx.target[RENDER_TARGET_PARTICLE]);
     render_bloom(
         render_ctx.bloom,
         render_ctx.target[RENDER_TARGET_MAIN].fbo,
         render_ctx.target[RENDER_TARGET_PARTICLE].color,
-        0.005
+        0.002
     );
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     draw_clear();

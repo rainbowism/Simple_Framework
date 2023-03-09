@@ -23,7 +23,7 @@ layout(std140, binding = 0) uniform ShaderGlobals {
     float Time;
 };
 
-in vec3 vPosition;
+in vec2 vPosition;
 in vec2 vUV;
 in vec4 vColor;
 
@@ -34,7 +34,7 @@ out vec2 fScreenPixelSize;
 out float fTime;
 
 void main() {
-    gl_Position      = transpose(ModelView * Projection) * vec4(vPosition, 1.0);
+    gl_Position      = transpose(ModelView * Projection) * vec4(vPosition, 0.0, 1.0);
     fUV              = vUV;
     fColor           = vColor;
     fScreenSize      = ScreenSize;
@@ -55,7 +55,7 @@ layout(std140, binding = 0) uniform ShaderGlobals {
     float Time;
 };
 
-in vec3 vPosition;
+in vec2 vPosition;
 in vec4 vColor;
 
 out vec4 fColor;
@@ -64,7 +64,7 @@ out vec2 fScreenPixelSize;
 out float fTime;
 
 void main() {
-    gl_Position      = transpose(ModelView * Projection) * vec4(vPosition, 1.0);
+    gl_Position      = transpose(ModelView * Projection) * vec4(vPosition, 0.0, 1.0);
     fColor           = vColor;
     fScreenSize      = ScreenSize;
     fScreenPixelSize = ScreenPixelSize;
@@ -84,7 +84,7 @@ layout(std140, binding = 0) uniform ShaderGlobals {
     float Time;
 };
 
-in vec3 vPosition;
+in vec2 vPosition;
 in vec2 vUV;
 
 out vec2 fUV;
@@ -94,7 +94,7 @@ out vec2 fScreenPixelSize;
 out float fTime;
 
 void main() {
-    gl_Position      = vec4(vPosition.xy, 0.0, 1.0);
+    gl_Position      = vec4(vPosition, 0.0, 1.0);
     fUV              = vUV;
     fColor           = vec4(1.0);
     fScreenSize      = ScreenSize;
