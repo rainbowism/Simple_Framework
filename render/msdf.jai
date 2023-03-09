@@ -49,21 +49,26 @@ load_msdf :: (msdf_filename: string, texture: Texture) -> *MSDF_Font, bool {
     glyph_count: s32 = << cast(*s32) offset;
     offset += size_of(s32);
 
-    msdf.glyphs.count = glyph_count;
-    msdf.glyphs.data  = alloc(size_of(MSDF_Glyph) * glyph_count);
+    texture_uv: Vector2 = .{1.0 / texture.width, 1.0 / texture.height};
+
+    msdf.glyphs.count  = glyph_count;
+    msdf.kerning.count = glyph_count * glyph_count;
+    msdf.glyphs.data   = alloc(size_of(MSDF_Glyph) * glyph_count + size_of(float) * msdf.kerning.count);
+    msdf.kerning.data  = cast,no_check(*float) msdf.glyphs.data + size_of(MSDF_Glyph) * glyph_count;
 
     for 0..glyph_count-1 {
         codepoint: s32 = << cast(*s32) offset;
         offset += size_of(s32);
         memcpy(*msdf.glyphs[codepoint - msdf.starting_glyph], offset, size_of(MSDF_Glyph));
+        // @Note(sushi): This is converting the pixel coordinates into UVs.
+        //  We probably don't ever need the pixel coordinates?
+        msdf.glyphs[codepoint - msdf.starting_glyph].atlas.tl = msdf.glyphs[codepoint - msdf.starting_glyph].atlas.tl * texture_uv;
+        msdf.glyphs[codepoint - msdf.starting_glyph].atlas.br = msdf.glyphs[codepoint - msdf.starting_glyph].atlas.tl + msdf.glyphs[codepoint - msdf.starting_glyph].atlas.br * texture_uv;
         offset += size_of(MSDF_Glyph);
     }
 
     kerning_count: s32 = << cast(*s32) offset;
     offset += size_of(s32);
-
-    msdf.kerning.count = glyph_count * glyph_count;
-    msdf.kerning.data  = alloc(size_of(float) * msdf.kerning.count);
 
     // @Cleanup(sushi): This is using more memory than it needs to, maybe? But who cares.
     for 0..kerning_count-1 {
@@ -95,14 +100,15 @@ measure_text :: (msdf: MSDF_Font, text: string, size: float) -> Vector2 {
     last_char: u8 = 0;
     for 0..text.count-1 {
         if text[it] < msdf.starting_glyph || text[it] >= (msdf.starting_glyph + msdf.glyphs.count)  continue;
-        text_size.x += get_kerning(msdf, text[it], last_char) * size;
-        text_size.x += msdf.glyphs[text[it] - msdf.starting_glyph].advance_x * size;
+        text_size.x += get_kerning(msdf, text[it], last_char);
+        text_size.x += msdf.glyphs[text[it] - msdf.starting_glyph].advance_x;
         last_char = text[it];
     }
+    text_size.x *= size;
 
     return text_size;
 }
 
-get_kerning :: (msdf: MSDF_Font, codepoint1: u8, codepoint2: u8) -> float {
+get_kerning :: inline (msdf: MSDF_Font, codepoint1: u8, codepoint2: u8) -> float {
     return msdf.kerning[((cast,no_check(s32) codepoint1) - msdf.starting_glyph) * msdf.glyphs.count + ((cast,no_check(s32) codepoint2) - msdf.starting_glyph)];
 }

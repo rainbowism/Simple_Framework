@@ -477,41 +477,146 @@ draw_text :: (font: Font, text: string, position: Vector2, tint := Colors.White)
     }
 }
 
-// @Incomplete(sushi): Make an MSDF font drawing pipeline.
-draw_text :: (msdf: MSDF_Font, text: string, position: Vector2, size: float, thickness: float = 0.0, rotation := 0.0, tint := Colors.White) {
-    origin: Vector2;
+draw_text :: (
+    msdf: MSDF_Font,
+    text: string,
+    position: Vector2,
+    size: float,
+    rotation := 0.0,
+    offset := Vector2.{0, 0},
+    tint := Colors.White
+) {
+    transform := make_xform(position, rotation);
+    origin := -offset;
 
-    width:  float = 1.0 / msdf.texture.width;
-    height: float = 1.0 / msdf.texture.height;
     tl, tr, bl, br: Vector2 = ---;
 
     last_char: u8 = 0;
 
-    // @Cleanup(sushi): Add pixel range to the MSDF_Font definition.
-    push_glyph_call(msdf.texture.id, tint, .{12.0, thickness});
+    push_glyph_call(msdf.texture.id, .{msdf.pixel_range, 0.0});
     batch_start();
     push_color(tint);
     for 0..text.count-1 {
         if text[it] < msdf.starting_glyph || text[it] >= (msdf.starting_glyph + msdf.glyphs.count)  continue;
-        origin.x -= get_kerning(msdf, text[it], last_char) * size;
+        origin.x += get_kerning(msdf, text[it], last_char) * size;
         glyph  := msdf.glyphs[text[it] - msdf.starting_glyph];
         source := glyph.atlas;
-        dest   := glyph.plane * size + position;
+        dest   := glyph.plane * size + origin;
 
-        rotate_quad(false);
-        push_uv(source.x * width, source.y * height);
-        push_vertex(tl);
-        push_uv(source.x * width, (source.y + source.height) * height);
-        push_vertex(bl);
-        push_uv((source.x + source.width) * width, (source.y + source.height) * height);
-        push_vertex(br);
-        push_uv((source.x + source.width) * width, source.y * height);
-        push_vertex(tr);
+        push_uv(source.tl);
+        push_vertex(xform(transform, dest.position));
+        push_uv(.{source.tl.x, source.br.y});
+        push_vertex(xform(transform, .{dest.position.x, dest.position.y + dest.size.y}));
+        push_uv(source.br);
+        push_vertex(xform(transform, dest.position + dest.size));
+        push_uv(.{source.br.x, source.tl.y});
+        push_vertex(xform(transform, .{dest.position.x + dest.size.x, dest.position.y}));
 
-        origin.x -= glyph.advance_x * size;
+        origin.x += glyph.advance_x * size;
         last_char = text[it];
     }
     batch_end();
+}
+
+draw_text_outlined :: (
+    msdf: MSDF_Font,
+    text: string,
+    position: Vector2,
+    size: float,
+    rotation := 0.0,
+    offset := Vector2.{0, 0},
+    thickness: float = 0.0,
+    fill := Colors.White,
+    stroke := Colors.Black
+) {
+    transform := make_xform(position, rotation);
+    origin := -offset;
+
+    tl, tr, bl, br: Vector2 = ---;
+
+    last_char: u8 = 0;
+
+    push_glyph_call(msdf.texture.id, .{msdf.pixel_range, thickness});
+    batch_start();
+    push_color(stroke);
+    for 0..text.count-1 {
+        if text[it] < msdf.starting_glyph || text[it] >= (msdf.starting_glyph + msdf.glyphs.count)  continue;
+        origin.x += get_kerning(msdf, text[it], last_char) * size;
+        glyph  := msdf.glyphs[text[it] - msdf.starting_glyph];
+        source := glyph.atlas;
+        dest   := glyph.plane * size + origin;
+
+        push_uv(source.tl);
+        push_vertex(xform(transform, dest.position));
+        push_uv(.{source.tl.x, source.br.y});
+        push_vertex(xform(transform, .{dest.position.x, dest.position.y + dest.size.y}));
+        push_uv(source.br);
+        push_vertex(xform(transform, dest.position + dest.size));
+        push_uv(.{source.br.x, source.tl.y});
+        push_vertex(xform(transform, .{dest.position.x + dest.size.x, dest.position.y}));
+
+        origin.x += glyph.advance_x * size;
+        last_char = text[it];
+    }
+    batch_end();
+
+    origin    = -offset;
+    last_char = 0;
+    push_glyph_call(msdf.texture.id, .{msdf.pixel_range, 0});
+    batch_start();
+    push_color(fill);
+    for 0..text.count-1 {
+        if text[it] < msdf.starting_glyph || text[it] >= (msdf.starting_glyph + msdf.glyphs.count)  continue;
+        origin.x += get_kerning(msdf, text[it], last_char) * size;
+        glyph  := msdf.glyphs[text[it] - msdf.starting_glyph];
+        source := glyph.atlas;
+        dest   := glyph.plane * size + origin;
+
+        push_uv(source.tl);
+        push_vertex(xform(transform, dest.position));
+        push_uv(.{source.tl.x, source.br.y});
+        push_vertex(xform(transform, .{dest.position.x, dest.position.y + dest.size.y}));
+        push_uv(source.br);
+        push_vertex(xform(transform, dest.position + dest.size));
+        push_uv(.{source.br.x, source.tl.y});
+        push_vertex(xform(transform, .{dest.position.x + dest.size.x, dest.position.y}));
+
+        origin.x += glyph.advance_x * size;
+        last_char = text[it];
+    }
+    batch_end();
+}
+
+draw_text_centered :: (
+    msdf: MSDF_Font,
+    text: string,
+    position: Vector2,
+    size: float,
+    rotation := 0.0,
+    tint := Colors.White
+) {
+    text_position := measure_text(msdf, text, size);
+    real_position := position;
+    real_position.y -= text_position.y * 0.5;
+    text_position *= 0.5;
+    draw_text(msdf, text, real_position, size, rotation, text_position, tint);
+}
+
+draw_text_outlined_centered :: (
+    msdf: MSDF_Font,
+    text: string,
+    position: Vector2,
+    size: float,
+    rotation := 0.0,
+    thickness: float = 0.0,
+    fill := Colors.White,
+    stroke := Colors.Black
+) {
+    text_position := measure_text(msdf, text, size);
+    real_position := position;
+    real_position.y -= text_position.y * 0.5;
+    text_position *= 0.5;
+    draw_text_outlined(msdf, text, real_position, size, rotation, text_position, thickness, fill, stroke);
 }
 
 #scope_file

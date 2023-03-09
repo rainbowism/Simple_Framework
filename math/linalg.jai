@@ -27,12 +27,24 @@ point_in_rect :: inline (point: Vector2, a: Vector2, b: Vector2, c: Vector2) -> 
 }
 
 Rect :: struct {
-    x, y:          float;
-    width, height: float;
-#place x;
+    x1, y1: float;
+    x2, y2: float;
+
+#place x1;
+    x: float = ---;
+    y: float = ---;
+#place x2;
+    width:  float = ---;
+    height: float = ---;
+
+#place x1;
     position: Vector2 = ---;
-#place width;
+#place x2;
     size: Vector2 = ---;
+
+#place x1;
+    tl: Vector2 = ---;
+    br: Vector2 = ---;
 }
 
 operator * :: (a: Rect, b: float) -> Rect {

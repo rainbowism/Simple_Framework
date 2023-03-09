@@ -342,7 +342,7 @@ push_color :: (color: Color) {
     render_ctx.state.color = color;
 }
 
-push_glyph_call :: (texture_id: Texture_Id, color: Color, text_params: Vector2) {
+push_glyph_call :: (texture_id: Texture_Id, text_params: Vector2) {
     if render_ctx.draw_counter + 1 >= DEFAULT_MAX_DRAWCALLS  batch_draw();
     render_ctx.draw_counter += 1;
     render_ctx.draws[render_ctx.draw_counter].texture_id  = texture_id;
