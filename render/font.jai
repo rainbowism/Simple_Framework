@@ -12,7 +12,6 @@ Glyph_Info :: struct {
 }
 
 load_font :: (filepath: string, font_size: float) -> Font, bool {
-    info("test");
     file, success := read_entire_file(filepath);
     if !success  return .{}, false;
     defer free(file);
