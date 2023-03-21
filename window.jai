@@ -17,14 +17,12 @@ Window_Flags :: enum_flags {
 
 sf_init :: () -> SF_Result {
     glfwSetErrorCallback(glfw_error_callback);
-    if !glfwInit() {
-        return .Failed_To_Init_GLFW;
-    }
-	// #if OS == .WINDOWS {
+    if !glfwInit()  return .Failed_To_Init_GLFW;
+    // #if OS == .WINDOWS {
     //     Win32 :: #import "Windows";
     //     Win32.SetProcessDPIAware();
     //     Win32.timeBeginPeriod(1);
-	// }
+    // }
     window.ctx = context;
     initialized = true;
     return .Ok;
@@ -36,23 +34,21 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_VISIBLE, 0);
-    if flags & .MSAA {
-        glfwWindowHint(GLFW_SAMPLES, 4);
-    }
+    if flags & .MSAA  glfwWindowHint(GLFW_SAMPLES, 4);
 
     window.size.x = xx width;
     window.size.y = xx height;
-    window.size.width  = width;
-    window.size.height = height;
+    window.size_i.x = width;
+    window.size_i.y = height;
     window.name = title;
 
     // @Todo(sushi): do settings file stuff so i can get fullscreen mode
-	window.handle = glfwCreateWindow(width, height, temp_c_string(title), null, null);
-	if window.handle == null {
-		return .Failed_To_Create_Window;
-	}
-	glfwMakeContextCurrent(window.handle);
-	gl_load(*gl, glfwGetProcAddress);
+    window.handle = glfwCreateWindow(width, height, temp_c_string(title), null, null);
+    if window.handle == null {
+        return .Failed_To_Create_Window;
+    }
+    glfwMakeContextCurrent(window.handle);
+    gl_load(*gl, glfwGetProcAddress);
 
     if flags & .Fullscreen {
         set_fullscreen(true);
@@ -70,10 +66,10 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     glfwSetCursorPosCallback  (window.handle, glfw_cursor_position_callback);
     glfwSetWindowSizeCallback (window.handle, glfw_window_size_callback);
     glfwSetWindowFocusCallback(window.handle, glfw_window_focus_callback);
-	glfwSetKeyCallback        (window.handle, glfw_key_callback);
-	glfwSetMouseButtonCallback(window.handle, glfw_mouse_callback);
-	glfwSetCharCallback       (window.handle, glfw_text_callback);
-	glfwSetScrollCallback     (window.handle, glfw_scroll_callback);
+    glfwSetKeyCallback        (window.handle, glfw_key_callback);
+    glfwSetMouseButtonCallback(window.handle, glfw_mouse_callback);
+    glfwSetCharCallback       (window.handle, glfw_text_callback);
+    glfwSetScrollCallback     (window.handle, glfw_scroll_callback);
     glfwSetCursorPosCallback  (window.handle, glfw_cursor_position_callback);
     glfwSetDropCallback       (window.handle, glfw_drop_callback);
 
@@ -85,7 +81,6 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     glEnable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glDepthFunc(GL_NEVER);
-    // glEnable(GL_DEPTH_TEST);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glFrontFace(GL_CCW);
 
@@ -119,12 +114,6 @@ should_exit :: () -> bool {
     glfwPollEvents();
 
     exit := glfwWindowShouldClose(window.handle) == GLFW_TRUE;
-
-    if window.size.width != window.size.last_width || window.size.height != window.size.last_height {
-        update_viewport(window.size.width, window.size.height);
-        window.size.last_width  = window.size.width;
-        window.size.last_height = window.size.height;
-    }
 
     {
         new_time := get_time();
@@ -170,8 +159,8 @@ swap_buffers :: inline () {
 center_window :: () {
     window_pos: Point2 = ---;
     glfwGetWindowPos(window.handle, *window_pos.x, *window_pos.y);
-    window_pos.x += window.size.width  / 2;
-    window_pos.y += window.size.height / 2;
+    window_pos.x += window.size_i.x / 2;
+    window_pos.y += window.size_i.y / 2;
     monitor_count: s32;
     monitors := glfwGetMonitors(*monitor_count);
     monitor_rect: Recti = ---;
@@ -186,15 +175,15 @@ center_window :: () {
         if !intersect(window_pos, monitor_rect)  continue;
         glfwSetWindowPos(
             window.handle,
-            monitor_rect.x + ((monitor_rect.width  - window.size.width)  / 2),
-            monitor_rect.y + ((monitor_rect.height - window.size.height) / 2)
+            monitor_rect.x + ((monitor_rect.width  - window.size_i.x) / 2),
+            monitor_rect.y + ((monitor_rect.height - window.size_i.y) / 2)
         );
         return;
     }
 }
 
 get_window_size :: inline () -> Vector2 {
-    return make_vector2(xx window.size.width, xx window.size.height);
+    return window.size;
 }
 
 get_vsync :: () -> bool {
@@ -388,8 +377,8 @@ get_mouse_pos :: ($cached := false) -> Vector2 {
 }
 
 reset_viewport :: inline () {
-    glViewport(0, 0, xx window.size.width, xx window.size.height);
-    #if !DISABLE_RENDER  push_custom_screen_size(window.size.width, window.size.height);
+    glViewport(0, 0, xx window.size_i.x, xx window.size_i.y);
+    #if !DISABLE_RENDER  push_custom_screen_size(window.size_i.x, window.size_i.y);
 }
 
 sf_time: struct {
@@ -417,11 +406,12 @@ Mouse_Cursor :: enum {
 #scope_module
 
 update_viewport :: (width: s32, height: s32) {
+    if width == 0 && height == 0  return;
     glViewport(0, 0, xx width, xx height);
     window.size.x = xx width;
     window.size.y = xx height;
-    window.size.width  = width;
-    window.size.height = height;
+    window.size_i.x = width;
+    window.size_i.y = height;
     #if !DISABLE_RENDER  push_screen_size(width, height);
     if window.callbacks.resize != null  window.callbacks.resize(width, height);
 }
@@ -448,13 +438,8 @@ Window_Context :: struct {
     name:   string;
 
     focused: bool;
-    size: struct {
-        using #as base: Vector2;
-        width:       s32;
-        height:      s32;
-        last_width:  s32;
-        last_height: s32;
-    }
+    size: Vector2;
+    size_i: Point2;
 
     time: struct {
         vsync:          bool;
@@ -512,8 +497,10 @@ glfw_cursor_position_callback :: (glfw_win: *GLFWwindow, x: float64, y: float64)
 }
 
 glfw_window_size_callback :: (handle: *GLFWwindow, width: s32, height: s32) #c_call {
-    window.size.width  = width;
-    window.size.height = height;
+    window.size.x = xx width;
+    window.size.y = xx height;
+    window.size_i.x = width;
+    window.size_i.y = height;
     push_context window.ctx {
         update_viewport(width, height);
     }
@@ -528,39 +515,39 @@ glfw_window_focus_callback :: (handle: *GLFWwindow, focused: s32) #c_call {
 
 glfw_key_callback :: (glfw_win: *GLFWwindow, key: s32, scancode: s32, action: s32, mods: s32) #c_call {
     if key < 0  return;
-	#if !DISABLE_IMGUI  ImGui_Impl_KeyCallback(key, scancode, action, mods);
+    #if !DISABLE_IMGUI  ImGui_Impl_KeyCallback(key, scancode, action, mods);
     input_state.key_cur[key] = action != GLFW_RELEASE;
     push_context window.ctx {
         if window.callbacks.key != null  window.callbacks.key(key, scancode, action, mods);
-	}
+    }
 }
 
 glfw_mouse_callback :: (glfw_win: *GLFWwindow, button: s32, action: s32, mods: s32) #c_call {
-	#if !DISABLE_IMGUI  ImGui_Impl_MouseCallback(button, action, mods);
+    #if !DISABLE_IMGUI  ImGui_Impl_MouseCallback(button, action, mods);
     input_state.mouse_cur[button] = action != GLFW_RELEASE;
     push_context window.ctx {
         if window.callbacks.mouse != null  window.callbacks.mouse(button, action, mods);
-	}
+    }
 }
 
 glfw_text_callback :: (glfw_win: *GLFWwindow, codepoint: u32) #c_call {
     #if !DISABLE_IMGUI  ImGui_Impl_TextCallback(codepoint);
     push_context window.ctx {
         if window.callbacks.text != null  window.callbacks.text(codepoint);
-	}
+    }
 }
 
 glfw_scroll_callback :: (glfw_win: *GLFWwindow, x_offset: float64, y_offset: float64) #c_call {
     #if !DISABLE_IMGUI  ImGui_Impl_ScrollCallback(x_offset, y_offset);
     push_context window.ctx {
         if window.callbacks.scroll != null  window.callbacks.scroll(x_offset, y_offset);
-	}
+    }
 }
 
 glfw_drop_callback :: (glfw_win: *GLFWwindow, count: s32, paths: **u8) #c_call {
     push_context window.ctx {
         if window.callbacks.drop != null  window.callbacks.drop(count, paths);
-	}
+    }
 }
 
 #import "Basic";

@@ -17,12 +17,8 @@ init_render_bloom :: ($chain_length: int) -> *Render_Bloom(chain_length), bool {
     glBindFramebuffer(GL_FRAMEBUFFER, render_bloom.fbo);
     defer glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    size: Vector2 = ---;
-    size.x = xx window.size.width;
-    size.y = xx window.size.height;
-    isize: Point2 = ---;
-    isize.x = window.size.width;
-    isize.y = window.size.height;
+    size: Vector2 = window.size;
+    isize: Point2 = window.size_i;
     for 0..chain_length-1 {
         size  *= 0.5;
         isize /= 2;
@@ -62,11 +58,11 @@ destroy :: (render_bloom: *Render_Bloom) {
 resize_render_bloom :: (render_bloom: *Render_Bloom, width: s32, height: s32) {
     glBindFramebuffer(GL_FRAMEBUFFER, render_bloom.fbo);
     size: Vector2 = ---;
-    size.x = xx window.size.width;
-    size.y = xx window.size.height;
+    size.x = xx width;
+    size.y = xx height;
     isize: Point2 = ---;
-    isize.x = window.size.width;
-    isize.y = window.size.height;
+    isize.x = width;
+    isize.y = height;
     for *mip: render_bloom.mip_chain {
         size *= 0.5;
         isize /= 2;
@@ -80,17 +76,17 @@ resize_render_bloom :: (render_bloom: *Render_Bloom, width: s32, height: s32) {
 }
 
 render_bloom :: inline (render_bloom: *Render_Bloom, fbo: GLuint, source_texture: GLuint, filter_radius: float) {
-	glBindFramebuffer(GL_FRAMEBUFFER, render_bloom.fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, render_bloom.fbo);
     render_downsamples(render_bloom, source_texture);
     render_upsamples(render_bloom, filter_radius);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
     glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_BLOOM].program);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
     defer glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glViewport(0, 0, xx window.size.width, xx window.size.height);
+    glViewport(0, 0, xx window.size_i.x, xx window.size_i.y);
     glUniform1f(0, render_bloom.strength);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, render_bloom.mip_chain[0].texture);
