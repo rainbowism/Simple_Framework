@@ -166,7 +166,7 @@ ImGui_Impl_SetClipboardText :: (data: *void, text: *u8) #c_call {
     }
 }
 
-ImGui_Impl_CreateContext :: ($set_default_allocators := true) {
+ImGui_Impl_CreateContext :: ($set_default_allocators := false) {
     using ui;
 
     #if set_default_allocators {
@@ -555,14 +555,17 @@ UI_State :: struct {
 };
 ui: UI_State;
 
+// @Fix(sushi): This doesn't always seem to work...
 _imgui_context: Context;
-
 imgui_alloc :: (sz: u64, userdata: *void) -> *void #c_call {
-    push_context << cast(*Context)userdata { return alloc(cast(s64)sz); }
+    push_context (<< cast(*Context) userdata) {
+        return alloc(cast(s64) sz);
+    }
 }
-
 imgui_free :: (ptr: *void, userdata: *void) #c_call {
-    push_context << cast(*Context)userdata { free(ptr); }
+    push_context (<< cast(*Context) userdata) {
+        free(ptr);
+    }
 }
 
 #import "Basic";

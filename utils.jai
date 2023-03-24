@@ -17,8 +17,7 @@ log :: ($log_type: Log_Type, $log_level: Log_Level, fmt: string, args: .. Any, f
     #if log_level >= LOG_LEVEL {
         // @Note(sushi): doing it lazily because there's no padding on string formatting
         #if LOG_FILE_PATH {
-            path := parse_path(loc.fully_pathed_filename);
-            partial_path := path.words[path.words.count-1];
+            partial_path := path_filename(loc.fully_pathed_filename);
             #if log_level == .INFO || log_level == .WARN {
                 #if log_type == .Game    log(tprint("[SF:Game  ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);
                 #if log_type == .Core    log(tprint("[SF:Core  ][% ][%:%,%] %\n", log_level, partial_path, loc.line_number, loc.character_number, fmt), ..args, flags = flags);

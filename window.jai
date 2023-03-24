@@ -83,6 +83,7 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     glDepthFunc(GL_NEVER);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glFrontFace(GL_CCW);
+    if flags & .MSAA  glEnable(GL_MULTISAMPLE);
 
     glfwShowWindow(window.handle);
     init_time();
