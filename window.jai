@@ -283,23 +283,25 @@ set_window_focused :: ($clear_input := false) {
     #if clear_input  clear_input_buffers();
 }
 
-set_window_icons :: (images: [] Image) {
-    glfw_images: [] GLFWimage = ---;
-    glfw_images.count = images.count;
-    glfw_images.data  = alloc(size_of(GLFWimage) * images.count, temp);
-    for image: images {
-        memcpy(*glfw_image[it_index], *image, size_of(GLFWimage));
+#if !DISABLE_RENDER {
+    set_window_icons :: (images: [] Image) {
+        glfw_images: [] GLFWimage = ---;
+        glfw_images.count = images.count;
+        glfw_images.data  = alloc(size_of(GLFWimage) * images.count, temp);
+        for image: images {
+            memcpy(*glfw_image[it_index], *image, size_of(GLFWimage));
+        }
+        glfwSetWindowIcon(window.handle, xx images.count, glfw_images.data);
     }
-    glfwSetWindowIcon(window.handle, xx images.count, glfw_images.data);
-}
-
-create_mouse_cursor :: (cursor: Mouse_Cursor, image: Image, offset: Point2) {
-    if cursors[cursor]  glfwDestroyCursor(cursors[cursor]);
-    glfw_image: GLFWimage = ---;
-    glfw_image.width  = image.width;
-    glfw_image.height = image.height;
-    glfw_image.pixels = image.data;
-    cursors[cursor]   = glfwCreateCursor(*glfw_image, offset.x, offset.y);
+    
+    create_mouse_cursor :: (cursor: Mouse_Cursor, image: Image, offset: Point2) {
+        if cursors[cursor]  glfwDestroyCursor(cursors[cursor]);
+        glfw_image: GLFWimage = ---;
+        glfw_image.width  = image.width;
+        glfw_image.height = image.height;
+        glfw_image.pixels = image.data;
+        cursors[cursor]   = glfwCreateCursor(*glfw_image, offset.x, offset.y);
+    }
 }
 
 set_mouse_cursor :: (cursor := Mouse_Cursor.Arrow) {

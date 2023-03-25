@@ -21,6 +21,8 @@ SF_Result :: enum {
 }
 
 #import "Math";
+#import "Hash";
+#import "Hash_Table";
 
 #load "utils.jai";
 #load "color.jai";
