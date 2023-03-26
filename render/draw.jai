@@ -242,29 +242,29 @@ draw_rect :: (dest: Rect, tints: [4] Color, origin := Vector2.{0, 0}, rotation: 
     push_depth();
 }
 
-draw_texture :: inline (
-    texture: Texture,
-    pos: Vector2,
-    tint := Colors.White,
-    origin := Vector2.{0.5, 1.0},
-    rotation: float = 0.0
-) {
-    source, dest: Rect = ---;
-    source.x      = 0;
-    source.y      = 0;
-    source.width  = texture.width;
-    source.height = texture.height;
-    dest.x        = pos.x;
-    dest.y        = pos.y;
-    dest.width    = source.width;
-    dest.height   = source.height;
-    inline draw_texture(
-        texture, source, dest,
-        origin = origin,
-        rotation = rotation,
-        tint = tint
-    );
-}
+// draw_texture :: inline (
+//     texture: Texture,
+//     pos: Vector2,
+//     tint := Colors.White,
+//     origin := Vector2.{0.5, 1.0},
+//     rotation: float = 0.0
+// ) {
+//     source, dest: Rect = ---;
+//     source.x      = 0;
+//     source.y      = 0;
+//     source.width  = texture.width;
+//     source.height = texture.height;
+//     dest.x        = pos.x;
+//     dest.y        = pos.y;
+//     dest.width    = source.width;
+//     dest.height   = source.height;
+//     inline draw_texture(
+//         texture, source, dest,
+//         origin = origin,
+//         rotation = rotation,
+//         tint = tint
+//     );
+// }
 
 draw_texture :: inline (
     texture: Texture,
@@ -297,7 +297,8 @@ draw_texture :: inline (
     scale: Vector2,
     tint := Colors.White,
     origin := Vector2.{0.5, 1.0},
-    rotation: float = 0.0
+    rotation: float = 0.0,
+    $relative_origin := true
 ) {
     source, dest: Rect = ---;
     source.x      = 0;
@@ -312,33 +313,8 @@ draw_texture :: inline (
         texture, source, dest,
         origin = origin * scale,
         rotation = rotation,
-        tint = tint
-    );
-}
-
-draw_texture :: inline (
-    texture: Texture,
-    src: Vector2,
-    dst: Vector2,
-    size: Vector2,
-    tint := Colors.White,
-    origin := Vector2.{0.5, 1.0},
-    rotation: float = 0.0
-) {
-    source, dest: Rect = ---;
-    source.x      = src.x;
-    source.y      = src.y;
-    source.width  = size.x;
-    source.height = size.y;
-    dest.x        = dst.x;
-    dest.y        = dst.y;
-    dest.width    = size.x;
-    dest.height   = size.y;
-    draw_texture(
-        texture, source, dest,
-        origin = origin,
-        rotation = rotation,
-        tint = tint
+        tint = tint,
+        relative_origin = relative_origin
     );
 }
 
@@ -348,7 +324,8 @@ draw_texture :: (
     dest: Rect,
     tint := Colors.White,
     origin := Vector2.{0.5, 1.0},
-    rotation: float = 0.0
+    rotation: float = 0.0,
+    $relative_origin := true
 ) {
     if texture.id == 0  return;
 
@@ -356,7 +333,7 @@ draw_texture :: (
     height: float = 1.0 / texture.height;
 
     tl, tr, bl, br: Vector2 = ---;
-    rotate_quad(true);
+    rotate_quad(relative_origin);
 
     push_texture(texture.id);
     batch_start();
@@ -382,7 +359,8 @@ draw_texture :: (
     flip_x: bool,
     tint := Colors.White,
     origin := Vector2.{0.5, 1.0},
-    rotation: float = 0.0
+    rotation: float = 0.0,
+    $relative_origin := true
 ) {
     if texture.id == 0  return;
 
@@ -390,7 +368,7 @@ draw_texture :: (
     height: float = 1.0 / texture.height;
 
     tl, tr, bl, br: Vector2 = ---;
-    rotate_quad(true);
+    rotate_quad(relative_origin);
 
     push_texture(texture.id);
     batch_start();
@@ -425,11 +403,16 @@ draw_texture :: (
     transform: Transform,
     flip_x: bool = false,
     tint := Colors.White,
-    origin := Vector2.{0.5, 1.0}
+    origin := Vector2.{0.5, 1.0},
+    $relative_origin := true
 ) {
     if texture.id == 0  return;
 
-    offset: Vector2 = -texture.size * origin;
+    #if relative_origin {
+        offset: Vector2 = -texture.size * origin;
+    } else {
+        offset: Vector2 = -origin;
+    }
 
     tl := xform(transform, .{offset.x, offset.y});
     tr := xform(transform, .{texture.width + offset.x, offset.y});
@@ -458,6 +441,60 @@ draw_texture :: (
             push_uv(1, 1);
             push_vertex(br);
             push_uv(1, 0);
+            push_vertex(tr);
+        }
+    }
+    batch_end();
+}
+
+draw_texture :: (
+    texture: Texture,
+    transform: Transform,
+    source_uv: Rect,
+    flip_x: bool = false,
+    tint := Colors.White,
+    origin := Vector2.{0.5, 1.0},
+    $relative_origin := true
+) {
+    if texture.id == 0  return;
+
+    #if relative_origin {
+        offset: Vector2 = -texture.size * origin;
+    } else {
+        offset: Vector2 = -origin;
+    }
+
+    width  := texture.width  * source_uv.size.x;
+    height := texture.height * source_uv.size.y;
+
+    tl := xform(transform, .{offset.x, offset.y});
+    tr := xform(transform, .{width + offset.x, offset.y});
+    bl := xform(transform, .{offset.x, height + offset.y});
+    br := xform(transform, .{width + offset.x, height + offset.y});
+
+    push_texture(texture.id);
+    batch_start();
+    {
+        push_color(tint);
+
+        uv_br := source_uv.position + source_uv.size;
+        if flip_x {
+            push_uv(uv_br.x, source_uv.position.y);
+            push_vertex(tl);
+            push_uv(uv_br.x, uv_br.y);
+            push_vertex(bl);
+            push_uv(source_uv.position.x, uv_br.y);
+            push_vertex(br);
+            push_uv(source_uv.position.x, source_uv.position.y);
+            push_vertex(tr);
+        } else {
+            push_uv(source_uv.position.x, source_uv.position.y);
+            push_vertex(tl);
+            push_uv(source_uv.position.x, uv_br.y);
+            push_vertex(bl);
+            push_uv(uv_br.x, uv_br.y);
+            push_vertex(br);
+            push_uv(uv_br.x, source_uv.position.y);
             push_vertex(tr);
         }
     }
