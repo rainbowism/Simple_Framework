@@ -29,6 +29,17 @@ MSDF_Kerning :: struct {
     advance_x: float;
 }
 
+load_msdf :: inline (msdf_filename: string, texture_filename: string) -> *MSDF_Font, bool {
+    font: *MSDF_Font;
+    font_texture: Texture = ---;
+    success: bool = ---;
+    font_texture, success = load_texture(texture_filename, min_sampling = .Linear, mag_sampling = .Linear);
+    if !success  return null, false;
+    font, success = load_msdf(msdf_filename, font_texture);
+    if !success  return null, false;
+    return font, true;
+}
+
 load_msdf :: (msdf_filename: string, texture: Texture) -> *MSDF_Font, bool {
     msdf_data, success := read_entire_file(msdf_filename);
     if !success  return null, false;
@@ -93,9 +104,7 @@ free_msdf :: (msdf: *MSDF_Font) {
 }
 
 measure_text :: (msdf: MSDF_Font, text: string, size: float) -> Vector2 {
-    text_size: Vector2 = ---;
-    text_size.x = 0;
-    text_size.y = msdf.line_height * size;
+    text_size := Vector2.{0, msdf.line_height * size};
     if text.count == 0  return text_size;
     last_char: u8 = 0;
     for 0..text.count-1 {
@@ -107,6 +116,40 @@ measure_text :: (msdf: MSDF_Font, text: string, size: float) -> Vector2 {
     text_size.x *= size;
 
     return text_size;
+}
+
+measure_text_wrapped_em :: (msdf: MSDF_Font, text: string, size: float, max_width: float) -> Vector2, s64, float, float {
+    // @Incomplete(sushi): This doesn't support wrapping more than 1 line.
+    text_size := Vector2.{0, msdf.line_height * size};
+    if text.count == 0  return text_size, -1, 0.0, 0.0;
+    wrap_width: float;
+    wrap_margin: float;
+    wrap_index: s64;
+    text_width: float;
+    last_char: u8 = 0;
+    has_wrapped: bool;
+    for 0..text.count-1 {
+        if text[it] < msdf.starting_glyph || text[it] >= (msdf.starting_glyph + msdf.glyphs.count)  continue;
+        advance_x := get_kerning(msdf, text[it], last_char);
+        advance_x += msdf.glyphs[text[it] - msdf.starting_glyph].advance_x;
+        advance_x *= size;
+        if text[it] == 0x20 && !has_wrapped {
+            wrap_width  = text_width;
+            wrap_index  = it;
+            wrap_margin = advance_x;
+        }
+        text_width += advance_x;
+        last_char = text[it];
+        if text_width > max_width {
+            text_size.x = wrap_width;
+            text_width -= wrap_width + wrap_margin;
+            has_wrapped = true;
+        }
+    }
+    if text_width > text_size.x  text_size.x = text_width;
+    if !has_wrapped  wrap_index= -1;
+
+    return text_size, wrap_index, wrap_width, text_width;
 }
 
 get_kerning :: inline (msdf: MSDF_Font, codepoint1: u8, codepoint2: u8) -> float {

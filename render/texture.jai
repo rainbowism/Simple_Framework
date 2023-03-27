@@ -74,7 +74,7 @@ load_texture :: (
     mag_sampling  := Sampling_Mode.Linear,
     wrap_mode     := Wrap_Mode.Clamp_To_Edge,
     $pixel_format := Pixel_Format.RGBA
-) -> Texture {
+) -> Texture, bool {
     path := temp_c_string(filepath);
 
     texture: Texture = ---;
@@ -97,14 +97,16 @@ load_texture :: (
     else                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     if #complete texture.format == {
-    case .None;      assert(false, "Failed to decode image format.");
     case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_R8,    cast,no_check(GLsizei) texture.width, cast,no_check(GLsizei) texture.height, 0, GL_Pixel_Format[pixel_format], GL_UNSIGNED_BYTE, image_data);
     case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8,   cast,no_check(GLsizei) texture.width, cast,no_check(GLsizei) texture.height, 0, GL_Pixel_Format[pixel_format], GL_UNSIGNED_BYTE, image_data);
     case .RGB;       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,  cast,no_check(GLsizei) texture.width, cast,no_check(GLsizei) texture.height, 0, GL_Pixel_Format[pixel_format], GL_UNSIGNED_BYTE, image_data);
     case .RGBA;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, cast,no_check(GLsizei) texture.width, cast,no_check(GLsizei) texture.height, 0, GL_Pixel_Format[pixel_format], GL_UNSIGNED_BYTE, image_data);
+    case .None;
+        warn(.Render, "Failed to load image file: %", filepath);
+        return .{}, false;
     case;
         warn(.Render, "Parsed invalid texture format for file: %", filepath);
-        return .{};
+        return .{}, false;
     }
 
     // #if pixel_format == .Gray {
@@ -112,7 +114,7 @@ load_texture :: (
     // }
 
     glGenerateMipmap(GL_TEXTURE_2D);
-    return texture;
+    return texture, true;
 }
 
 create_texture :: (
