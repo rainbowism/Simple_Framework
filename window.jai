@@ -285,9 +285,7 @@ set_window_focused :: ($clear_input := false) {
 
 #if !DISABLE_RENDER {
     set_window_icons :: (images: [] Image) {
-        glfw_images: [] GLFWimage = ---;
-        glfw_images.count = images.count;
-        glfw_images.data  = alloc(size_of(GLFWimage) * images.count, temp);
+        glfw_images := NewArray(images.count, GLFWimage, allocator = temp);
         for image: images {
             memcpy(*glfw_image[it_index], *image, size_of(GLFWimage));
         }

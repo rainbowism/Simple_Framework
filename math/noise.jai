@@ -5,15 +5,11 @@
         persistence := 0.5,
         lacunarity := 2.0
     ) -> Texture {
-        contexts: [] *osn_context;
-        contexts.count = octaves;
-        contexts.data  = alloc(octaves * size_of(*osn_context));
+        contexts := NewArray(octaves, *osn_context);
         defer free(contexts.data);
         for 0..octaves-1  open_simplex_noise(seed + it * 2, *contexts[it]);
     
-        bitmap: [] float;
-        bitmap.count = size * size;
-        bitmap.data  = alloc(bitmap.count * size_of(float));
+        bitmap := NewArray(size * size, float);
         defer free(bitmap.data);
     
         inv_period := 1.0 / period;
@@ -36,15 +32,11 @@
         persistence := 0.5,
         lacunarity := 2.0
     ) -> Texture {
-        contexts: [] *osn_context;
-        contexts.count = octaves;
-        contexts.data  = alloc(octaves * size_of(*osn_context));
+        contexts := NewArray(octaves, *osn_context);
         defer free(contexts.data);
         for 0..octaves-1  open_simplex_noise(seed + it * 2, *contexts[it]);
     
-        bitmap: [] float;
-        bitmap.count = size * size;
-        bitmap.data  = alloc(bitmap.count * size_of(float));
+        bitmap := NewArray(size * size, float);
         defer free(bitmap.data);
     
         inv_size := 1.0 / cast(float) size;

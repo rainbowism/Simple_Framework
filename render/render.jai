@@ -379,14 +379,10 @@ init_vertex_buffer :: inline (
     max_renderables: s64
 ) {
     count          = max_renderables;
-    vertices.count = max_renderables * 4;
-    uvs.count      = vertices.count;
-    colors.count   = vertices.count;
-    indices.count  = max_renderables * 6;
-    vertices.data  = alloc(size_of(Vector2) * vertices.count);
-    uvs.data       = alloc(size_of(Vector2) * uvs.count);
-    colors.data    = alloc(size_of(Color)   * colors.count);
-    indices.data   = alloc(size_of(GLuint)  * indices.count);
+    vertices = NewArray(max_renderables * 4, Vector2);
+    uvs      = NewArray(vertices.count, Vector2);
+    colors   = NewArray(vertices.count, Color);
+    indices  = NewArray(max_renderables * 6, GLuint);
 
     it_quad:  u32;
     it_index: s64;
@@ -435,12 +431,9 @@ init_primitive_buffer :: inline (
     $index_count:    s64
 ) {
     count          = max_renderables;
-    vertices.count = max_renderables * vertex_count;
-    colors.count   = vertices.count;
-    indices.count  = max_renderables * index_count;
-    vertices.data  = alloc(size_of(Vector2) * vertices.count);
-    colors.data    = alloc(size_of(Color)   * colors.count);
-    indices.data   = alloc(size_of(GLuint)  * indices.count);
+    vertices = NewArray(max_renderables * vertex_count, Vector2);
+    colors   = NewArray(vertices.count, Color);
+    indices  = NewArray(max_renderables * index_count, GLuint);
 
     #if index_count == 6 {
         it_quad:  u32;

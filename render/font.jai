@@ -43,8 +43,7 @@ load_font :: (filepath: string, font_size: float) -> Font, bool {
     font: Font;
     font.size = font_size;
 
-    font.glyphs.data  = alloc(96 * size_of(Glyph_Info));
-    font.glyphs.count = 96;
+    font.glyphs = NewArray(96, Glyph_Info);
     for 0..chars.count-1 {
         info := chars[it];
         font.glyphs[it].src.x  = cast(float) info.x0;
@@ -95,8 +94,7 @@ load_font :: (filepath: string, font_size: float, stroke: s32) -> Font, bool {
     font.size = font_size;
 
     strokef := cast(float) stroke;
-    font.glyphs.data  = alloc(96 * size_of(Glyph_Info));
-    font.glyphs.count = 96;
+    font.glyphs = NewArray(96, Glyph_Info);
     for 0..chars.count-1 {
         info := chars[it];
         font.glyphs[it].src.x  = cast(float) info.x0 - strokef + 1;
