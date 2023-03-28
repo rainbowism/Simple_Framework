@@ -138,7 +138,8 @@ render_upsamples :: (render_bloom: *Render_Bloom, filter_radius: float) {
 }
 
 FRAG_SHADER_BLOOM :: #string ___glsl
-#version 450 core
+#version 330 core
+#extension GL_ARB_explicit_uniform_location : require
 
 in vec2 fUV;
 
@@ -155,7 +156,8 @@ void main() {
 ___glsl
 
 FRAG_SHADER_BLOOM_DOWNSAMPLE :: #string ___glsl
-#version 450 core
+#version 330 core
+#extension GL_ARB_explicit_uniform_location : require
 
 in vec2 fUV;
 
@@ -256,7 +258,8 @@ void main() {
 ___glsl
 
 FRAG_SHADER_BLOOM_UPSAMPLE :: #string ___glsl
-#version 450 core
+#version 330 core
+#extension GL_ARB_explicit_uniform_location : require
 
 in vec2 fUV;
 

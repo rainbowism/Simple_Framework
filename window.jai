@@ -30,9 +30,10 @@ sf_init :: () -> SF_Result {
 
 create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.None, modules_to_init: Module_Types) -> SF_Result {
     glfwDefaultWindowHints();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
     glfwWindowHint(GLFW_VISIBLE, 0);
     if flags & .MSAA  glfwWindowHint(GLFW_SAMPLES, 4);
 
@@ -96,6 +97,11 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     sf_time.last = get_time();
 
     return .Ok;
+}
+
+destroy_window :: () {
+    glfwDestroyWindow(window.handle);
+    glfwTerminate();
 }
 
 sf_exit :: inline () {
@@ -184,6 +190,10 @@ center_window :: () {
 
 get_window_size :: inline () -> Vector2 {
     return window.size;
+}
+
+get_window_size_i :: inline () -> Point2 {
+    return window.size_i;
 }
 
 get_vsync :: () -> bool {
@@ -290,7 +300,7 @@ set_window_focused :: ($clear_input := false) {
         }
         glfwSetWindowIcon(window.handle, xx images.count, glfw_images.data);
     }
-    
+
     create_mouse_cursor :: (cursor: Mouse_Cursor, image: Image, offset: Point2) {
         if cursors[cursor]  glfwDestroyCursor(cursors[cursor]);
         glfw_image: GLFWimage = ---;

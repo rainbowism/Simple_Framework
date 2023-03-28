@@ -242,6 +242,23 @@ draw_rect :: (dest: Rect, tints: [4] Color, origin := Vector2.{0, 0}, rotation: 
     push_depth();
 }
 
+draw_rect_outline :: (position: Vector2, size: Vector2, tint := Colors.White) {
+    push_color(tint);
+    push_primitive(.Line, position);
+    push_primitive(.Line, .{position.x, position.y + size.y});
+    push_primitive(.Line, position);
+    push_primitive(.Line, .{position.x + size.x, position.y});
+    push_primitive(.Line, position + size);
+    push_primitive(.Line, .{position.x, position.y + size.y});
+    push_primitive(.Line, position + size);
+    push_primitive(.Line, .{position.x + size.x, position.y});
+    push_depth();
+}
+
+draw_rect_outline :: (dest: Rect, tint := Colors.White) {
+    inline draw_rect_outline(dest.position, dest.size, tint);
+}
+
 // draw_texture :: inline (
 //     texture: Texture,
 //     pos: Vector2,

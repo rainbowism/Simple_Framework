@@ -13,9 +13,9 @@ DEFAULT_SHADER_ATTRIB_COLOR       :: 2;
 DEFAULT_SHADER_UNIFORM_TEXT_PARAMS :: 6;
 
 VERT_SHADER_RECT :: #string ___glsl
-#version 450 core
+#version 330 core
 
-layout(std140, binding = 0) uniform ShaderGlobals {
+uniform ShaderGlobals {
     mat4 Projection;
     mat4 ModelView;
     vec2 ScreenSize;
@@ -45,9 +45,9 @@ void main() {
 ___glsl
 
 VERT_SHADER_PRIMITIVE :: #string ___glsl
-#version 450 core
+#version 330 core
 
-layout(std140, binding = 0) uniform ShaderGlobals {
+uniform ShaderGlobals {
     mat4 Projection;
     mat4 ModelView;
     vec2 ScreenSize;
@@ -74,9 +74,9 @@ void main() {
 ___glsl
 
 VERT_SHADER_FRAMEBUFFER :: #string ___glsl
-#version 450 core
+#version 330 core
 
-layout(std140, binding = 0) uniform ShaderGlobals {
+uniform ShaderGlobals {
     mat4 Projection;
     mat4 ModelView;
     vec2 ScreenSize;
@@ -105,7 +105,7 @@ void main() {
 ___glsl
 
 FRAG_SHADER_TEXTURED_RECT :: #string ___glsl
-#version 450 core
+#version 330 core
 
 in vec4 fColor;
 in vec2 fUV;
@@ -121,7 +121,7 @@ void main() {
 ___glsl
 
 FRAG_SHADER_COLORED_RECT :: #string ___glsl
-#version 450 core
+#version 330 core
 
 in vec4 fColor;
 
@@ -134,7 +134,8 @@ void main() {
 ___glsl
 
 FRAG_SHADER_TEXT :: #string ___glsl
-#version 450 core
+#version 330 core
+#extension GL_ARB_explicit_uniform_location : require
 
 in vec2 fUV;
 in vec4 fColor;

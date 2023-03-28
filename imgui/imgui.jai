@@ -318,7 +318,7 @@ ImGui_Impl_CreateDeviceObjects :: () -> bool {
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, xx *last_vertex_array);
 
     vertex_shader := #string ___GLSL
-        #version 450 core
+        #version 330 core
         uniform mat4 Projection;
         in vec2 Position;
         in vec2 UV;
@@ -333,7 +333,7 @@ ImGui_Impl_CreateDeviceObjects :: () -> bool {
     ___GLSL
 
     fragment_shader := #string ___GLSL
-        #version 450 core
+        #version 330 core
         uniform sampler2D Texture;
         in vec2 FragUV;
         in vec4 FragColor;
