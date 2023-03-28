@@ -11,6 +11,12 @@ push_default_framebuffer :: inline () {
     draw_clear();
 }
 
+push_main_framebuffer :: inline () {
+    batch_draw();
+    glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_MAIN].fbo);
+    draw_clear();
+}
+
 push_particle_framebuffer :: inline () {
     batch_draw();
     glBindFramebuffer(GL_FRAMEBUFFER, render_ctx.target[RENDER_TARGET_PARTICLE].fbo);
@@ -31,6 +37,14 @@ push_model_view_identity :: inline () {
 
 push_model_view :: inline (m: Matrix4) {
     render_ctx.state.model_view *= m;
+}
+
+push_camera :: inline (camera: Camera) {
+    render_ctx.state.model_view = get_camera_matrix(camera);
+    glBindBuffer(GL_UNIFORM_BUFFER, render_ctx.ubo);
+    glBufferSubData(GL_UNIFORM_BUFFER, size_of(Matrix4), size_of(Matrix4), render_ctx.state.model_view.floats.data);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 }
 
 push_layer :: (clear: bool, one_minus_alpha := false) {
@@ -174,8 +188,7 @@ render_begin :: inline (time: float, $use_render_target := true) {
 }
 
 render_begin :: inline (time: float, camera: Camera, $use_render_target := true) {
-    push_model_view_identity();
-    push_model_view(get_camera_matrix(camera));
+    push_camera(camera);
     render_ctx.state.current_depth = RENDER_Z_START;
     render_ctx.draw_calls = 0;
 
