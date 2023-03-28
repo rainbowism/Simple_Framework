@@ -70,7 +70,6 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     glfwSetMouseButtonCallback(window.handle, glfw_mouse_callback);
     glfwSetCharCallback       (window.handle, glfw_text_callback);
     glfwSetScrollCallback     (window.handle, glfw_scroll_callback);
-    glfwSetCursorPosCallback  (window.handle, glfw_cursor_position_callback);
     glfwSetDropCallback       (window.handle, glfw_drop_callback);
 
     create_cursors(window.handle);
@@ -306,6 +305,10 @@ set_mouse_cursor :: (cursor := Mouse_Cursor.Arrow) {
     glfwSetCursor(window.handle, cursors[cursor]);
 }
 
+set_cursor_position_callback :: (callback: Cursor_Position_Callback) {
+    window.callbacks.cursor_position = callback;
+}
+
 set_focus_callback :: (callback: Focus_Callback) {
     window.callbacks.focus = callback;
 }
@@ -425,6 +428,7 @@ TRACK_FPS_SAMPLES         :: 120;
 TRACK_FPS_SAMPLE_DURATION :: 4.0;
 TRACK_FPS_STEP            :: TRACK_FPS_SAMPLE_DURATION / TRACK_FPS_SAMPLES;
 
+Cursor_Position_Callback :: #type (x: float64, y: float64);
 Focus_Callback  :: #type (focused: bool);
 Key_Callback    :: #type (key: s32, scancode: s32, action: s32, mods: s32);
 Mouse_Callback  :: #type (button: s32, action: s32, mods: s32);
@@ -454,6 +458,7 @@ Window_Context :: struct {
     }
 
     callbacks: struct {
+        cursor_position: Cursor_Position_Callback;
         focus:  Focus_Callback;
         key:    Key_Callback;
         mouse:  Mouse_Callback;
@@ -495,6 +500,9 @@ glfw_error_callback :: (error: s32, description: *u8) #c_call {
 glfw_cursor_position_callback :: (glfw_win: *GLFWwindow, x: float64, y: float64) #c_call {
     mouse_pos.x = xx x;
     mouse_pos.y = xx y;
+    push_context window.ctx {
+        if window.callbacks.cursor_position != null  window.callbacks.cursor_position(x, y);
+    }
 }
 
 glfw_window_size_callback :: (handle: *GLFWwindow, width: s32, height: s32) #c_call {
