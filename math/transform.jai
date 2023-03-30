@@ -128,6 +128,26 @@ xform_many :: (transform: Transform, v: [] Vector2) {
     }
 }
 
+translate :: inline (transform: *Transform, offset: Vector2) {
+    using transform;
+    _31 += tdotx(transform, offset);
+    _32 += tdoty(transform, offset);
+}
+
+rotate :: inline (transform: *Transform, theta: float) {
+    using transform;
+    cost := tcos(theta);
+    sint := tsin(theta);
+    x_basis = .{cost * _11 + sint * _12, -sint * _11 + cost * _12};
+    y_basis = .{cost * _21 + sint * _22, -sint * _21 + cost * _22};
+}
+
+scale :: inline (transform: *Transform, scale: Vector2) {
+    using transform;
+    x_basis *= scale.x;
+    y_basis *= scale.y;
+}
+
 set_rotation_scale :: (transform: *Transform, theta: float, scale: Vector2) {
     transform._11 =  tcos(theta) * scale.x;
     transform._12 =  tsin(theta) * scale.x;
@@ -150,12 +170,6 @@ set_rotation_scale :: (transform: Transform, theta: float, scale: Vector2) -> Tr
 set_rotation_scale_skew :: (transform: Transform, theta: float, scale: Vector2, skew: float) -> Transform #must #expand {
     inline set_rotation_scale_skew(*transform, theta, scale, skew);
     return transform;
-}
-
-translate :: (transform: *Transform, offset: Vector2) {
-    using transform;
-    _31 += tdotx(transform, offset);
-    _32 += tdoty(transform, offset);
 }
 
 operator * :: (left: Transform, right: Transform) -> Transform #must {
