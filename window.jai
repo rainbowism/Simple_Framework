@@ -1,9 +1,9 @@
-Module_Types :: enum_flags {
+Module_Flags :: enum_flags {
     Render;
     Audio;
     ImGui;
 
-    All :: Module_Types.Render | .Audio | .ImGui;
+    All :: Module_Flags.Render | .Audio | .ImGui;
 }
 
 Window_Flags :: enum_flags {
@@ -28,14 +28,14 @@ sf_init :: () -> SF_Result {
     return .Ok;
 }
 
-create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.None, modules_to_init: Module_Types) -> SF_Result {
+create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.None, modules_to_init: Module_Flags) -> SF_Result {
     glfwDefaultWindowHints();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
     glfwWindowHint(GLFW_VISIBLE, 0);
-    if flags & .MSAA  glfwWindowHint(GLFW_SAMPLES, 4);
+    if flags & .MSAA glfwWindowHint(GLFW_SAMPLES, 4);
 
     window.size.x = xx width;
     window.size.y = xx height;
@@ -49,7 +49,10 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
         return .Failed_To_Create_Window;
     }
     glfwMakeContextCurrent(window.handle);
-    gl_load(*gl, glfwGetProcAddress);
+
+    #if !Disable_Render { if modules_to_init & .Render  render_init(); }
+    #if !Disable_Audio  { if modules_to_init & .Audio   audio_init();  }
+    #if !Disable_ImGui  { if modules_to_init & .ImGui   imgui_init();  }
 
     if flags & .Fullscreen {
         set_fullscreen(true);
@@ -77,20 +80,8 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 
     set_vsync(flags & .VSync > 0);
 
-    glEnable(GL_BLEND);
-    glEnable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    glDepthFunc(GL_NEVER);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glFrontFace(GL_CCW);
-    if flags & .MSAA  glEnable(GL_MULTISAMPLE);
-
     glfwShowWindow(window.handle);
     init_time();
-
-    #if !DISABLE_RENDER { if modules_to_init & .Render  render_init(); }
-    #if !DISABLE_AUDIO  { if modules_to_init & .Audio   audio_init();  }
-    #if !DISABLE_IMGUI  { if modules_to_init & .ImGui   imgui_init();  }
 
     update_viewport(width, height);
 
@@ -100,6 +91,7 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 }
 
 destroy_window :: () {
+    render_deinit();
     glfwDestroyWindow(window.handle);
     glfwTerminate();
 }
@@ -111,7 +103,7 @@ sf_exit :: inline () {
 should_exit :: () -> bool {
     reset_temporary_storage();
 
-    #if !MANUALLY_SWAP_BUFFER {
+    #if !Manually_Swap_Buffer {
         {
             gpu_scoped_task("Present", Colors8.Red);
             glfwSwapBuffers(window.handle);
@@ -292,7 +284,7 @@ set_window_focused :: ($clear_input := false) {
     #if clear_input  clear_input_buffers();
 }
 
-#if !DISABLE_RENDER {
+#if !Disable_Render {
     set_window_icons :: (images: [] Image) {
         glfw_images := NewArray(images.count, GLFWimage, allocator = temp);
         for image: images {
@@ -365,7 +357,7 @@ draw_clear :: ($only_depth := false) #expand {
 }
 
 set_clear_color :: inline (color: Color) {
-    window.clear_color = color;
+    default_pass_action.colors[0].value = color;
 }
 
 wait_for_events :: () #expand {
@@ -392,7 +384,7 @@ get_mouse_pos :: ($cached := false) -> Vector2 {
 
 reset_viewport :: inline () {
     glViewport(0, 0, xx window.size_i.x, xx window.size_i.y);
-    #if !DISABLE_RENDER  push_custom_screen_size(window.size_i.x, window.size_i.y);
+    #if !Disable_Render  push_custom_screen_size(window.size_i.x, window.size_i.y);
 }
 
 sf_time: struct {
@@ -426,7 +418,7 @@ update_viewport :: (width: s32, height: s32) {
     window.size.y = xx height;
     window.size_i.x = width;
     window.size_i.y = height;
-    #if !DISABLE_RENDER  push_screen_size(width, height);
+    // #if !Disable_Render  push_screen_size(width, height);
     if window.callbacks.resize != null  window.callbacks.resize(width, height);
 }
 
@@ -534,7 +526,7 @@ glfw_window_focus_callback :: (handle: *GLFWwindow, focused: s32) #c_call {
 
 glfw_key_callback :: (glfw_win: *GLFWwindow, key: s32, scancode: s32, action: s32, mods: s32) #c_call {
     if key < 0  return;
-    #if !DISABLE_IMGUI  ImGui_Impl_KeyCallback(key, scancode, action, mods);
+    #if !Disable_ImGui  ImGui_Impl_KeyCallback(key, scancode, action, mods);
     input_state.key_cur[key] = action != GLFW_RELEASE;
     push_context window.ctx {
         if window.callbacks.key != null  window.callbacks.key(key, scancode, action, mods);
@@ -542,7 +534,7 @@ glfw_key_callback :: (glfw_win: *GLFWwindow, key: s32, scancode: s32, action: s3
 }
 
 glfw_mouse_callback :: (glfw_win: *GLFWwindow, button: s32, action: s32, mods: s32) #c_call {
-    #if !DISABLE_IMGUI  ImGui_Impl_MouseCallback(button, action, mods);
+    #if !Disable_ImGui  ImGui_Impl_MouseCallback(button, action, mods);
     input_state.mouse_cur[button] = action != GLFW_RELEASE;
     push_context window.ctx {
         if window.callbacks.mouse != null  window.callbacks.mouse(button, action, mods);
@@ -550,14 +542,14 @@ glfw_mouse_callback :: (glfw_win: *GLFWwindow, button: s32, action: s32, mods: s
 }
 
 glfw_text_callback :: (glfw_win: *GLFWwindow, codepoint: u32) #c_call {
-    #if !DISABLE_IMGUI  ImGui_Impl_TextCallback(codepoint);
+    #if !Disable_ImGui  ImGui_Impl_TextCallback(codepoint);
     push_context window.ctx {
         if window.callbacks.text != null  window.callbacks.text(codepoint);
     }
 }
 
 glfw_scroll_callback :: (glfw_win: *GLFWwindow, x_offset: float64, y_offset: float64) #c_call {
-    #if !DISABLE_IMGUI  ImGui_Impl_ScrollCallback(x_offset, y_offset);
+    #if !Disable_ImGui  ImGui_Impl_ScrollCallback(x_offset, y_offset);
     push_context window.ctx {
         if window.callbacks.scroll != null  window.callbacks.scroll(x_offset, y_offset);
     }
@@ -571,5 +563,4 @@ glfw_drop_callback :: (glfw_win: *GLFWwindow, count: s32, paths: **u8) #c_call {
 
 #import "Basic";
 #import "Math";
-#import "GL";
 #import "glfw";

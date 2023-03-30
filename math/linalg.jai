@@ -49,6 +49,9 @@ Rect :: struct {
 #place x1;
     tl: Vector2 = ---;
     br: Vector2 = ---;
+
+#place x1;
+    floats: [4] float = ---;
 }
 
 operator * :: (a: Rect, b: float) -> Rect {

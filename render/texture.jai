@@ -1,11 +1,11 @@
-Texture_Id :: GLuint;
+Texture_Id :: sg_image;
 
 Pixel_Format :: enum s32 {
     None      :: 0;
     Gray      :: 1;
     GrayAlpha :: 2;
-    RGB       :: 3;
     RGBA      :: 4;
+    RGB       :: RGBA;
 }
 
 GL_Pixel_Format :: GLuint.[
@@ -27,7 +27,7 @@ Image :: struct {
 }
 
 Texture :: struct {
-    id:     Texture_Id;
+    id: Texture_Id;
     width:  float;
     height: float;
     format: Pixel_Format;
@@ -36,20 +36,20 @@ Texture :: struct {
     size: Vector2 = ---;
 }
 
-Sampling_Mode :: enum GLint {
-    Nearest          :: GL_NEAREST;
-    Linear           :: GL_LINEAR;
-    Nearest_Mipmap   :: GL_NEAREST_MIPMAP_NEAREST;
-    Linear_Mipmap    :: GL_NEAREST_MIPMAP_LINEAR;
-    Bilinear_Mipmap  :: GL_LINEAR_MIPMAP_NEAREST;
-    Trilinear_Mipmap :: GL_LINEAR_MIPMAP_LINEAR;
+Sampling_Mode :: enum s32 {
+    Nearest          :: sg_filter.NEAREST;
+    Linear           :: sg_filter.LINEAR;
+    Nearest_Mipmap   :: sg_filter.NEAREST_MIPMAP_NEAREST;
+    Linear_Mipmap    :: sg_filter.NEAREST_MIPMAP_LINEAR;
+    Bilinear_Mipmap  :: sg_filter.LINEAR_MIPMAP_NEAREST;
+    Trilinear_Mipmap :: sg_filter.LINEAR_MIPMAP_LINEAR;
 }
 
-Wrap_Mode :: enum GLint {
-    Repeat          :: GL_REPEAT;
-    Mirrored_Repeat :: GL_MIRRORED_REPEAT;
-    Clamp_To_Edge   :: GL_CLAMP_TO_EDGE;
-    Clamp_To_Border :: GL_CLAMP_TO_BORDER;
+Wrap_Mode :: enum s32 {
+    Repeat          :: sg_wrap.REPEAT;
+    Mirrored_Repeat :: sg_wrap.MIRRORED_REPEAT;
+    Clamp_To_Edge   :: sg_wrap.CLAMP_TO_EDGE;
+    Clamp_To_Border :: sg_wrap.CLAMP_TO_BORDER;
 }
 
 SWIZZLE_RGB_MASK   :: GLint.[GL_RED, GL_RED, GL_RED, GL_ONE];
@@ -70,7 +70,7 @@ load_from_memory :: (buffer: string) -> Image {
 
 load_texture :: (
     filepath: string,
-    min_sampling  := Sampling_Mode.Trilinear_Mipmap,
+    min_sampling  := Sampling_Mode.Linear,
     mag_sampling  := Sampling_Mode.Linear,
     wrap_mode     := Wrap_Mode.Clamp_To_Edge,
     $pixel_format := Pixel_Format.RGBA
@@ -84,23 +84,11 @@ load_texture :: (
     texture.width  = cast(float) width;
     texture.height = cast(float) height;
 
-    glGenTextures(1, *texture.id);  assert(texture.id != 0);
-    glBindTexture(GL_TEXTURE_2D, texture.id);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, cast,no_check(GLint) min_sampling);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, cast,no_check(GLint) mag_sampling);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     cast,no_check(GLint) wrap_mode);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     cast,no_check(GLint) wrap_mode);
-
-         if (width * height) % 8 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 8);
-    else if (width * height) % 4 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 4);
-    else if (width * height) % 2 == 0  glPixelStorei(GL_PACK_ALIGNMENT, 2);
-    else                               glPixelStorei(GL_PACK_ALIGNMENT, 1);
-
-    if #complete texture.format == {
-    case .Gray;      glTexImage2D(GL_TEXTURE_2D, 0, GL_R8,    cast,no_check(GLsizei) texture.width, cast,no_check(GLsizei) texture.height, 0, GL_Pixel_Format[pixel_format], GL_UNSIGNED_BYTE, image_data);
-    case .GrayAlpha; glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8,   cast,no_check(GLsizei) texture.width, cast,no_check(GLsizei) texture.height, 0, GL_Pixel_Format[pixel_format], GL_UNSIGNED_BYTE, image_data);
-    case .RGB;       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8,  cast,no_check(GLsizei) texture.width, cast,no_check(GLsizei) texture.height, 0, GL_Pixel_Format[pixel_format], GL_UNSIGNED_BYTE, image_data);
-    case .RGBA;      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, cast,no_check(GLsizei) texture.width, cast,no_check(GLsizei) texture.height, 0, GL_Pixel_Format[pixel_format], GL_UNSIGNED_BYTE, image_data);
+    target_format: sg_pixel_format = ---;
+    if #complete pixel_format == {
+    case .Gray;       target_format = .R8;
+    case .GrayAlpha;  target_format = .RG8;
+    case .RGBA;       target_format = .RGBA8;
     case .None;
         warn(.Render, "Failed to load image file: %", filepath);
         return .{}, false;
@@ -109,12 +97,18 @@ load_texture :: (
         return .{}, false;
     }
 
-    // #if pixel_format == .Gray {
-    //     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, SWIZZLE_ALPHA_MASK.data);
-    // }
-
-    glGenerateMipmap(GL_TEXTURE_2D);
-    return texture, true;
+    // @Todo: Generate mipmaps
+    image_desc: sg_image_desc;
+    image_desc.width  = width;
+    image_desc.height = height;
+    image_desc.pixel_format = target_format;
+    image_desc.min_filter   = cast(sg_filter) min_sampling;
+    image_desc.mag_filter   = cast(sg_filter) mag_sampling;
+    image_desc.wrap_u       = xx,no_check wrap_mode;
+    image_desc.wrap_v       = xx,no_check wrap_mode;
+    image_desc.data.subimage[0][0] = sg_range.{image_data, xx,no_check (width * height * xx texture.format)};
+    texture.id = sg_make_image(*image_desc);
+    return texture, sg_query_image_state(texture.id) == .VALID;
 }
 
 create_texture :: (

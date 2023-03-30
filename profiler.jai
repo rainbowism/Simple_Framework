@@ -16,7 +16,7 @@ Profiler :: struct {
     index: int;
 }
 
-#if ENABLE_PROFILER {
+#if Enable_Profiler {
     profiler_scoped_task :: (using profiler: *Profiler, name: string, color := Colors8.White) #expand {
         id := profiler_begin_task(name, color);
         defer profiler_end_task(id);

@@ -12,6 +12,8 @@ SAT_Rect :: struct {
     bl: Vector2 = ---;
 }
 
+Quad :: SAT_Rect;
+
 project_axis_normalized :: (current_point: Vector2, next_point: Vector2) -> Vector2 {
     axis: Vector2 = ---;
     axis.x = -(next_point.y - current_point.y);

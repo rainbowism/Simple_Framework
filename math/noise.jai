@@ -1,4 +1,4 @@
-#if !DISABLE_RENDER {
+#if !Disable_Render {
     generate_fractal :: (seed: s64, size: s32,
         octaves := 3,
         period := 64.0,

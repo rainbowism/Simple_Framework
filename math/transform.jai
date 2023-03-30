@@ -16,9 +16,13 @@ Transform :: struct {
     floats: [6] float = ---;
 }
 
-tdotx :: inline (using transform: Transform, v: Vector2) -> float #must { return _11 * v.x + _21 * v.y; }
-tdoty :: inline (using transform: Transform, v: Vector2) -> float #must { return _12 * v.x + _22 * v.y; }
-basis_determinant :: inline (using transform: Transform) -> float #must { return _11 * _22 - _12 * _21; }
+Transform_Identity :: Transform.{1, 0, 0, 1, 0, 0};
+
+tdotx :: (using transform: Transform, v: Vector2)  -> float #must #expand { return _11 * v.x + _21 * v.y; }
+tdoty :: (using transform: Transform, v: Vector2)  -> float #must #expand { return _12 * v.x + _22 * v.y; }
+tdotx :: (using transform: *Transform, v: Vector2) -> float #must #expand { return _11 * v.x + _21 * v.y; }
+tdoty :: (using transform: *Transform, v: Vector2) -> float #must #expand { return _12 * v.x + _22 * v.y; }
+basis_determinant :: (using transform: Transform)  -> float #must #expand { return _11 * _22 - _12 * _21; }
 
 make_xform :: (position: Vector2, x_basis: Vector2, y_basis: Vector2) -> Transform #must {
     r: Transform = ---;
@@ -115,6 +119,15 @@ xform_inv :: (transform: Transform, v: Vector2) -> Vector2 #must {
     return r;
 }
 
+xform_many :: (transform: Transform, v: [] Vector2) {
+    for 0..v.count-1 {
+        r: Vector2 = ---;
+        r.x = tdotx(transform, v[it]);
+        r.y = tdoty(transform, v[it]);
+        v[it] = r + transform.position;
+    }
+}
+
 set_rotation_scale :: (transform: *Transform, theta: float, scale: Vector2) {
     transform._11 =  tcos(theta) * scale.x;
     transform._12 =  tsin(theta) * scale.x;
@@ -129,46 +142,52 @@ set_rotation_scale_skew :: (transform: *Transform, theta: float, scale: Vector2,
     transform._22 =  tcos(theta + skew) * scale.y;
 }
 
-set_rotation_scale :: (transform: Transform, theta: float, scale: Vector2) -> Transform #must {
+set_rotation_scale :: (transform: Transform, theta: float, scale: Vector2) -> Transform #must #expand {
     inline set_rotation_scale(*transform, theta, scale);
     return transform;
 }
 
-set_rotation_scale_skew :: (transform: Transform, theta: float, scale: Vector2, skew: float) -> Transform #must {
+set_rotation_scale_skew :: (transform: Transform, theta: float, scale: Vector2, skew: float) -> Transform #must #expand {
     inline set_rotation_scale_skew(*transform, theta, scale, skew);
     return transform;
 }
 
+translate :: (transform: *Transform, offset: Vector2) {
+    using transform;
+    _31 += tdotx(transform, offset);
+    _32 += tdoty(transform, offset);
+}
+
 operator * :: (left: Transform, right: Transform) -> Transform #must {
     r := left;
-	r.position = xform(r, right.position);
-	x0 := tdotx(r, right.x_basis);
-	x1 := tdoty(r, right.x_basis);
-	y0 := tdotx(r, right.y_basis);
-	y1 := tdoty(r, right.y_basis);
-	r._11 = x0;
-	r._12 = x1;
-	r._21 = y0;
-	r._22 = y1;
+    r.position = xform(r, right.position);
+    x0 := tdotx(r, right.x_basis);
+    x1 := tdoty(r, right.x_basis);
+    y0 := tdotx(r, right.y_basis);
+    y1 := tdoty(r, right.y_basis);
+    r._11 = x0;
+    r._12 = x1;
+    r._21 = y0;
+    r._22 = y1;
     return r;
 }
 
-get_rotation :: (transform: Transform) -> float #must {
+get_rotation :: (transform: Transform) -> float #must #expand {
     return tatan2(transform._12, transform._11);
 }
 
 get_scale :: (transform: Transform) -> Vector2 #must {
-	determinant := basis_determinant(transform);
+    determinant := basis_determinant(transform);
     r: Vector2 = ---;
     r.x = length(transform.x_basis);
     r.y = length(transform.y_basis) * sign(determinant);
-	return r;
+    return r;
 }
 
 get_skew :: (transform: Transform) -> float #must {
-	determinant := basis_determinant(transform);
+    determinant := basis_determinant(transform);
     // @Todo(sushi): Remove factors of PI.
-	// return acos(dot(unit_vector(transform.x_basis), sign(determinant) * unit_vector(transform.y_basis))) * INV_PI - 0.5;
+    // return acos(dot(unit_vector(transform.x_basis), sign(determinant) * unit_vector(transform.y_basis))) * INV_PI - 0.5;
     return 0.0;
 }
 

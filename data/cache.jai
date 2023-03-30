@@ -16,11 +16,11 @@ free_cache :: (cache: *MD5_Cache($T)) {
     deinit(*cache.table);
 }
 
-#if !DISABLE_RENDER {
+#if !Disable_Render {
     Texture_Cache :: MD5_Cache(Texture);
     
     load_texture :: (cache: *Texture_Cache, filepath: string,
-        min_sampling  := Sampling_Mode.Trilinear_Mipmap,
+        min_sampling  := Sampling_Mode.Linear,
         mag_sampling  := Sampling_Mode.Linear,
         wrap_mode     := Wrap_Mode.Clamp_To_Edge,
         $pixel_format := Pixel_Format.RGBA) -> Texture {

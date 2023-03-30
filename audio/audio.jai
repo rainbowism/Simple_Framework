@@ -40,8 +40,9 @@ play_sound :: (sound: *Sound, $restart := true) {
 Sound_Channel :: ma_sound_group;
 
 #scope_module
+
 audio_init :: () -> SF_Result {
-    assert(!audio_ctx.is_ready, "Trying to initialize audio module again!");
+    assert(audio_ctx.init_value != Audio_Init_Value, "Trying to initialize audio module again!");
 
     ctx_config := ma_context_config_init();
     result     := ma_context_init(null, 0, *ctx_config, *audio_ctx.ma_ctx);
@@ -75,7 +76,7 @@ audio_init :: () -> SF_Result {
         return .Failed_To_Init_Miniaudio;
     }
 
-    audio_ctx.is_ready = true;
+    audio_ctx.init_value = Audio_Init_Value;
 
     trace(.Audio, "Audio device initialized successfully:\n  Format: %\n  Channels: %\n  Sample Rate: %",
         to_string(ma_get_format_name(audio_ctx.device.playback.format)),
@@ -86,12 +87,19 @@ audio_init :: () -> SF_Result {
     return .Ok;
 }
 
+audio_deinit :: () {
+    ma_device_uninit(*audio_ctx.device);
+    ma_engine_uninit(*audio_ctx.engine);
+    audio_ctx = Audio_Context.{};
+}
 
 audio_ctx: Audio_Context;
 
-#import "miniaudio" (NO_SSE_41 = DISABLE_SIMD);
+#import "miniaudio" (NO_SSE_41 = Disable_SIMD);
 
 #scope_file
+
+Audio_Init_Value :: 0x28008135;
 
 audio_data_callback :: (device: *ma_device, output: *void, input: *void, frame_count: u32) #c_call {
     engine: *ma_engine = xx device.pUserData;
@@ -105,5 +113,5 @@ Audio_Context :: struct {
 
     master_channel: *Sound_Channel;
 
-    is_ready: bool;
+    init_value: u32;
 }

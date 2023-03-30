@@ -103,7 +103,7 @@ free_msdf :: (msdf: *MSDF_Font) {
     free(msdf);
 }
 
-measure_text :: (msdf: MSDF_Font, text: string, size: float) -> Vector2 {
+measure_text :: (msdf: *MSDF_Font, text: string, size: float) -> Vector2 {
     text_size := Vector2.{0, msdf.line_height * size};
     if text.count == 0  return text_size;
     last_char: u8 = 0;
@@ -118,7 +118,7 @@ measure_text :: (msdf: MSDF_Font, text: string, size: float) -> Vector2 {
     return text_size;
 }
 
-measure_text_wrapped_em :: (msdf: MSDF_Font, text: string, size: float, max_width: float) -> Vector2, s64, float, float {
+measure_text_wrapped_em :: (msdf: *MSDF_Font, text: string, size: float, max_width: float) -> Vector2, s64, float, float {
     // @Incomplete(sushi): This doesn't support wrapping more than 1 line.
     text_size := Vector2.{0, msdf.line_height * size};
     if text.count == 0  return text_size, -1, 0.0, 0.0;

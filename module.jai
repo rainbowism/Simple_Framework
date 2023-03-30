@@ -1,15 +1,19 @@
 #module_parameters(
-    DEBUG                := false,
-    LOG_LEVEL            := Log_Level.INFO,
-    LOG_FILE_PATH        := false,
-    MANUALLY_SWAP_BUFFER := false,
+    Debug                := false,
+    Default_Log_Level    := Log_Level.Info,
+    Log_File_Paths       := false,
+    Manually_Swap_Buffer := false,
 
-    DISABLE_RENDER  := false,
-    DISABLE_AUDIO   := false,
-    DISABLE_IMGUI   := false,
-    DISABLE_SIMD    := false,
-    ENABLE_PROFILER := false
+    Disable_Render  := false,
+    Disable_Audio   := false,
+    Disable_ImGui   := false,
+    Disable_SIMD    := false,
+    Enable_Profiler := false,
+
+    Uniform_Size := 2
 );
+
+#assert Uniform_Size >= 2 "Uniform_Size must be at least 2 units wide!";
 
 SF_Result :: enum {
     Ok;
@@ -23,6 +27,7 @@ SF_Result :: enum {
 #import "Math";
 #import "Hash";
 #import "Hash_Table";
+#import "Pool";
 
 #load "utils.jai";
 #load "color.jai";
@@ -42,27 +47,27 @@ SF_Result :: enum {
 
 #load "data/cache.jai";
 
-#if !DISABLE_RENDER {
+#if !Disable_Render {
     #load "render/texture.jai";
     #load "render/font.jai";
     #load "render/msdf.jai";
     #load "render/render.jai";
-    #load "render/shader.jai";
+    // #load "render/shader.jai";
     #load "render/default_shader.jai";
-    #load "render/render_layer.jai";
-    #load "render/render_target.jai";
-    #load "render/bloom.jai";
+    // #load "render/render_layer.jai";
+    // #load "render/render_target.jai";
+    // #load "render/bloom.jai";
     #load "render/draw.jai";
-    #load "render/particles.jai";
+    // #load "render/particles.jai";
     #load "render/camera.jai";
 }
 
-#if !DISABLE_AUDIO {
+#if !Disable_Audio {
     #load "audio/audio.jai";
     #load "audio/sound.jai";
 }
 
-#if !DISABLE_IMGUI {
+#if !Disable_ImGui {
     #load "imgui/imgui.jai";
     #load "imgui/profiler.jai";
 }
