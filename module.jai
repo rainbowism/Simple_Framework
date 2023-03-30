@@ -10,7 +10,9 @@
     Disable_SIMD    := false,
     Enable_Profiler := false,
 
-    Uniform_Size := 2
+    Debug_Render := false,
+    Uniform_Size := 2,
+    Batch_Optimizer_Depth := 8
 );
 
 #assert Uniform_Size >= 2 "Uniform_Size must be at least 2 units wide!";

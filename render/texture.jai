@@ -107,6 +107,10 @@ load_texture :: (
     image_desc.wrap_u       = xx,no_check wrap_mode;
     image_desc.wrap_v       = xx,no_check wrap_mode;
     image_desc.data.subimage[0][0] = sg_range.{image_data, xx,no_check (width * height * xx texture.format)};
+#if Debug_Render {
+    label := sprint("%\0", filepath);
+    image_desc.label = label.data;
+}
     texture.id = sg_make_image(*image_desc);
     return texture, sg_query_image_state(texture.id) == .VALID;
 }

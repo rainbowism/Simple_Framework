@@ -1,12 +1,12 @@
 Uniform :: struct {
-    #if Is_Debug  name: *u8;
+    #if Debug_Render  name: *u8;
     location: GLint;
     type:     Type;
     data:     *void;
 }
 
 Shader :: struct {
-    #if Is_Debug {
+    #if Debug_Render {
         vert_code: string;
         frag_code: string;
     }
@@ -28,7 +28,7 @@ create_shader :: (vert_code: string, frag_code: string, $use_screen_texture := f
     program := create_gl_program(vert_code, frag_code, binding_flags);
     if program == 0  return null;
     shader_ptr := *render_ctx.shaders.data[render_ctx.shaders.last_occupied];
-    #if Is_Debug {
+    #if Debug_Render {
         shader_ptr.vert_code = copy_string(vert_code);
         shader_ptr.frag_code = copy_string(frag_code);
     }
@@ -105,7 +105,7 @@ attach_uniform :: (shader: *Shader, name: string, data: *$T) -> bool {
     uniform := find_uniform(shader, location);
     if uniform == null {
         uniform := array_add(*shader.uniforms);
-        #if Is_Debug {
+        #if Debug_Render {
             uniform.name = alloc(name.count + 1);
             memcpy(uniform.name, name.data, name.count);
             uniform.name[name.count] = 0;
@@ -121,7 +121,7 @@ attach_uniform :: (shader: *Shader, name: string, data: *$T) -> bool {
     return true;
 }
 
-#if Is_Debug {
+#if Debug_Render {
     reattach_uniform :: (shader: *Shader) {
         for *uniform: shader.uniforms {
             location := glGetUniformLocation(shader.program, uniform.name);

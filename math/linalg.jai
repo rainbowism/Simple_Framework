@@ -77,6 +77,11 @@ intersect :: inline (v: Vector2, r: Rect) -> bool {
            r.y <= v.y && r.height >= v.y;
 }
 
+overlaps :: inline (a: Rect, b:Rect) -> bool {
+    return a.x1 <= b.x2 && a.x2 >= b.x1 &&
+           a.y1 <= b.y2 && a.y2 >= b.y1;
+}
+
 Point2 :: struct {
     x, y: s32;
 }

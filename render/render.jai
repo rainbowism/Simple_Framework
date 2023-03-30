@@ -19,6 +19,28 @@ Imm_Blend_Mode :: enum s32 {
     Count :: 5;
 }
 
+Text_Align :: struct {
+    TL :: Top_Left;
+    TC :: Top_Center;
+    TR :: Top_Right;
+    L  :: Left;
+    C  :: Center;
+    R  :: Right;
+    BL :: Bottom_Left;
+    BC :: Bottom_Center;
+    BR :: Bottom_Right;
+
+    Top_Left      :: Vector2.{0.0, 0.0};
+    Top_Center    :: Vector2.{0.5, 0.0};
+    Top_Right     :: Vector2.{1.0, 0.0};
+    Left          :: Vector2.{0.0, 0.5};
+    Center        :: Vector2.{0.5, 0.5};
+    Right         :: Vector2.{1.0, 0.5};
+    Bottom_Left   :: Vector2.{0.0, 0.5};
+    Bottom_Center :: Vector2.{0.5, 0.5};
+    Bottom_Right  :: Vector2.{1.0, 0.5};
+}
+
 test_log :: (tag: *u8, slog_level: u32, log_item_id: u32, message: *u8, line_nr: u32, filename: *u8, user_data: *void) -> void #c_call {
     new_context: Context;
     push_context new_context {
@@ -80,9 +102,12 @@ render_init :: () {
 
     {
         pixels: [4] u32 = ---;
-        memset(pixels.data, 0xFF, size_of(type_of(pixels)));
-        white_image_desc: sg_image_desc;
-        using white_image_desc;
+        pixels[0] = 0xFFC9B9FF;
+        pixels[1] = 0xFFC9B9FF;
+        pixels[2] = 0xFFC9B9FF;
+        pixels[3] = 0xFFC9B9FF;
+        missing_image_desc: sg_image_desc;
+        using missing_image_desc;
         type   = ._2D;
         width  = 2;
         height = 2;
@@ -90,11 +115,11 @@ render_init :: () {
         min_filter   = .NEAREST;
         mag_filter   = .NEAREST;
         data.subimage[0][0] = sg_range.{pixels.data, size_of(type_of(pixels))};
-        label = "Default_White_Image";
+        label = "Missing_Image";
 
-        white_image = sg_make_image(*white_image_desc);
-        if sg_query_image_state(white_image) != .VALID {
-            warn(.Render, "Failed to initialize Default_White_Image.");
+        missing_image = sg_make_image(*missing_image_desc);
+        if sg_query_image_state(missing_image) != .VALID {
+            warn(.Render, "Failed to initialize Missing_Image.");
         }
     }
 
@@ -167,6 +192,10 @@ render_queue_draw :: (pipe: sg_pipeline, region: Rect, vertex_index: u32, num_ve
         return;
     }
 
+    #if Batch_Optimizer_Depth > 0 {
+        if merge_batch_command(pipe, state.images, state.uniform, region, vertex_index, num_vertices)  return;
+    }
+
     // prev_uniform := prev_uniform();
     // reuse_uniform := prev_uniform && (memcmp(prev_uniform, *state.uniform, size_of(Imm_Uniform)) == 0);
     if true { // @Todo: !reuse_uniform {
@@ -199,21 +228,7 @@ imm_begin :: () {
     state_stack[cur_state] = state;
     cur_state += 1;
 
-    state.frame_size = window.size_i;
-    state.viewport.position = .{0, 0};
-    state.viewport.size = window.size_i;
-    state.scissor.position = .{0, 0};
-    state.scissor.size = .{-1, -1};
-    state.projection = make_projection(window.size.x, window.size.y);
-    state.transform  = Transform_Identity;
-    state.mvp        = state.projection;
-    state.color      = Colors.White;
-    state.uniform.size = size_of(Color);
-    state.uniform.data[0] = Colors.White.r;
-    state.uniform.data[1] = Colors.White.g;
-    state.uniform.data[2] = Colors.White.b;
-    state.uniform.data[3] = Colors.White.a;
-    state.blend_mode = .Blend;
+    inline imm_reset_state();
     state.base_vertex = cur_vertex;
     state.base_uniform = cur_uniform;
     state.base_command = cur_command;
@@ -323,8 +338,38 @@ imm_flush :: () {
     }
 }
 
-imm_set_image_white :: inline (channel: s32) {
-    imm_set_image(channel, render_ctx.white_image);
+// -State
+
+imm_set_pipeline :: (pipeline: sg_pipeline) {
+    using render_ctx;
+    state.pipeline = pipeline;
+    state.uniform = .{};
+
+    if pipeline != SG_INVALID_ID  return;
+    state.uniform.size = size_of(Color);
+    state.uniform.data[0] = state.color.r;
+    state.uniform.data[1] = state.color.g;
+    state.uniform.data[2] = state.color.b;
+    state.uniform.data[3] = state.color.a;
+}
+
+imm_set_uniform :: (data: *void, size: u64) {
+    using render_ctx;
+    assert(size <= size_of(float) * Uniform_Size * 4);
+    assert(size > 0);
+    assert(data != null);
+    memcpy(state.uniform.data.data, data, size);
+    if size < state.uniform.size {
+        memset(state.uniform.data.data + size, 0, state.uniform.size - size);
+    }
+    state.uniform.size = size;
+}
+
+imm_reset_uniform :: () {
+    if state.uniform.size > 0 {
+        memset(state.uniform.data.data, 0, state.uniform.size);
+    }
+    state.uniform.size = 0;
 }
 
 imm_set_image :: (channel: s32, image: sg_image) {
@@ -345,6 +390,219 @@ imm_set_image :: (channel: s32, image: sg_image) {
 
     state.images.count = xx,no_check images_count;
 }
+
+imm_unset_image :: (channel: s32) #expand {
+    imm_set_image(channel, SG_INVALID_ID);
+}
+
+imm_reset_image :: inline (channel: s32) {
+    if channel == 0 {
+        imm_set_image(channel, render_ctx.missing_image);
+    } else {
+        imm_set_image(channel, SG_INVALID_ID);
+    }
+}
+
+imm_set_missing_image :: (channel: s32) #expand {
+    imm_set_image(channel, render_ctx.missing_image);
+}
+
+imm_set_blend_mode :: (blend_mode: Imm_Blend_Mode) #expand {
+    render_ctx.state.blend_mode = blend_mode;
+}
+
+imm_reset_blend_mode :: () #expand {
+    imm_set_blend_mode(.None);
+}
+
+imm_set_color :: (color: Color) {
+    using render_ctx;
+    state.color = color;
+
+    if state.pipeline != SG_INVALID_ID  return;
+    state.uniform.size = size_of(Color);
+    state.uniform.data[0] = state.color.r;
+    state.uniform.data[1] = state.color.g;
+    state.uniform.data[2] = state.color.b;
+    state.uniform.data[3] = state.color.a;
+}
+
+imm_reset_color :: () #expand {
+    imm_set_color(Colors.White);
+}
+
+imm_viewport :: (x: s32, y: s32, width: s32, height: s32) {
+    using render_ctx;
+    if state.viewport.x == x
+    && state.viewport.y == y
+    && state.viewport.width  == width
+    && state.viewport.height == height {
+        return;
+    }
+
+    command := prev_command(1);
+    if !command || command.type != .Viewport {
+        command == next_command();
+    }
+
+    viewport := Recti.{x, y, width, height};
+    << command = .{};
+    command.type = .Viewport;
+    command.viewport = viewport;
+
+    if state.scissor.width >= 0 || state.scissor.height >= 0 {
+        state.scissor.x += x - state.viewport.x;
+        state.scissor.y += y - state.viewport.y;
+    }
+
+    state.viewport = viewport;
+    imm_reset_project();
+}
+
+imm_reset_viewport :: () #expand {
+    imm_viewport(0, 0, state.frame_size.x, state.frame_size.y);
+}
+
+imm_scissor :: (x: s32, y: s32, width: s32, height: s32) {
+    using render_ctx;
+    if state.scissor.x == position.x
+    && state.scissor.y == position.y
+    && state.scissor.width  == size.x
+    && state.scissor.height == size.y {
+        return;
+    }
+
+    command := prev_command(1);
+    if !command || command.type != .Scissor {
+        command == next_command();
+    }
+
+    viewport_scissor := Recti.{state.viewport.x + x, state.viewport.y + y, width, height};
+
+    if width < 0 && height < 0 {
+        viewport_scissor.x = 0;
+        viewport_scissor.y = 0;
+        viewport_scissor.width  = state.frame_size.x;
+        viewport_scissor.height = state.frame_size.y;
+    }
+
+    << command = .{};
+    command.type = .Scissor;
+    command.scissor = viewport_scissor;
+
+    state.scissor = .{x, y, width, height};
+}
+
+imm_reset_scissor :: () #expand {
+    imm_scissor(0, 0, -1, -1);
+}
+
+imm_reset_state :: () {
+    using render_ctx;
+    state.frame_size = window.size_i;
+    state.viewport.position = .{0, 0};
+    state.viewport.size = window.size_i;
+    state.scissor.position = .{0, 0};
+    state.scissor.size = .{-1, -1};
+    state.projection = make_projection(window.size.x, window.size.y);
+    state.transform  = Transform_Identity;
+    state.mvp        = state.projection;
+    state.color      = Colors.White;
+    state.uniform.size = size_of(Color);
+    state.uniform.data[0] = Colors.White.r;
+    state.uniform.data[1] = Colors.White.g;
+    state.uniform.data[2] = Colors.White.b;
+    state.uniform.data[3] = Colors.White.a;
+    state.blend_mode = .Blend;
+    state.pipeline = SG_INVALID_ID;
+}
+
+// -Transforms
+
+imm_push_transform :: inline () {
+    using render_ctx;
+    assert(cur_transform < Max_Stack_Depth);
+    transform_stack[cur_transform] = state.transform;
+    cur_transform += 1;
+}
+
+imm_push_transform :: inline (transform: Transform) {
+    using render_ctx;
+    assert(cur_transform < Max_Stack_Depth);
+    transform_stack[cur_transform] = state.transform;
+    cur_transform  += 1;
+    state.transform = transform;
+    state.mvp       = state.projection * state.transform;
+}
+
+imm_pop_transform :: inline () {
+    using render_ctx;
+    assert(cur_transform > 0);
+    cur_transform  -= 1;
+    state.transform = transform_stack[cur_transform];
+    state.mvp       = state.projection * state.transform;
+}
+
+imm_reset_transform :: inline () {
+    state.transform = Transform_Identity;
+    state.mvp       = state.projection * state.transform;
+}
+
+imm_project :: (left: float, right: float, top: float, bottom: float) {
+    width  := right - left;
+    height := top - bottom;
+    transform := Transform.{
+        2.0 / width, 0.0,
+        0.0, 2.0 / height,
+        -(right + left) / width,
+        -(top + bottom) / height,
+    };
+    using render_ctx;
+    state.projection = transform;
+    state.mvp        = state.projection * state.transform;
+}
+
+imm_reset_project :: inline () {
+    using render_ctx;
+    state.projection = make_projection(state.viewport.width, state.viewport.height);
+    state.mvp        = state.projection * state.transform;
+}
+
+imm_translate :: inline (offset: Vector2) {
+    using render_ctx;
+    translate(*state.transform, offset);
+    state.mvp = state.projection * state.transform;
+}
+
+imm_rotate :: inline (theta: float) {
+    using render_ctx;
+    rotate(*state.transform, theta);
+    state.mvp = state.projection * state.transform;
+}
+
+imm_rotate_at :: inline (theta: float, offset: Vector2) {
+    using render_ctx;
+    translate(*state.transform, -offset);
+    rotate(*state.transform, theta);
+    translate(*state.transform, offset);
+    state.mvp = state.projection * state.transform;
+}
+
+imm_scale :: inline (scale: Vector2) {
+    using render_ctx;
+    scale(*state.transform, theta);
+    state.mvp = state.projection * state.transform;
+}
+
+imm_scale_at :: inline (scale: Vector2, offset: Vector2) {
+    using render_ctx;
+    translate(*state.transform, -offset);
+    scale(*state.transform, theta);
+    translate(*state.transform, offset);
+    state.mvp = state.projection * state.transform;
+}
+
+// -Drawing
 
 imm_texture_rect :: (rect: Rect) {
     rects: [] Rect;
@@ -451,28 +709,6 @@ imm_texture_quads :: (quads: [] Quad) {
 }
 
 imm_subquads :: (count: s32) {
-}
-
-Text_Align :: struct {
-    TL :: Top_Left;
-    TC :: Top_Center;
-    TR :: Top_Right;
-    L  :: Left;
-    C  :: Center;
-    R  :: Right;
-    BL :: Bottom_Left;
-    BC :: Bottom_Center;
-    BR :: Bottom_Right;
-
-    Top_Left      :: Vector2.{0.0, 0.0};
-    Top_Center    :: Vector2.{0.5, 0.0};
-    Top_Right     :: Vector2.{1.0, 0.0};
-    Left          :: Vector2.{0.0, 0.5};
-    Center        :: Vector2.{0.5, 0.5};
-    Right         :: Vector2.{1.0, 0.5};
-    Bottom_Left   :: Vector2.{0.0, 0.5};
-    Bottom_Center :: Vector2.{0.5, 0.5};
-    Bottom_Right  :: Vector2.{1.0, 0.5};
 }
 
 imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, color := Colors.White) {
@@ -630,66 +866,7 @@ imm_text_outlined_aligned :: inline (msdf: *MSDF_Font, text: string, position: V
     imm_text_outlined(msdf, text, position - offset, size, outline, fill, stroke);
 }
 
-imm_project :: (left: float, right: float, top: float, bottom: float) {
-    width  := right - left;
-    height := top - bottom;
-    transform := Transform.{
-        2.0 / width, 0.0,
-        0.0, 2.0 / height,
-        -(right + left) / width,
-        -(top + bottom) / height,
-    };
-    using render_ctx;
-    state.projection = transform;
-    state.mvp        = state.projection * state.transform;
-}
-
-make_projection :: inline (width: s32, height: s32) -> Transform {
-    return make_projection(cast(float) width, cast(float) height);
-}
-
-make_projection :: inline (width: float, height: float) -> Transform {
-    return .{
-        2.0 / width, 0.0,
-        0.0, -2.0 / height,
-        -1.0, 1.0,
-    };
-}
-
-imm_push_transform :: inline () {
-    using render_ctx;
-    assert(cur_transform < Max_Stack_Depth);
-    transform_stack[cur_transform] = state.transform;
-    cur_transform += 1;
-}
-
-imm_push_transform :: inline (transform: Transform) {
-    using render_ctx;
-    assert(cur_transform < Max_Stack_Depth);
-    transform_stack[cur_transform] = state.transform;
-    cur_transform  += 1;
-    state.transform = transform;
-    state.mvp       = state.projection * state.transform;
-}
-
-imm_pop_transform :: inline () {
-    using render_ctx;
-    assert(cur_transform > 0);
-    cur_transform  -= 1;
-    state.transform = transform_stack[cur_transform];
-    state.mvp       = state.projection * state.transform;
-}
-
-imm_reset_transform :: inline () {
-    state.transform = Transform_Identity;
-    state.mvp       = state.projection * state.transform;
-}
-
-imm_translate :: inline (offset: Vector2) {
-    using render_ctx;
-    translate(*state.transform, offset);
-    state.mvp = state.projection * state.transform;
-}
+// -Utility
 
 make_pipeline :: (target_primitive_type: sg_primitive_type, blend_mode: Imm_Blend_Mode, shader: sg_shader) -> sg_pipeline {
     blend := get_blend_state(blend_mode);
@@ -711,6 +888,18 @@ make_pipeline :: (target_primitive_type: sg_primitive_type, blend_mode: Imm_Blen
         pipe = SG_INVALID_ID;
     }
     return pipe;
+}
+
+make_projection :: inline (width: s32, height: s32) -> Transform {
+    return make_projection(cast(float) width, cast(float) height);
+}
+
+make_projection :: inline (width: float, height: float) -> Transform {
+    return .{
+        2.0 / width, 0.0,
+        0.0, -2.0 / height,
+        -1.0, 1.0,
+    };
 }
 
 #scope_module
@@ -815,7 +1004,7 @@ Render_Context :: struct {
     shader: Render_Shader;
     text_shader: Render_Shader;
     vertex_buffer: sg_buffer;
-    white_image: sg_image;
+    missing_image: sg_image;
     pipelines: [cast(s64) sg_primitive_type.NUM * cast(s64) Imm_Blend_Mode.Count] sg_pipeline;
     text_pipeline: sg_pipeline;
 
@@ -947,6 +1136,18 @@ get_blend_state :: (blend_mode: Imm_Blend_Mode) -> sg_blend_state {
     return blend;
 }
 
+advance_vertices :: inline (count: u32) -> *Imm_Vertex {
+    using render_ctx;
+    if cur_vertex + count > vertices.count {
+        warn(.Render, "Vertices filled up!");
+        return null;
+    }
+
+    new_vertices := *vertices[cur_vertex];
+    cur_vertex += count;
+    return new_vertices;
+}
+
 prev_uniform :: () -> *Imm_Uniform #must #expand {
     using render_ctx;
     if cur_uniform <= 0  return null;
@@ -982,14 +1183,113 @@ next_command :: () -> *Imm_Command #must #expand {
     return new_command;
 }
 
-advance_vertices :: inline (count: u32) -> *Imm_Vertex {
-    using render_ctx;
-    if cur_vertex + count > vertices.count {
-        warn(.Render, "Vertices filled up!");
-        return null;
+merge_batch_command :: (pipe: sg_pipeline, images: Imm_Images_Uniform, uniform: Imm_Uniform, region: Rect, vertex_index: u32, num_vertices: u32) -> bool {
+    previous: *Imm_Command;
+    intermediates: [Batch_Optimizer_Depth] *Imm_Command;
+    intermediate_count: s64;
+
+    lookup_depth: u32 = Batch_Optimizer_Depth;
+    depth: u32;
+    while depth < lookup_depth {
+        defer depth += 1;
+
+        command := prev_command(depth + 1);
+        if !command  break;
+        if command.type == .None {
+            lookup_depth += 1;
+            continue;
+        }
+        if command.type != .Draw  break;
+
+        if command.draw.pipe == pipe
+        && memcmp(*images,  *command.draw.images, size_of(Imm_Images_Uniform)) == 0
+        && memcmp(*uniform, *render_ctx.uniforms[command.draw.uniform_index], size_of(Imm_Uniform)) == 0 {
+            previous = command;
+            break;
+        } else {
+            intermediates[intermediate_count] = command;
+            intermediate_count += 1;
+        }
     }
 
-    new_vertices := *vertices[cur_vertex];
-    cur_vertex += count;
-    return new_vertices;
+    if !previous  return false;
+
+    overlaps_next, overlaps_prev: bool;
+    prev_region := previous.draw.region;
+    for 0..intermediate_count-1 {
+        intermediate_region := intermediates[it].draw.region;
+        if overlaps(region, intermediate_region) {
+            overlaps_next = true;
+            if overlaps_prev  return false;
+        }
+        if overlaps(prev_region, intermediate_region) {
+            overlaps_prev = true;
+            if overlaps_next  return false;
+        }
+    }
+
+    if !overlaps_next { // Batch in the previous draw command.
+        if intermediate_count > 0 {
+            if render_ctx.cur_vertex + num_vertices > render_ctx.vertices.count  return false;
+            prev_end_vertex := previous.draw.vertex_index + previous.draw.num_vertices;
+            move_count      := render_ctx.cur_vertex - prev_end_vertex;
+            {
+                // memmove in reverse
+                to   := *render_ctx.vertices[prev_end_vertex + num_vertices];
+                from := *render_ctx.vertices[prev_end_vertex];
+                for < move_count-1..0  to[it] = from[it];
+            }
+            memcpy(
+                *render_ctx.vertices[prev_end_vertex],
+                *render_ctx.vertices[vertex_index + num_vertices],
+                num_vertices * size_of(Imm_Vertex)
+            );
+
+            // Shift all the vertices forward.
+            for 0..intermediate_count-1 {
+                intermediates[it].draw.vertex_index += num_vertices;
+            }
+        }
+
+        prev_region.x1 = min(prev_region.x1, region.x1);
+        prev_region.y1 = min(prev_region.y1, region.y1);
+        prev_region.x2 = min(prev_region.x2, region.x2);
+        prev_region.y2 = min(prev_region.y2, region.y2);
+        previous.draw.num_vertices += num_vertices;
+        previous.draw.region        = prev_region;
+    } else { // Batch in the next draw command.
+        command := next_command();
+        prev_num_vertices := previous.draw.num_vertices;
+        if render_ctx.cur_vertex + prev_num_vertices > render_ctx.vertices.count  return false;
+
+        memcpy(
+            *render_ctx.vertices[vertex_index + prev_num_vertices],
+            *render_ctx.vertices[vertex_index],
+            num_vertices * size_of(Imm_Vertex)
+        );
+        memcpy(
+            *render_ctx.vertices[vertex_index],
+            *render_ctx.vertices[previous.draw.vertex_index],
+            prev_num_vertices * size_of(Imm_Vertex)
+        );
+
+        prev_region.x1 = min(prev_region.x1, region.x1);
+        prev_region.y1 = min(prev_region.y1, region.y1);
+        prev_region.x2 = min(prev_region.x2, region.x2);
+        prev_region.y2 = min(prev_region.y2, region.y2);
+        render_ctx.cur_vertex += prev_num_vertices;
+        num_vertices          += prev_num_vertices;
+
+        command.type = .Draw;
+        command.draw.pipe   = pipe;
+        command.draw.images = images;
+        command.draw.region = prev_region;
+        command.draw.uniform_index = previous.draw.uniform_index;
+        command.draw.vertex_index  = vertex_index;
+        command.draw.num_vertices  = num_vertices;
+
+        previous.type = .None;
+    }
+
+    return true;
 }
