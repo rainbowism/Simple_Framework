@@ -453,7 +453,29 @@ imm_texture_quads :: (quads: [] Quad) {
 imm_subquads :: (count: s32) {
 }
 
-imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, color := Colors.White, outline: float = -1.0) {
+Text_Align :: struct {
+    TL :: Top_Left;
+    TC :: Top_Center;
+    TR :: Top_Right;
+    L  :: Left;
+    C  :: Center;
+    R  :: Right;
+    BL :: Bottom_Left;
+    BC :: Bottom_Center;
+    BR :: Bottom_Right;
+
+    Top_Left      :: Vector2.{0.0, 0.0};
+    Top_Center    :: Vector2.{0.5, 0.0};
+    Top_Right     :: Vector2.{1.0, 0.0};
+    Left          :: Vector2.{0.0, 0.5};
+    Center        :: Vector2.{0.5, 0.5};
+    Right         :: Vector2.{1.0, 0.5};
+    Bottom_Left   :: Vector2.{0.0, 0.5};
+    Bottom_Center :: Vector2.{0.5, 0.5};
+    Bottom_Right  :: Vector2.{1.0, 0.5};
+}
+
+imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, color := Colors.White) {
     using render_ctx;
 
     // @Incomplete: This isn't using index buffers at the moment.
@@ -465,7 +487,7 @@ imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, col
     region := Rect.{FLOAT32_MAX, FLOAT32_MAX, -FLOAT32_MAX, -FLOAT32_MAX};
     num_vertices: u32;
 
-    origin: Vector2;
+    origin := position;
     last_char: u8 = 0;
 
     imm_set_image(0, msdf.texture.id);
@@ -515,12 +537,77 @@ imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, col
     state.uniform.data[2] = color.b;
     state.uniform.data[3] = color.a;
     state.uniform.data[4] = msdf.pixel_range;
-    if outline < 0.0 {
-        state.uniform.data[5] = 0.0;
-        render_queue_draw(text_pipeline, region, vertex_index, num_vertices);
-        return;
+    state.uniform.data[5] = 0.0;
+    render_queue_draw(text_pipeline, region, vertex_index, num_vertices);
+}
+
+imm_text_aligned :: inline (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, color := Colors.White) {
+    offset := measure_text(msdf, text, size) * origin;
+    imm_text(msdf, text, position - offset, size, color);
+}
+
+imm_text_outlined :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, outline := 2.0, fill := Colors.White, stroke := Colors.Black) {
+    using render_ctx;
+
+    // @Incomplete: This isn't using index buffers at the moment.
+    vertex_index  := cur_vertex;
+    base_vertices := advance_vertices(cast,no_check(u32) text.count * 6);
+    assert(base_vertices != null);
+
+    mvp := state.mvp;
+    region := Rect.{FLOAT32_MAX, FLOAT32_MAX, -FLOAT32_MAX, -FLOAT32_MAX};
+    num_vertices: u32;
+
+    origin := position;
+    last_char: u8 = 0;
+
+    imm_set_image(0, msdf.texture.id);
+    for 0..text.count-1 {
+        if text[it] < msdf.starting_glyph || text[it] >= (msdf.starting_glyph + msdf.glyphs.count)  continue;
+        origin.x += get_kerning(msdf, text[it], last_char) * size;
+        glyph := msdf.glyphs[text[it] - msdf.starting_glyph];
+
+        source := glyph.atlas;
+        dest   := glyph.plane * size + origin;
+
+        quad: [4] Vector2 = ---;
+        quad[0] = .{dest.x,              dest.y + dest.height}; // bottom left
+        quad[1] = .{dest.x + dest.width, dest.y + dest.height}; // bottom right
+        quad[2] = .{dest.x + dest.width, dest.y};               // top right
+        quad[3] = .{dest.x,              dest.y};               // top left
+        quad_uvs: [4] Vector2 = ---;
+        quad_uvs[0] = .{source.tl.x, source.br.y}; // bottom left
+        quad_uvs[1] =   source.br;                 // bottom right
+        quad_uvs[2] = .{source.br.x, source.tl.y}; // top right
+        quad_uvs[3] =   source.tl;                 // top left
+
+        xform_many(mvp, quad);
+        for point: quad {
+            region.x1 = min(region.x1, point.x);
+            region.y1 = min(region.y1, point.y);
+            region.x2 = max(region.x2, point.x);
+            region.y2 = max(region.y2, point.y);
+        }
+
+        base_vertices[0].position = quad[0]; base_vertices[0].uv = quad_uvs[0];
+        base_vertices[1].position = quad[1]; base_vertices[1].uv = quad_uvs[1];
+        base_vertices[2].position = quad[2]; base_vertices[2].uv = quad_uvs[2];
+        base_vertices[3].position = quad[3]; base_vertices[3].uv = quad_uvs[3];
+        base_vertices[4].position = quad[0]; base_vertices[4].uv = quad_uvs[0];
+        base_vertices[5].position = quad[2]; base_vertices[5].uv = quad_uvs[2];
+        base_vertices += 6;
+
+        origin.x += glyph.advance_x * size;
+        last_char = text[it];
+        num_vertices += 6;
     }
 
+    state.uniform.size = size_of(Color) + size_of(Vector2);
+    state.uniform.data[0] = stroke.r;
+    state.uniform.data[1] = stroke.g;
+    state.uniform.data[2] = stroke.b;
+    state.uniform.data[3] = stroke.a;
+    state.uniform.data[4] = msdf.pixel_range;
     state.uniform.data[5] = outline;
     render_queue_draw(text_pipeline, region, vertex_index, num_vertices);
 
@@ -530,16 +617,17 @@ imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, col
     }
 
     memcpy(base_vertices, base_vertices - num_vertices, num_vertices);
-    state.uniform.data[0] = 0.0;
-    state.uniform.data[1] = 0.0;
-    state.uniform.data[2] = 0.0;
+    state.uniform.data[0] = fill.r;
+    state.uniform.data[1] = fill.g;
+    state.uniform.data[2] = fill.b;
+    state.uniform.data[3] = fill.a;
     state.uniform.data[5] = 0.0;
     render_queue_draw(text_pipeline, region, vertex_index, num_vertices);
 }
 
-imm_text_centered :: inline (msdf: *MSDF_Font, text: string, position: Vector2, size: float, color := Colors.White, outline: float = -1.0) {
-    size := measure_text(msdf, text);
-imm_text_centered
+imm_text_outlined_aligned :: inline (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, outline := 2.0, fill := Colors.White, stroke := Colors.Black) {
+    offset := measure_text(msdf, text, size) * origin;
+    imm_text_outlined(msdf, text, position - offset, size, outline, fill, stroke);
 }
 
 imm_project :: (left: float, right: float, top: float, bottom: float) {
