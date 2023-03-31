@@ -81,38 +81,38 @@ affine_inverse :: (transform: *Transform) {
     transform.position = inline basis_xform(transform, -transform.position);
 }
 
-inverse :: (transform: Transform) -> Transform #must {
+inverse :: (transform: Transform) -> Transform #must #expand {
     inline inverse(*transform);
     return transform;
 }
 
-affine_inverse :: (transform: Transform) -> Transform #must {
+affine_inverse :: (transform: Transform) -> Transform #must #expand {
     inline affine_inverse(*transform);
     return transform;
 }
 
-basis_xform :: (transform: Transform, v: Vector2) -> Vector2 #must {
+basis_xform :: (transform: Transform, v: Vector2) -> Vector2 #must #expand {
     r: Vector2 = ---;
     r.x = tdotx(transform, v);
     r.y = tdoty(transform, v);
     return r;
 }
 
-basis_xform_inv :: (transform: Transform, v: Vector2) -> Vector2 #must {
+basis_xform_inv :: (transform: Transform, v: Vector2) -> Vector2 #must #expand {
     r: Vector2 = ---;
     r.x = dot(transform.x_basis, v);
     r.y = dot(transform.y_basis, v);
     return r;
 }
 
-xform :: (transform: Transform, v: Vector2) -> Vector2 #must {
+xform :: (transform: Transform, v: Vector2) -> Vector2 #must #expand {
     r: Vector2 = ---;
     r.x = tdotx(transform, v);
     r.y = tdoty(transform, v);
     return r + transform.position;
 }
 
-xform_inv :: (transform: Transform, v: Vector2) -> Vector2 #must {
+xform_inv :: (transform: Transform, v: Vector2) -> Vector2 #must #expand {
     r: Vector2 = ---;
     r.x = dot(transform.x_basis, v - transform.position);
     r.y = dot(transform.y_basis, v - transform.position);

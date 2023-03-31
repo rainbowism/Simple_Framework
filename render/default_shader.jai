@@ -8,7 +8,7 @@ void main() {
     gl_Position = vec4(vPosUV.xy, 0.0, 1.0);
     fUV = vPosUV.zw;
 }
-___glsl;
+___glsl
 
 Default_Frag_Shader :: #string ___glsl
 #version 330
@@ -22,7 +22,7 @@ uniform vec4 color;
 void main() {
     COLOR = texture(TEXTURE, fUV) * color;
 }
-___glsl;
+___glsl
 
 Globals_Vert_Shader :: #string ___glsl
 #version 330
@@ -59,6 +59,33 @@ uniform vec4 color;
 
 void main() {
     COLOR = texture(TEXTURE, fUV) * color;
+}
+___glsl
+
+Circle_Frag_Shader :: #string ___glsl
+#version 330 core
+
+in vec2 fUV;
+out vec4 COLOR;
+
+uniform vec4 color;
+uniform vec2 radius;
+
+float circle(vec2 _position, float _inner_radius, float _outer_radius) {
+    vec2 distance = _position - vec2(0.5);
+    return (1.0 - smoothstep(
+        _outer_radius - (_outer_radius * 0.01),
+        _outer_radius + (_outer_radius * 0.01),
+        dot(distance, distance) * 4.0
+    )) - (1.0 - smoothstep(
+        _inner_radius - (_inner_radius * 0.01),
+        _inner_radius + (_inner_radius * 0.01),
+        dot(distance, distance) * 4.0
+    ));
+}
+
+void main() {
+    COLOR = vec4(color.rgb, circle(fUV, radius.x, radius.y));
 }
 ___glsl
 

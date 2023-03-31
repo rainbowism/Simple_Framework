@@ -19,6 +19,8 @@ Imm_Blend_Mode :: enum s32 {
     Count :: 5;
 }
 
+Imm_Circle :: Circle;
+
 Text_Align :: struct {
     TL :: Top_Left;
     TC :: Top_Center;
@@ -102,12 +104,12 @@ render_init :: () {
 
     {
         pixels: [4] u32 = ---;
-        pixels[0] = 0xFFC9B9FF;
-        pixels[1] = 0xFFC9B9FF;
-        pixels[2] = 0xFFC9B9FF;
-        pixels[3] = 0xFFC9B9FF;
-        missing_image_desc: sg_image_desc;
-        using missing_image_desc;
+        pixels[0] = 0xFFFFFFFF;
+        pixels[1] = 0xFFFFFFFF;
+        pixels[2] = 0xFFFFFFFF;
+        pixels[3] = 0xFFFFFFFF;
+        default_image_desc: sg_image_desc;
+        using default_image_desc;
         type   = ._2D;
         width  = 2;
         height = 2;
@@ -115,48 +117,55 @@ render_init :: () {
         min_filter   = .NEAREST;
         mag_filter   = .NEAREST;
         data.subimage[0][0] = sg_range.{pixels.data, size_of(type_of(pixels))};
-        label = "Missing_Image";
+        label = "Default_Image";
 
-        missing_image = sg_make_image(*missing_image_desc);
-        if sg_query_image_state(missing_image) != .VALID {
+        default_image = sg_make_image(*default_image_desc);
+        if sg_query_image_state(default_image) != .VALID {
             warn(.Render, "Failed to initialize Missing_Image.");
         }
     }
 
-    shader.id = make_default_shader();
-    shader.vs_uniform_size = 0;
-    shader.fs_uniform_size = size_of(Color);
-    if sg_query_shader_state(shader.id) != .VALID {
-        warn(.Render, "Failed to initialize default shader.");
+    base_shader := make_default_shader(Default_Frag_Shader);
+    if sg_query_shader_state(base_shader) != .VALID {
+        warn(.Render, "Failed to initialize base shader.");
         return;
     }
 
-    text_shader.id = make_text_shader();
-    text_shader.vs_uniform_size = 0;
-    text_shader.fs_uniform_size = size_of(Color) + size_of(Vector2);
-    if sg_query_shader_state(shader.id) != .VALID {
+    circle_shader := make_circle_shader();
+    if sg_query_shader_state(circle_shader) != .VALID {
+        warn(.Render, "Failed to initialize circle shader.");
+        return;
+    }
+
+    text_shader := make_text_shader();
+    if sg_query_shader_state(text_shader) != .VALID {
         warn(.Render, "Failed to initialize text shader.");
         return;
     }
 
     pipes_ok := true;
-    pipes_ok = pipes_ok && lookup_pipeline(.TRIANGLES,       .None) != SG_INVALID_ID;
-    pipes_ok = pipes_ok && lookup_pipeline(.TRIANGLES,      .Blend) != SG_INVALID_ID;
-    pipes_ok = pipes_ok && lookup_pipeline(.POINTS,          .None) != SG_INVALID_ID;
-    pipes_ok = pipes_ok && lookup_pipeline(.POINTS,         .Blend) != SG_INVALID_ID;
-    pipes_ok = pipes_ok && lookup_pipeline(.LINES,           .None) != SG_INVALID_ID;
-    pipes_ok = pipes_ok && lookup_pipeline(.LINES,          .Blend) != SG_INVALID_ID;
-    pipes_ok = pipes_ok && lookup_pipeline(.TRIANGLE_STRIP,  .None) != SG_INVALID_ID;
-    pipes_ok = pipes_ok && lookup_pipeline(.TRIANGLE_STRIP, .Blend) != SG_INVALID_ID;
-    pipes_ok = pipes_ok && lookup_pipeline(.LINE_STRIP,      .None) != SG_INVALID_ID;
-    pipes_ok = pipes_ok && lookup_pipeline(.LINE_STRIP,     .Blend) != SG_INVALID_ID;
+    pipes_ok = pipes_ok && init_pipeline(.TRIANGLES,       .None, base_shader);
+    pipes_ok = pipes_ok && init_pipeline(.TRIANGLES,      .Blend, base_shader);
+    pipes_ok = pipes_ok && init_pipeline(.POINTS,          .None, base_shader);
+    pipes_ok = pipes_ok && init_pipeline(.POINTS,         .Blend, base_shader);
+    pipes_ok = pipes_ok && init_pipeline(.LINES,           .None, base_shader);
+    pipes_ok = pipes_ok && init_pipeline(.LINES,          .Blend, base_shader);
+    pipes_ok = pipes_ok && init_pipeline(.TRIANGLE_STRIP,  .None, base_shader);
+    pipes_ok = pipes_ok && init_pipeline(.TRIANGLE_STRIP, .Blend, base_shader);
+    pipes_ok = pipes_ok && init_pipeline(.LINE_STRIP,      .None, base_shader);
+    pipes_ok = pipes_ok && init_pipeline(.LINE_STRIP,     .Blend, base_shader);
     if !pipes_ok {
         warn(.Render, "Failed to initialize default pipelines.");
         return;
     }
-    text_pipeline = make_pipeline(.TRIANGLES, .Blend, text_shader.id);
+    circle_pipeline = make_pipeline(.TRIANGLES, .Blend, circle_shader);
+    if circle_pipeline == SG_INVALID_ID {
+        warn(.Render, "Failed to initialize circle pipeline.");
+        return;
+    }
+    text_pipeline = make_pipeline(.TRIANGLES, .Blend, text_shader);
     if text_pipeline == SG_INVALID_ID {
-        warn(.Render, "Failed to initialize text pipelines.");
+        warn(.Render, "Failed to initialize text pipeline.");
         return;
     }
 
@@ -176,51 +185,6 @@ render_begin :: () {
 render_end :: () {
     sg_end_pass();
     sg_commit();
-}
-
-render_queue_draw :: (pipe: sg_pipeline, region: Rect, vertex_index: u32, num_vertices: u32) {
-    using render_ctx;
-    if state.pipeline != SG_INVALID_ID  pipe = state.pipeline;
-
-    if pipe == SG_INVALID_ID {
-        cur_vertex -= num_vertices;
-        return;
-    }
-
-    if region.x1 > 1.0 || region.y1 > 1.0 || region.x2 < -1.0 || region.y2 < -1.0 {
-        cur_vertex -= num_vertices;
-        return;
-    }
-
-    #if Batch_Optimizer_Depth > 0 {
-        if merge_batch_command(pipe, state.images, state.uniform, region, vertex_index, num_vertices)  return;
-    }
-
-    // prev_uniform := prev_uniform();
-    // reuse_uniform := prev_uniform && (memcmp(prev_uniform, *state.uniform, size_of(Imm_Uniform)) == 0);
-    if true { // @Todo: !reuse_uniform {
-        uniform := next_uniform();
-        if !uniform {
-            cur_vertex -= num_vertices;
-            return;
-        }
-        << uniform = state.uniform;
-    }
-    uniform_index := cur_uniform - 1;
-
-    command := next_command();
-    if !command {
-        cur_vertex -= num_vertices;
-        return;
-    }
-
-    command.type = .Draw;
-    command.draw.pipe = pipe;
-    command.draw.images = state.images;
-    command.draw.region = region;
-    command.draw.uniform_index = uniform_index;
-    command.draw.vertex_index  = vertex_index;
-    command.draw.num_vertices  = num_vertices;
 }
 
 imm_begin :: () {
@@ -326,8 +290,10 @@ imm_flush :: () {
                 uniform := *uniforms[cur_uniform_index];
                 if uniform.size > 0 {
                     uniform_range := sg_range.{uniform.data.data, uniform.size};
-                    if shader.vs_uniform_size > 0  sg_apply_uniforms(.VS, 0, *uniform_range);
-                    if shader.fs_uniform_size > 0  sg_apply_uniforms(.FS, 0, *uniform_range);
+                    vs_uniform_count, fs_uniform_count: s32 = ---;
+                    sg_query_pipeline_uniforms(draw.pipe, *vs_uniform_count, *fs_uniform_count);
+                    if vs_uniform_count > 0  sg_apply_uniforms(.VS, 0, *uniform_range);
+                    if fs_uniform_count > 0  sg_apply_uniforms(.FS, 0, *uniform_range);
                 }
             }
 
@@ -343,14 +309,20 @@ imm_flush :: () {
 imm_set_pipeline :: (pipeline: sg_pipeline) {
     using render_ctx;
     state.pipeline = pipeline;
-    state.uniform = .{};
 
-    if pipeline != SG_INVALID_ID  return;
+    if pipeline != SG_INVALID_ID {
+        state.uniform = .{};
+        return;
+    }
     state.uniform.size = size_of(Color);
     state.uniform.data[0] = state.color.r;
     state.uniform.data[1] = state.color.g;
     state.uniform.data[2] = state.color.b;
     state.uniform.data[3] = state.color.a;
+}
+
+imm_reset_pipeline :: () #expand {
+    imm_set_pipeline(SG_INVALID_ID);
 }
 
 imm_set_uniform :: (data: *void, size: u64) {
@@ -360,14 +332,15 @@ imm_set_uniform :: (data: *void, size: u64) {
     assert(data != null);
     memcpy(state.uniform.data.data, data, size);
     if size < state.uniform.size {
-        memset(state.uniform.data.data + size, 0, state.uniform.size - size);
+        memset(state.uniform.data.data + size, 0, xx,no_check (state.uniform.size - size));
     }
     state.uniform.size = size;
 }
 
 imm_reset_uniform :: () {
+    using render_ctx;
     if state.uniform.size > 0 {
-        memset(state.uniform.data.data, 0, state.uniform.size);
+        memset(state.uniform.data.data, 0, xx,no_check state.uniform.size);
     }
     state.uniform.size = 0;
 }
@@ -397,14 +370,14 @@ imm_unset_image :: (channel: s32) #expand {
 
 imm_reset_image :: inline (channel: s32) {
     if channel == 0 {
-        imm_set_image(channel, render_ctx.missing_image);
+        imm_set_image(channel, render_ctx.default_image);
     } else {
         imm_set_image(channel, SG_INVALID_ID);
     }
 }
 
-imm_set_missing_image :: (channel: s32) #expand {
-    imm_set_image(channel, render_ctx.missing_image);
+imm_set_default_image :: (channel: s32) #expand {
+    imm_set_image(channel, render_ctx.default_image);
 }
 
 imm_set_blend_mode :: (blend_mode: Imm_Blend_Mode) #expand {
@@ -456,6 +429,7 @@ imm_viewport :: (x: s32, y: s32, width: s32, height: s32) {
     }
 
     state.viewport = viewport;
+    state.thickness = max(1.0 / cast(float) width, 1.0 / cast(float) height);
     imm_reset_project();
 }
 
@@ -465,16 +439,16 @@ imm_reset_viewport :: () #expand {
 
 imm_scissor :: (x: s32, y: s32, width: s32, height: s32) {
     using render_ctx;
-    if state.scissor.x == position.x
-    && state.scissor.y == position.y
-    && state.scissor.width  == size.x
-    && state.scissor.height == size.y {
+    if state.scissor.x == x
+    && state.scissor.y == y
+    && state.scissor.width  == width
+    && state.scissor.height == height {
         return;
     }
 
     command := prev_command(1);
     if !command || command.type != .Scissor {
-        command == next_command();
+        command = next_command();
     }
 
     viewport_scissor := Recti.{state.viewport.x + x, state.viewport.y + y, width, height};
@@ -486,7 +460,7 @@ imm_scissor :: (x: s32, y: s32, width: s32, height: s32) {
         viewport_scissor.height = state.frame_size.y;
     }
 
-    << command = .{};
+    // << command = .{};
     command.type = .Scissor;
     command.scissor = viewport_scissor;
 
@@ -507,6 +481,7 @@ imm_reset_state :: () {
     state.projection = make_projection(window.size.x, window.size.y);
     state.transform  = Transform_Identity;
     state.mvp        = state.projection;
+    state.thickness  = max(1.0 / cast(float) window.size.x, 1.0 / cast(float) window.size.y);
     state.color      = Colors.White;
     state.uniform.size = size_of(Color);
     state.uniform.data[0] = Colors.White.r;
@@ -515,6 +490,8 @@ imm_reset_state :: () {
     state.uniform.data[3] = Colors.White.a;
     state.blend_mode = .Blend;
     state.pipeline = SG_INVALID_ID;
+    state.images.count = 1;
+    state.images.data[0] = default_image;
 }
 
 // -Transforms
@@ -604,11 +581,135 @@ imm_scale_at :: inline (scale: Vector2, offset: Vector2) {
 
 // -Drawing
 
-imm_texture_rect :: (rect: Rect) {
+imm_points :: (points: [] Vector2) {
+    using render_ctx;
+    assert(points.count != 0);
+    pipe := lookup_pipeline(.POINTS, state.blend_mode);
+    render_solid_pipeline(pipe, points, state.thickness);
+}
+
+imm_point :: (point: Vector2) #expand {
+    points: [] Vector2;
+    points.count = 1;
+    points.data  = *point;
+    imm_points(points);
+}
+
+imm_lines :: (lines: [] Vector2) {
+    using render_ctx;
+    assert(lines.count != 0);
+    pipe := lookup_pipeline(.LINES, state.blend_mode);
+    render_solid_pipeline(pipe, lines, state.thickness);
+}
+
+imm_line :: (a: Vector2, b: Vector2) #expand {
+    lines: [2] Vector2;
+    lines[0] = a;
+    lines[1] = b;
+    imm_lines(lines);
+}
+
+imm_line_strip :: (points: [] Vector2) {
+    using render_ctx;
+    assert(points.count != 0);
+    pipe := lookup_pipeline(.LINE_STRIP, state.blend_mode);
+    render_solid_pipeline(pipe, points, state.thickness);
+}
+
+imm_filled_triangles :: (triangles: [] Vector2) {
+    using render_ctx;
+    assert(triangles.count != 0);
+    pipe := lookup_pipeline(.TRIANGLES, state.blend_mode);
+    render_solid_pipeline(pipe, triangles, state.thickness);
+}
+
+imm_filled_triangle :: (a: Vector2, b: Vector2, c: Vector2) #expand {
+    triangles: [3] Vector2;
+    triangles[0] = a;
+    triangles[1] = b;
+    triangles[2] = c;
+    imm_filled_triangles(triangles);
+}
+
+imm_triangle_strip :: (points: [] Vector2) {
+    using render_ctx;
+    assert(points.count != 0);
+    pipe := lookup_pipeline(.TRIANGLE_STRIP, state.blend_mode);
+    render_solid_pipeline(pipe, points, state.thickness);
+}
+
+imm_filled_rects :: (rects: [] Rect) #expand {
+    imm_set_default_image(0);
+    imm_texture_rects(rects);
+}
+
+imm_filled_rect :: (rect: Rect) #expand {
+    imm_set_default_image(0);
     rects: [] Rect;
     rects.count = 1;
     rects.data  = *rect;
     imm_texture_rects(rects);
+}
+
+imm_circles :: (circles: [] Imm_Circle, inner_radius := 0.0, outer_radius := 1.0) {
+    using render_ctx;
+    assert(circles.count != 0);
+
+    // @Incomplete: This isn't using index buffers at the moment.
+    num_vertices  := cast,no_check(u32) circles.count * 6;
+    vertex_index  := cur_vertex;
+    base_vertices := advance_vertices(num_vertices);
+    assert(base_vertices != null);
+
+    mvp := state.mvp;
+    region := Rect.{FLOAT32_MAX, FLOAT32_MAX, -FLOAT32_MAX, -FLOAT32_MAX};
+
+    for 0..circles.count-1 {
+        quad: [4] Vector2 = ---;
+        quad[0] = .{circles[it].x - circles[it].radius, circles[it].y + circles[it].radius}; // bottom left
+        quad[1] = .{circles[it].x + circles[it].radius, circles[it].y + circles[it].radius}; // bottom right
+        quad[2] = .{circles[it].x + circles[it].radius, circles[it].y - circles[it].radius}; // top right
+        quad[3] = .{circles[it].x - circles[it].radius, circles[it].y - circles[it].radius}; // top left
+        xform_many(mvp, quad);
+
+        for quad_index: 0..quad.count-1 {
+            region.x1 = min(region.x1, quad[quad_index].x);
+            region.y1 = min(region.y1, quad[quad_index].y);
+            region.x2 = max(region.x2, quad[quad_index].x);
+            region.y2 = max(region.y2, quad[quad_index].y);
+        }
+
+        Quad_UVs :: Vector2.[
+            .{0.0, 1.0},
+            .{1.0, 1.0},
+            .{1.0, 0.0},
+            .{0.0, 0.0},
+        ];
+
+        base_vertices[0].position = quad[0]; base_vertices[0].uv = Quad_UVs[0];
+        base_vertices[1].position = quad[1]; base_vertices[1].uv = Quad_UVs[1];
+        base_vertices[2].position = quad[2]; base_vertices[2].uv = Quad_UVs[2];
+        base_vertices[3].position = quad[3]; base_vertices[3].uv = Quad_UVs[3];
+        base_vertices[4].position = quad[0]; base_vertices[4].uv = Quad_UVs[0];
+        base_vertices[5].position = quad[2]; base_vertices[5].uv = Quad_UVs[2];
+        base_vertices += 6;
+    }
+
+    state.uniform.size = size_of(Color) + size_of(Vector2);
+    state.uniform.data[0] = state.color.r;
+    state.uniform.data[1] = state.color.g;
+    state.uniform.data[2] = state.color.b;
+    state.uniform.data[3] = state.color.a;
+    state.uniform.data[4] = inner_radius;
+    state.uniform.data[5] = outer_radius;
+    render_queue_draw(circle_pipeline, region, vertex_index, num_vertices);
+}
+
+imm_circle :: (position: Vector2, radius: float, inner_radius := 0.0, outer_radius := 1.0) {
+    circles: [1] Imm_Circle;
+    circles[0].position = position;
+    circles[0].radius   = radius;
+    imm_circles(circles, inner_radius, outer_radius);
 }
 
 imm_texture_rects :: (rects: [] Rect) {
@@ -659,11 +760,11 @@ imm_texture_rects :: (rects: [] Rect) {
     render_queue_draw(pipe, region, vertex_index, num_vertices);
 }
 
-imm_texture_quad :: (quad: Quad) {
-    quads: [] Quad;
-    quads.count = 1;
-    quads.data  = *quad;
-    imm_texture_quads(quads);
+imm_texture_rect :: (rect: Rect) #expand {
+    rects: [] Rect;
+    rects.count = 1;
+    rects.data  = *rect;
+    imm_texture_rects(rects);
 }
 
 imm_texture_quads :: (quads: [] Quad) {
@@ -708,15 +809,35 @@ imm_texture_quads :: (quads: [] Quad) {
     render_queue_draw(pipe, region, vertex_index, num_vertices);
 }
 
-imm_subquads :: (count: s32) {
+imm_texture_quad :: (quad: Quad) #expand {
+    quads: [] Quad;
+    quads.count = 1;
+    quads.data  = *quad;
+    imm_texture_quads(quads);
 }
 
-imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, color := Colors.White) {
+imm_subrects :: (sources: [] Rect, dests: [] Rect) {
+}
+
+imm_subrect :: (source: Rect, dest: Rect) #expand {
+    sources, dests: [] Rect;
+    sources.count = 1;
+    sources.data  = *source;
+    dests.count   = 1;
+    dests.data    = *dest;
+    imm_subrects(source, dest);
+}
+
+imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, color := Colors.White, outline: float = 0.0) {
     using render_ctx;
 
     // @Incomplete: This isn't using index buffers at the moment.
     vertex_index  := cur_vertex;
-    base_vertices := advance_vertices(cast,no_check(u32) text.count * 6);
+    if cur_vertex + text.count * 12 > vertices.count {
+        warn(.Render, "Vertices filled up!");
+        return;
+    }
+    base_vertices := *vertices[cur_vertex];
     assert(base_vertices != null);
 
     mvp := state.mvp;
@@ -761,134 +882,44 @@ imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, col
         base_vertices[4].position = quad[0]; base_vertices[4].uv = quad_uvs[0];
         base_vertices[5].position = quad[2]; base_vertices[5].uv = quad_uvs[2];
         base_vertices += 6;
+        num_vertices  += 6;
 
         origin.x += glyph.advance_x * size;
         last_char = text[it];
-        num_vertices += 6;
     }
 
+    cur_vertex += num_vertices;
     state.uniform.size = size_of(Color) + size_of(Vector2);
     state.uniform.data[0] = color.r;
     state.uniform.data[1] = color.g;
     state.uniform.data[2] = color.b;
     state.uniform.data[3] = color.a;
     state.uniform.data[4] = msdf.pixel_range;
-    state.uniform.data[5] = 0.0;
-    render_queue_draw(text_pipeline, region, vertex_index, num_vertices);
-}
-
-imm_text_aligned :: inline (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, color := Colors.White) {
-    offset := measure_text(msdf, text, size) * origin;
-    imm_text(msdf, text, position - offset, size, color);
-}
-
-imm_text_outlined :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, outline := 2.0, fill := Colors.White, stroke := Colors.Black) {
-    using render_ctx;
-
-    // @Incomplete: This isn't using index buffers at the moment.
-    vertex_index  := cur_vertex;
-    base_vertices := advance_vertices(cast,no_check(u32) text.count * 6);
-    assert(base_vertices != null);
-
-    mvp := state.mvp;
-    region := Rect.{FLOAT32_MAX, FLOAT32_MAX, -FLOAT32_MAX, -FLOAT32_MAX};
-    num_vertices: u32;
-
-    origin := position;
-    last_char: u8 = 0;
-
-    imm_set_image(0, msdf.texture.id);
-    for 0..text.count-1 {
-        if text[it] < msdf.starting_glyph || text[it] >= (msdf.starting_glyph + msdf.glyphs.count)  continue;
-        origin.x += get_kerning(msdf, text[it], last_char) * size;
-        glyph := msdf.glyphs[text[it] - msdf.starting_glyph];
-
-        source := glyph.atlas;
-        dest   := glyph.plane * size + origin;
-
-        quad: [4] Vector2 = ---;
-        quad[0] = .{dest.x,              dest.y + dest.height}; // bottom left
-        quad[1] = .{dest.x + dest.width, dest.y + dest.height}; // bottom right
-        quad[2] = .{dest.x + dest.width, dest.y};               // top right
-        quad[3] = .{dest.x,              dest.y};               // top left
-        quad_uvs: [4] Vector2 = ---;
-        quad_uvs[0] = .{source.tl.x, source.br.y}; // bottom left
-        quad_uvs[1] =   source.br;                 // bottom right
-        quad_uvs[2] = .{source.br.x, source.tl.y}; // top right
-        quad_uvs[3] =   source.tl;                 // top left
-
-        xform_many(mvp, quad);
-        for point: quad {
-            region.x1 = min(region.x1, point.x);
-            region.y1 = min(region.y1, point.y);
-            region.x2 = max(region.x2, point.x);
-            region.y2 = max(region.y2, point.y);
-        }
-
-        base_vertices[0].position = quad[0]; base_vertices[0].uv = quad_uvs[0];
-        base_vertices[1].position = quad[1]; base_vertices[1].uv = quad_uvs[1];
-        base_vertices[2].position = quad[2]; base_vertices[2].uv = quad_uvs[2];
-        base_vertices[3].position = quad[3]; base_vertices[3].uv = quad_uvs[3];
-        base_vertices[4].position = quad[0]; base_vertices[4].uv = quad_uvs[0];
-        base_vertices[5].position = quad[2]; base_vertices[5].uv = quad_uvs[2];
-        base_vertices += 6;
-
-        origin.x += glyph.advance_x * size;
-        last_char = text[it];
-        num_vertices += 6;
-    }
-
-    state.uniform.size = size_of(Color) + size_of(Vector2);
-    state.uniform.data[0] = stroke.r;
-    state.uniform.data[1] = stroke.g;
-    state.uniform.data[2] = stroke.b;
-    state.uniform.data[3] = stroke.a;
-    state.uniform.data[4] = msdf.pixel_range;
     state.uniform.data[5] = outline;
     render_queue_draw(text_pipeline, region, vertex_index, num_vertices);
-
-    if cur_vertex + num_vertices > vertices.count {
-        warn(.Render, "Vertices filled up!");
-        return;
-    }
-
-    memcpy(base_vertices, base_vertices - num_vertices, num_vertices);
-    state.uniform.data[0] = fill.r;
-    state.uniform.data[1] = fill.g;
-    state.uniform.data[2] = fill.b;
-    state.uniform.data[3] = fill.a;
-    state.uniform.data[5] = 0.0;
-    render_queue_draw(text_pipeline, region, vertex_index, num_vertices);
 }
 
-imm_text_outlined_aligned :: inline (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, outline := 2.0, fill := Colors.White, stroke := Colors.Black) {
-    offset := measure_text(msdf, text, size) * origin;
+imm_text_aligned :: inline (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, color := Colors.White) -> Vector2 #expand {
+    text_size := measure_text(msdf, text, size);
+    offset    := text_size * origin;
+    imm_text(msdf, text, position - offset, size, color);
+    return text_size;
+}
+
+imm_text_outlined :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, outline := 2.0, fill := Colors.White, stroke := Colors.Black) #expand {
+    // @Speed: Fix this so it doesn't calculate each glyph twice.
+    imm_text(msdf, text, position, size, stroke, outline);
+    imm_text(msdf, text, position, size, fill);
+}
+
+imm_text_outlined_aligned :: inline (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, outline := 2.0, fill := Colors.White, stroke := Colors.Black) -> Vector2 #expand {
+    text_size := measure_text(msdf, text, size);
+    offset    := text_size * origin;
     imm_text_outlined(msdf, text, position - offset, size, outline, fill, stroke);
+    return text_size;
 }
 
 // -Utility
-
-make_pipeline :: (target_primitive_type: sg_primitive_type, blend_mode: Imm_Blend_Mode, shader: sg_shader) -> sg_pipeline {
-    blend := get_blend_state(blend_mode);
-
-    primitive_type := target_primitive_type;
-    if primitive_type == .DEFAULT  primitive_type = .TRIANGLES;
-
-    pipe_desc: sg_pipeline_desc;
-    pipe_desc.shader = shader;
-    pipe_desc.layout.buffers[0].stride = size_of(Imm_Vertex);
-    pipe_desc.layout.attrs[0].format = .FLOAT4;
-    pipe_desc.colors[0].pixel_format = SG_Color_Format;
-    pipe_desc.colors[0].blend = blend;
-    pipe_desc.primitive_type = primitive_type;
-
-    pipe := sg_make_pipeline(*pipe_desc);
-    if pipe != SG_INVALID_ID && sg_query_pipeline_state(pipe) != .VALID {
-        sg_destroy_pipeline(pipe);
-        pipe = SG_INVALID_ID;
-    }
-    return pipe;
-}
 
 make_projection :: inline (width: s32, height: s32) -> Transform {
     return make_projection(cast(float) width, cast(float) height);
@@ -972,12 +1003,6 @@ Imm_Command :: struct {
     }
 }
 
-Render_Shader :: struct {
-    id: sg_shader;
-    vs_uniform_size: u16;
-    fs_uniform_size: u16;
-}
-
 Render_State :: struct {
     frame_size: Point2;
     viewport: Recti;
@@ -987,6 +1012,7 @@ Render_State :: struct {
     transform: Transform = Transform_Identity;
     mvp: Transform;
 
+    thickness: float;
     color: Color;
     images: Imm_Images_Uniform;
     uniform: Imm_Uniform;
@@ -1001,11 +1027,10 @@ Render_State :: struct {
 Render_Context :: struct {
     init_value: u32;
 
-    shader: Render_Shader;
-    text_shader: Render_Shader;
     vertex_buffer: sg_buffer;
-    missing_image: sg_image;
+    default_image: sg_image;
     pipelines: [cast(s64) sg_primitive_type.NUM * cast(s64) Imm_Blend_Mode.Count] sg_pipeline;
+    circle_pipeline: sg_pipeline;
     text_pipeline: sg_pipeline;
 
     cur_vertex:  u32;
@@ -1023,7 +1048,7 @@ Render_Context :: struct {
     state_stack:     [Max_Stack_Depth] Render_State;
 }
 
-make_default_shader :: () -> sg_shader {
+make_default_shader :: (frag_shader: string) -> sg_shader {
     shader_desc: sg_shader_desc;
     shader_desc.attrs[0].name = "vPosUV";
     shader_desc.attrs[0].sem_name = "Position";
@@ -1038,10 +1063,31 @@ make_default_shader :: () -> sg_shader {
     // shader_desc.vs.uniform_blocks[0].uniforms[2].name = "Time";
     // shader_desc.vs.uniform_blocks[0].uniforms[2].type = .FLOAT;
 
-    shader_desc.fs.source = Default_Frag_Shader;
+    shader_desc.fs.source = frag_shader.data;
     shader_desc.fs.uniform_blocks[0].size = size_of(Color);
     shader_desc.fs.uniform_blocks[0].uniforms[0].name = "color";
     shader_desc.fs.uniform_blocks[0].uniforms[0].type = .FLOAT4;
+
+    shader_desc.fs.images[0].name = "TEXTURE";
+    shader_desc.fs.images[0].image_type = ._2D;
+
+    return sg_make_shader(*shader_desc);
+}
+
+make_circle_shader :: () -> sg_shader {
+    shader_desc: sg_shader_desc;
+    shader_desc.attrs[0].name = "vPosUV";
+    shader_desc.attrs[0].sem_name = "Position";
+    shader_desc.attrs[0].sem_index = 0;
+
+    shader_desc.vs.source = Default_Vert_Shader;
+
+    shader_desc.fs.source = Circle_Frag_Shader;
+    shader_desc.fs.uniform_blocks[0].size = size_of(Color) + size_of(Vector2);
+    shader_desc.fs.uniform_blocks[0].uniforms[0].name = "color";
+    shader_desc.fs.uniform_blocks[0].uniforms[0].type = .FLOAT4;
+    shader_desc.fs.uniform_blocks[0].uniforms[1].name = "radius";
+    shader_desc.fs.uniform_blocks[0].uniforms[1].type = .FLOAT2;
 
     shader_desc.fs.images[0].name = "TEXTURE";
     shader_desc.fs.images[0].image_type = ._2D;
@@ -1070,15 +1116,39 @@ make_text_shader :: () -> sg_shader {
     return sg_make_shader(*shader_desc);
 }
 
-lookup_pipeline :: (primitive_type: sg_primitive_type, blend_mode: Imm_Blend_Mode) -> sg_pipeline {
-    pipe_index := (cast(s64) primitive_type * cast(s64) Imm_Blend_Mode.Count) + cast(s64) blend_mode;
-    if render_ctx.pipelines[pipe_index] != SG_INVALID_ID {
-        return render_ctx.pipelines[pipe_index];
-    }
+make_pipeline :: (target_primitive_type: sg_primitive_type, blend_mode: Imm_Blend_Mode, shader: sg_shader) -> sg_pipeline {
+    blend := get_blend_state(blend_mode);
 
-    pipe := make_pipeline(primitive_type, blend_mode, render_ctx.shader.id);
-    if pipe != SG_INVALID_ID  render_ctx.pipelines[pipe_index] = pipe;
+    primitive_type := target_primitive_type;
+    if primitive_type == .DEFAULT  primitive_type = .TRIANGLES;
+
+    pipe_desc: sg_pipeline_desc;
+    pipe_desc.shader = shader;
+    pipe_desc.layout.buffers[0].stride = size_of(Imm_Vertex);
+    pipe_desc.layout.attrs[0].format = .FLOAT4;
+    pipe_desc.colors[0].pixel_format = SG_Color_Format;
+    pipe_desc.colors[0].blend = blend;
+    pipe_desc.primitive_type = primitive_type;
+
+    pipe := sg_make_pipeline(*pipe_desc);
+    if pipe != SG_INVALID_ID && sg_query_pipeline_state(pipe) != .VALID {
+        sg_destroy_pipeline(pipe);
+        pipe = SG_INVALID_ID;
+    }
     return pipe;
+}
+
+init_pipeline :: (primitive_type: sg_primitive_type, blend_mode: Imm_Blend_Mode, shader: sg_shader) -> bool {
+    pipe := make_pipeline(primitive_type, blend_mode, shader);
+    pipe_index := (cast(s64) primitive_type * cast(s64) Imm_Blend_Mode.Count) + cast(s64) blend_mode;
+    if pipe == SG_INVALID_ID  return false;
+    render_ctx.pipelines[pipe_index] = pipe;
+    return true;
+}
+
+lookup_pipeline :: (primitive_type: sg_primitive_type, blend_mode: Imm_Blend_Mode) -> sg_pipeline #expand {
+    pipe_index := (cast(s64) primitive_type * cast(s64) Imm_Blend_Mode.Count) + cast(s64) blend_mode;
+    return render_ctx.pipelines[pipe_index];
 }
 
 get_blend_state :: (blend_mode: Imm_Blend_Mode) -> sg_blend_state {
@@ -1154,17 +1224,6 @@ prev_uniform :: () -> *Imm_Uniform #must #expand {
     return *uniforms[cur_uniform - 1];
 }
 
-next_uniform :: () -> *Imm_Uniform #must #expand {
-    using render_ctx;
-    if cur_uniform >= uniforms.count {
-        warn(.Render, "Uniforms filled up!");
-        return null;
-    }
-    new_uniform := *uniforms[cur_uniform];
-    cur_uniform += 1;
-    return new_uniform;
-}
-
 prev_command :: (count: u32) -> *Imm_Command #must #expand {
     using render_ctx;
     if (cur_command - state.base_command) < count  return null;
@@ -1183,7 +1242,57 @@ next_command :: () -> *Imm_Command #must #expand {
     return new_command;
 }
 
-merge_batch_command :: (pipe: sg_pipeline, images: Imm_Images_Uniform, uniform: Imm_Uniform, region: Rect, vertex_index: u32, num_vertices: u32) -> bool {
+Invalid_Vertex :: 0xFFFFFFFF;
+
+render_queue_draw :: (pipe: sg_pipeline, region: Rect, vertex_index: u32, num_vertices: u32) -> u32 {
+    using render_ctx;
+    if state.pipeline != SG_INVALID_ID  pipe = state.pipeline;
+
+    if pipe == SG_INVALID_ID {
+        cur_vertex -= num_vertices;
+        return Invalid_Vertex;
+    }
+
+    if region.x1 > 1.0 || region.y1 > 1.0 || region.x2 < -1.0 || region.y2 < -1.0 {
+        cur_vertex -= num_vertices;
+        return Invalid_Vertex;
+    }
+
+    #if Batch_Optimizer_Depth > 0 {
+        batch_result := merge_batch_command(pipe, state.images, state.uniform, region, vertex_index, num_vertices);
+        if batch_result != Invalid_Vertex  return batch_result;
+    }
+
+    previous_uniform := prev_uniform();
+    reuse_uniform := previous_uniform && (memcmp(previous_uniform, *state.uniform, size_of(Imm_Uniform)) == 0);
+    if !reuse_uniform {
+        if cur_uniform >= uniforms.count {
+            warn(.Render, "Uniforms filled up!");
+            cur_vertex -= num_vertices;
+            return Invalid_Vertex;
+        }
+        uniforms[cur_uniform] = state.uniform;
+        cur_uniform += 1;
+    }
+    uniform_index := cur_uniform - 1;
+
+    command := next_command();
+    if !command {
+        cur_vertex -= num_vertices;
+        return Invalid_Vertex;
+    }
+
+    command.type = .Draw;
+    command.draw.pipe = pipe;
+    command.draw.images = state.images;
+    command.draw.region = region;
+    command.draw.uniform_index = uniform_index;
+    command.draw.vertex_index  = vertex_index;
+    command.draw.num_vertices  = num_vertices;
+    return vertex_index;
+}
+
+merge_batch_command :: (pipe: sg_pipeline, images: Imm_Images_Uniform, uniform: Imm_Uniform, region: Rect, vertex_index: u32, num_vertices: u32) -> u32 {
     previous: *Imm_Command;
     intermediates: [Batch_Optimizer_Depth] *Imm_Command;
     intermediate_count: s64;
@@ -1212,7 +1321,7 @@ merge_batch_command :: (pipe: sg_pipeline, images: Imm_Images_Uniform, uniform: 
         }
     }
 
-    if !previous  return false;
+    if !previous  return Invalid_Vertex;
 
     overlaps_next, overlaps_prev: bool;
     prev_region := previous.draw.region;
@@ -1220,27 +1329,30 @@ merge_batch_command :: (pipe: sg_pipeline, images: Imm_Images_Uniform, uniform: 
         intermediate_region := intermediates[it].draw.region;
         if overlaps(region, intermediate_region) {
             overlaps_next = true;
-            if overlaps_prev  return false;
+            if overlaps_prev  return Invalid_Vertex;
         }
         if overlaps(prev_region, intermediate_region) {
             overlaps_prev = true;
-            if overlaps_next  return false;
+            if overlaps_next  return Invalid_Vertex;
         }
     }
 
     if !overlaps_next { // Batch in the previous draw command.
+        batch_index: u32 = ---;
         if intermediate_count > 0 {
-            if render_ctx.cur_vertex + num_vertices > render_ctx.vertices.count  return false;
-            prev_end_vertex := previous.draw.vertex_index + previous.draw.num_vertices;
-            move_count      := render_ctx.cur_vertex - prev_end_vertex;
+            if render_ctx.cur_vertex + num_vertices > render_ctx.vertices.count  return Invalid_Vertex;
+            batch_index = previous.draw.vertex_index + previous.draw.num_vertices;
+            move_count := render_ctx.cur_vertex - batch_index;
             {
                 // memmove in reverse
-                to   := *render_ctx.vertices[prev_end_vertex + num_vertices];
-                from := *render_ctx.vertices[prev_end_vertex];
-                for < move_count-1..0  to[it] = from[it];
+                to   := *render_ctx.vertices[batch_index + num_vertices];
+                from := *render_ctx.vertices[batch_index];
+                for < move_count-1..0 {
+                    to[it] = from[it];
+                }
             }
             memcpy(
-                *render_ctx.vertices[prev_end_vertex],
+                *render_ctx.vertices[batch_index],
                 *render_ctx.vertices[vertex_index + num_vertices],
                 num_vertices * size_of(Imm_Vertex)
             );
@@ -1249,47 +1361,69 @@ merge_batch_command :: (pipe: sg_pipeline, images: Imm_Images_Uniform, uniform: 
             for 0..intermediate_count-1 {
                 intermediates[it].draw.vertex_index += num_vertices;
             }
+        } else {
+            batch_index = vertex_index;
         }
 
         prev_region.x1 = min(prev_region.x1, region.x1);
         prev_region.y1 = min(prev_region.y1, region.y1);
-        prev_region.x2 = min(prev_region.x2, region.x2);
-        prev_region.y2 = min(prev_region.y2, region.y2);
+        prev_region.x2 = max(prev_region.x2, region.x2);
+        prev_region.y2 = max(prev_region.y2, region.y2);
         previous.draw.num_vertices += num_vertices;
         previous.draw.region        = prev_region;
-    } else { // Batch in the next draw command.
-        command := next_command();
-        prev_num_vertices := previous.draw.num_vertices;
-        if render_ctx.cur_vertex + prev_num_vertices > render_ctx.vertices.count  return false;
-
-        memcpy(
-            *render_ctx.vertices[vertex_index + prev_num_vertices],
-            *render_ctx.vertices[vertex_index],
-            num_vertices * size_of(Imm_Vertex)
-        );
-        memcpy(
-            *render_ctx.vertices[vertex_index],
-            *render_ctx.vertices[previous.draw.vertex_index],
-            prev_num_vertices * size_of(Imm_Vertex)
-        );
-
-        prev_region.x1 = min(prev_region.x1, region.x1);
-        prev_region.y1 = min(prev_region.y1, region.y1);
-        prev_region.x2 = min(prev_region.x2, region.x2);
-        prev_region.y2 = min(prev_region.y2, region.y2);
-        render_ctx.cur_vertex += prev_num_vertices;
-        num_vertices          += prev_num_vertices;
-
-        command.type = .Draw;
-        command.draw.pipe   = pipe;
-        command.draw.images = images;
-        command.draw.region = prev_region;
-        command.draw.uniform_index = previous.draw.uniform_index;
-        command.draw.vertex_index  = vertex_index;
-        command.draw.num_vertices  = num_vertices;
-
-        previous.type = .None;
+        return batch_index;
     }
 
-    return true;
+    // Batch in the next draw command.
+    command := next_command();
+    prev_num_vertices := previous.draw.num_vertices;
+    if render_ctx.cur_vertex + prev_num_vertices > render_ctx.vertices.count  return Invalid_Vertex;
+
+    {
+        // memmove in reverse
+        to   := *render_ctx.vertices[vertex_index + prev_num_vertices];
+        from := *render_ctx.vertices[vertex_index];
+        for < num_vertices-1..0  to[it] = from[it];
+    }
+    memcpy(
+        *render_ctx.vertices[vertex_index],
+        *render_ctx.vertices[previous.draw.vertex_index],
+        prev_num_vertices * size_of(Imm_Vertex)
+    );
+
+    prev_region.x1 = min(prev_region.x1, region.x1);
+    prev_region.y1 = min(prev_region.y1, region.y1);
+    prev_region.x2 = max(prev_region.x2, region.x2);
+    prev_region.y2 = max(prev_region.y2, region.y2);
+    render_ctx.cur_vertex += prev_num_vertices;
+    num_vertices          += prev_num_vertices;
+
+    command.type = .Draw;
+    command.draw.pipe   = pipe;
+    command.draw.images = images;
+    command.draw.region = prev_region;
+    command.draw.uniform_index = previous.draw.uniform_index;
+    command.draw.vertex_index  = vertex_index;
+    command.draw.num_vertices  = num_vertices;
+
+    previous.type = .None;
+    return vertex_index;
+}
+
+render_solid_pipeline :: (pipe: sg_pipeline, new_vertices: [] Vector2, thickness: float) {
+    using render_ctx;
+    vertex_index := cur_vertex;
+    transformed_vertices := advance_vertices(xx,no_check new_vertices.count);
+    mvp          := state.mvp;
+    region := Rect.{FLOAT32_MAX, FLOAT32_MAX, -FLOAT32_MAX, -FLOAT32_MAX};
+    for 0..new_vertices.count-1 {
+        new_position := xform(mvp, new_vertices[it]);
+        region.x1 = min(region.x1, new_position.x - thickness);
+        region.y1 = min(region.y1, new_position.y - thickness);
+        region.x2 = max(region.x2, new_position.x + thickness);
+        region.y2 = max(region.y2, new_position.y + thickness);
+        transformed_vertices[it].position = new_position;
+        transformed_vertices[it].uv = .{0, 0};
+    }
+    render_queue_draw(pipe, region, vertex_index, xx,no_check new_vertices.count);
 }
