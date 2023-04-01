@@ -1055,13 +1055,6 @@ make_default_shader :: (frag_shader: string) -> sg_shader {
     shader_desc.attrs[0].sem_index = 0;
 
     shader_desc.vs.source = Default_Vert_Shader;
-    // shader_desc.vs.uniform_blocks[0].size = size_of(Vector2) * 2 + size_of(float);
-    // shader_desc.vs.uniform_blocks[0].uniforms[0].name = "Screen_Size";
-    // shader_desc.vs.uniform_blocks[0].uniforms[0].type = .FLOAT2;
-    // shader_desc.vs.uniform_blocks[0].uniforms[1].name = "Screen_Pixel_Size";
-    // shader_desc.vs.uniform_blocks[0].uniforms[1].type = .FLOAT2;
-    // shader_desc.vs.uniform_blocks[0].uniforms[2].name = "Time";
-    // shader_desc.vs.uniform_blocks[0].uniforms[2].type = .FLOAT;
 
     shader_desc.fs.source = frag_shader.data;
     shader_desc.fs.uniform_blocks[0].size = size_of(Color);

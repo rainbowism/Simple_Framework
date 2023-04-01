@@ -1,3 +1,16 @@
+ImGui :: #import "ImGuiDocking";
+
+imgui_init :: () {
+    assert(ui.init_value != ImGui_Init_Value, "Trying to initialize ImGui module again!");
+    ImGui_Impl_CreateContext();
+    ImGui.StyleColorsDark();
+    ImGui_Impl_Init(window.handle);
+}
+
+imgui_deinit :: () {
+    ImGui_Impl_Shutdown();
+}
+
 imgui_request_frame :: () -> bool {
     using ui;
     mx, my: float;
@@ -40,6 +53,18 @@ imgui_update_flags :: inline (flags: ImGui.ConfigFlags, $disable := false) {
     } else {
         ui.io.ConfigFlags_ |= flags;
     }
+}
+
+imgui_shift :: () -> bool {
+    return ui.io.KeyShift;
+}
+
+imgui_ctrl :: () -> bool {
+    return ui.io.KeyCtrl;
+}
+
+imgui_alt :: () -> bool {
+    return ui.io.KeyAlt;
 }
 
 imgui_want_mouse :: inline () -> bool {
@@ -103,23 +128,6 @@ imgui_load_font_from_memory :: (font_buffer: string, font_size: float, oversampl
 
 #scope_module
 
-imgui_init :: () {
-    ImGui_Impl_CreateContext();
-    ImGui.StyleColorsDark();
-    ImGui_Impl_Init(window.handle);
-}
-
-imgui_shift :: () -> bool {
-    return ui.io.KeyShift;
-}
-
-imgui_ctrl :: () -> bool {
-    return ui.io.KeyCtrl;
-}
-
-imgui_alt :: () -> bool {
-    return ui.io.KeyAlt;
-}
 
 ImGui_Impl_KeyCallback :: (key: s32, scancode: s32, action: s32, mods: s32) #c_call {
     if key >= 512  return;
@@ -132,9 +140,9 @@ ImGui_Impl_KeyCallback :: (key: s32, scancode: s32, action: s32, mods: s32) #c_c
 
 ImGui_Impl_MouseCallback :: (button: s32, action: s32, mods: s32) #c_call {
     ui.requested_frames += 1;
-	if button < GLFW_MOUSE_BUTTON_4 {
-		ui.mouse_pressed[button] = action == GLFW_PRESS;
-	}
+    if button < GLFW_MOUSE_BUTTON_4 {
+        ui.mouse_pressed[button] = action == GLFW_PRESS;
+    }
 }
 
 ImGui_Impl_TextCallback :: (codepoint: u32) #c_call {
@@ -166,14 +174,10 @@ ImGui_Impl_SetClipboardText :: (data: *void, text: *u8) #c_call {
     }
 }
 
-ImGui_Impl_CreateContext :: ($set_default_allocators := false) {
+ImGui_Impl_CreateContext :: () {
     using ui;
 
-    #if set_default_allocators {
-        _imgui_context = context;
-        ImGui.SetAllocatorFunctions(imgui_alloc, imgui_free, *_imgui_context);
-    }
-
+    _imgui_context = context;
     ctx = ImGui.CreateContext();
     io = ImGui.GetIO();
 }
@@ -258,7 +262,7 @@ ImGui_Impl_Init :: (native_window_handle: *void) -> bool {
 
     ImGui_Impl_CreateDeviceObjects();
 
-    initialized = true;
+    init_value = 0xF8008135;
 
     return true;
 }
@@ -282,28 +286,28 @@ ImGui_Impl_CreateFontsTexture :: () -> bool {
     // Build texture atlas
     pixels: *u8 = null;
     width, height: s32;
-    assert(io.Fonts != null);
     io.Fonts.GetTexDataAsRGBA32(io.Fonts, *pixels, *width, *height);
     assert(pixels != null);
     assert(width > 0);
     assert(height > 0);
 
-    // Upload texture to graphics system
-    last_texture: GLuint;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, xx *last_texture);
+    if font_image != SG_INVALID_ID  sg_destroy_image(font_image);
 
-    if font_texture != 0  glDeleteTextures(1, *font_texture);
-    glGenTextures(1, *font_texture);
-    glBindTexture(GL_TEXTURE_2D, font_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx width, xx height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    image_desc: sg_image_desc;
+    image_desc.width  = width;
+    image_desc.height = height;
+    image_desc.pixel_format = .RGBA8;
+    image_desc.min_filter   = .LINEAR;
+    image_desc.mag_filter   = .LINEAR;
+    image_desc.wrap_u       = .CLAMP_TO_EDGE;
+    image_desc.wrap_v       = .CLAMP_TO_EDGE;
+    image_desc.data.subimage[0][0] = sg_range.{pixels, xx,no_check (width * height * size_of(u32))};
+    image_desc.label = "ImGui Font Image";
+    font_image = sg_make_image(*image_desc);
+    assert(font_image != SG_INVALID_ID, "Failed to generate a font for ImGui.");
 
     // Store our identifier
-    io.Fonts.TexID = xx font_texture;
-
-    // Restore state
-    glBindTexture(GL_TEXTURE_2D, last_texture);
+    io.Fonts.TexID = xx font_image;
 
     return true;
 }
@@ -311,75 +315,72 @@ ImGui_Impl_CreateFontsTexture :: () -> bool {
 ImGui_Impl_CreateDeviceObjects :: () -> bool {
     using ui;
 
-    // Backup GL state
-    last_texture, last_array_buffer, last_vertex_array: GLuint;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, xx *last_texture);
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, xx *last_array_buffer);
-    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, xx *last_vertex_array);
+    Max_Vertices :: 65536;
+    vertices.size = Max_Vertices * size_of(ImGui.ImDrawVert);
+    vertices.ptr  = alloc(xx vertices.size);
+    indices.size  = Max_Vertices * 3 * size_of(ImGui.ImDrawIdx);
+    indices.ptr   = alloc(xx indices.size);
 
-    vertex_shader := #string ___GLSL
-        #version 330 core
-        uniform mat4 Projection;
-        in vec2 Position;
-        in vec2 UV;
-        in vec4 Color;
-        out vec2 FragUV;
-        out vec4 FragColor;
-        void main() {
-           FragUV = UV;
-           FragColor = Color;
-           gl_Position = Projection * vec4(Position.xy, 0, 1);
-        }
-    ___GLSL
+    vb_desc: sg_buffer_desc;
+    vb_desc.usage = .STREAM;
+    vb_desc.size  = vertices.size;
+    vb_desc.label = "ImGui Vertices";
+    vertex_buffer = sg_make_buffer(*vb_desc);
 
-    fragment_shader := #string ___GLSL
-        #version 330 core
-        uniform sampler2D Texture;
-        in vec2 FragUV;
-        in vec4 FragColor;
-        out vec4 OutColor;
-        void main() {
-           OutColor = FragColor * texture(Texture, FragUV.st);
-        }
-    ___GLSL
-
-    shader_handle = glCreateProgram();
-    vert_handle = glCreateShader(GL_VERTEX_SHADER);
-    frag_handle = glCreateShader(GL_FRAGMENT_SHADER);
-    _glShaderSource(vert_handle, vertex_shader);
-    _glShaderSource(frag_handle, fragment_shader);
-    glCompileShader(vert_handle);
-    glCompileShader(frag_handle);
-    glAttachShader(shader_handle, vert_handle);
-    glAttachShader(shader_handle, frag_handle);
-    glLinkProgram(shader_handle);
-
-    attrib_location_tex = glGetUniformLocation(shader_handle, "Texture");
-    attrib_location_projection = glGetUniformLocation(shader_handle, "Projection");
-    attrib_location_position = xx glGetAttribLocation(shader_handle, "Position");
-    attrib_location_uv = xx glGetAttribLocation(shader_handle, "UV");
-    attrib_location_color = xx glGetAttribLocation(shader_handle, "Color");
-
-    glGenBuffers(1, *vbo_handle);
-    glGenBuffers(1, *elements_handle);
-
-    glGenVertexArrays(1, *vao_handle);
-    glBindVertexArray(vao_handle);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_handle);
-    glEnableVertexAttribArray(attrib_location_position);
-    glEnableVertexAttribArray(xx attrib_location_uv);
-    glEnableVertexAttribArray(xx attrib_location_color);
-
-    glVertexAttribPointer(attrib_location_position, 2, GL_FLOAT, GL_FALSE, size_of(ImGui.ImDrawVert), xx 0);
-    glVertexAttribPointer(attrib_location_uv, 2, GL_FLOAT, GL_FALSE, size_of(ImGui.ImDrawVert), xx 8);
-    glVertexAttribPointer(attrib_location_color, 4, GL_UNSIGNED_BYTE, GL_TRUE, size_of(ImGui.ImDrawVert), xx 16);
+    ib_desc: sg_buffer_desc;
+    ib_desc.type  = .INDEXBUFFER;
+    ib_desc.usage = .STREAM;
+    ib_desc.size  = indices.size;
+    ib_desc.label = "ImGui Indices";
+    index_buffer = sg_make_buffer(*ib_desc);
 
     ImGui_Impl_CreateFontsTexture();
 
-    // Restore modified GL state
-    glBindTexture(GL_TEXTURE_2D, last_texture);
-    glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
-    glBindVertexArray(last_vertex_array);
+    shader_desc: sg_shader_desc;
+    shader_desc.attrs[0].name = "vPos";
+    shader_desc.attrs[1].name = "vUV";
+    shader_desc.attrs[2].name = "vColor";
+    shader_desc.attrs[0].sem_name = "TEXCOORD";
+    shader_desc.attrs[0].sem_index = 0;
+    shader_desc.attrs[1].sem_name = "TEXCOORD";
+    shader_desc.attrs[1].sem_index = 1;
+    shader_desc.attrs[2].sem_name = "TEXCOORD";
+    shader_desc.attrs[2].sem_index = 2;
+    ub := *shader_desc.vs.uniform_blocks[0];
+    ub.size = size_of(ImGui_VS_Params);
+    ub.uniforms[0].name = "display_size";
+    ub.uniforms[0].type = .FLOAT2;
+    ub.uniforms[0].array_count = 1;
+    shader_desc.fs.images[0].name = "TEXTURE";
+    shader_desc.fs.images[0].image_type = ._2D;
+    shader_desc.fs.images[0].sampler_type = .FLOAT;
+    shader_desc.label = "ImGui Shader";
+
+    // @Todo: Implement other backends.
+    shader_desc.vs.source = ImGui_Vert_Shader;
+    shader_desc.fs.source = ImGui_Frag_Shader;
+
+    shader = sg_make_shader(*shader_desc);
+
+    pipe_desc: sg_pipeline_desc;
+    pipe_desc.layout.buffers[0].stride = size_of(ImGui.ImDrawVert);
+    pipe_desc.layout.attrs[0].offset = 0;
+    pipe_desc.layout.attrs[0].format = .FLOAT2;
+    pipe_desc.layout.attrs[1].offset = size_of(Vector2);
+    pipe_desc.layout.attrs[1].format = .FLOAT2;
+    pipe_desc.layout.attrs[2].offset = 2 * size_of(Vector2);
+    pipe_desc.layout.attrs[2].format = .UBYTE4N;
+    pipe_desc.shader = shader;
+    pipe_desc.index_type = .UINT16;
+    pipe_desc.sample_count = 0;
+    pipe_desc.depth.pixel_format = 0;
+    pipe_desc.colors[0].pixel_format = 0;
+    pipe_desc.colors[0].write_mask = 0;
+    pipe_desc.colors[0].blend.enabled = true;
+    pipe_desc.colors[0].blend.src_factor_rgb = .SRC_ALPHA;
+    pipe_desc.colors[0].blend.dst_factor_rgb = .ONE_MINUS_SRC_ALPHA;
+    pipe_desc.label = "ImGui Pipeline";
+    pipe = sg_make_pipeline(*pipe_desc);
 
     return true;
 }
@@ -387,9 +388,9 @@ ImGui_Impl_CreateDeviceObjects :: () -> bool {
 ImGui_Impl_InvalidateDeviceObjects :: () {
     using ui;
     if font_texture {
-        glDeleteTextures(1, *font_texture);
+        sg_destroy_image(font_image);
         io.Fonts.TexID = null;
-        font_texture = 0;
+        font_image = SG_INVALID_ID;
     }
 }
 
@@ -426,153 +427,175 @@ ImGui_Impl_NewFrame :: (native_window_handle: *void, display_width: s32, display
 
 ImGui_Impl_RenderDrawData :: (draw_data: *ImGui.ImDrawData) {
     using ui;
+    if draw_data == null             return;
+    if draw_data.CmdListsCount == 0  return;
 
-    // @@ Watch out, we don't have a context here!
-
-    // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
-    fb_width := (io.DisplaySize.x * io.DisplayFramebufferScale.x);
-    fb_height := (io.DisplaySize.y * io.DisplayFramebufferScale.y);
+    fb_width  := cast(s32) (io.DisplaySize.x * io.DisplayFramebufferScale.x);
+    fb_height := cast(s32) (io.DisplaySize.y * io.DisplayFramebufferScale.y);
     if fb_width == 0 || fb_height == 0 return;
-    draw_data.ScaleClipRects(draw_data, io.DisplayFramebufferScale);
 
-    // Backup GL state
-    last_active_texture: GLenum;        glGetIntegerv(GL_ACTIVE_TEXTURE, xx *last_active_texture);
-    last_program: GLuint;               glGetIntegerv(GL_CURRENT_PROGRAM, xx *last_program);
-    last_texture: GLuint;               glGetIntegerv(GL_TEXTURE_BINDING_2D, xx *last_texture);
-    last_sampler: GLuint;               glGetIntegerv(GL_SAMPLER_BINDING, xx *last_sampler);
-    last_array_buffer: GLuint;          glGetIntegerv(GL_ARRAY_BUFFER_BINDING, xx *last_array_buffer);
-    last_element_array_buffer: GLuint;  glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, xx *last_element_array_buffer);
-    last_vertex_array: GLuint;          glGetIntegerv(GL_VERTEX_ARRAY_BINDING, xx *last_vertex_array);
-    last_polygon_mode: [2]GLuint;       glGetIntegerv(GL_POLYGON_MODE, xx last_polygon_mode.data);
-    last_viewport: [4]GLint;            glGetIntegerv(GL_VIEWPORT, last_viewport.data);
-    last_scissor_box : [4]GLint;        glGetIntegerv(GL_SCISSOR_BOX, last_scissor_box.data);
-    last_blend_src_rgb: GLenum;         glGetIntegerv(GL_BLEND_SRC_RGB, xx *last_blend_src_rgb);
-    last_blend_dst_rgb: GLenum;         glGetIntegerv(GL_BLEND_DST_RGB, xx *last_blend_dst_rgb);
-    last_blend_src_alpha: GLenum;       glGetIntegerv(GL_BLEND_SRC_ALPHA, xx *last_blend_src_alpha);
-    last_blend_dst_alpha: GLenum;       glGetIntegerv(GL_BLEND_DST_ALPHA, xx *last_blend_dst_alpha);
-    last_blend_equation_rgb: GLenum;    glGetIntegerv(GL_BLEND_EQUATION_RGB, xx *last_blend_equation_rgb);
-    last_blend_equation_alpha: GLenum;  glGetIntegerv(GL_BLEND_EQUATION_ALPHA, xx *last_blend_equation_alpha);
-    last_enable_blend :=                glIsEnabled(GL_BLEND);
-    last_enable_cull_face :=            glIsEnabled(GL_CULL_FACE);
-    last_enable_depth_test :=           glIsEnabled(GL_DEPTH_TEST);
-    last_enable_scissor_test :=         glIsEnabled(GL_SCISSOR_TEST);
+    all_vtx_size:   s32;
+    all_idx_size:   s32;
+    cmd_list_count: s32;
 
-    // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
-    glActiveTexture(GL_TEXTURE0);
-    glEnable(GL_BLEND);
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_SCISSOR_TEST);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    for 0..draw_data.CmdListsCount-1 {
+        cmd_list := draw_data.CmdLists[it];
+        vtx_size := cmd_list.VtxBuffer.Size * size_of(ImGui.ImDrawVert);
+        idx_size := cmd_list.IdxBuffer.Size * size_of(ImGui.ImDrawIdx);
 
-    // Setup viewport, orthographic projection matrix
-    glViewport(0, 0, xx fb_width, xx fb_height);
-
-    new_context: Context;
-    push_context new_context {
-        ortho_projection := orthographic_projection_matrix(0, io.DisplaySize.x, io.DisplaySize.y, 0, 0, 1);
-        ortho_projection = transpose(ortho_projection);
-
-        glUseProgram(shader_handle);
-        glUniform1i(attrib_location_tex, 0);
-        glUniformMatrix4fv(attrib_location_projection, 1, GL_FALSE, xx *ortho_projection);
-        glBindVertexArray(vao_handle);
-        glBindSampler(0, 0); // Rely on combined texture/sampler state.
-
-        // Render command lists
-        for n: 0..draw_data.CmdListsCount-1 {
-            cmd_list := draw_data.CmdLists[n];
-            idx_buffer_offset : *ImGui.ImDrawIdx;
-
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_handle);
-            glBufferData(GL_ARRAY_BUFFER, cmd_list.VtxBuffer.Size * size_of(ImGui.ImDrawVert), cmd_list.VtxBuffer.Data, GL_STREAM_DRAW);
-
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elements_handle);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, cmd_list.IdxBuffer.Size * size_of(ImGui.ImDrawIdx), cmd_list.IdxBuffer.Data, GL_STREAM_DRAW);
-
-            for cmd_i: 0..cmd_list.CmdBuffer.Size-1 {
-                pcmd := *cmd_list.CmdBuffer.Data[cmd_i];
-                if pcmd.UserCallback {
-                    pcmd.UserCallback(cmd_list, pcmd);
-                }
-                else {
-                    glBindTexture(GL_TEXTURE_2D, xx pcmd.TextureId);
-                    glScissor(xx pcmd.ClipRect.x, xx (fb_height - pcmd.ClipRect.w), xx (pcmd.ClipRect.z - pcmd.ClipRect.x), xx (pcmd.ClipRect.w - pcmd.ClipRect.y));
-
-                    glDrawElements(GL_TRIANGLES, pcmd.ElemCount, GL_UNSIGNED_SHORT, idx_buffer_offset);
-                }
-                idx_buffer_offset += pcmd.ElemCount;
-            }
+        if (all_vtx_size + vtx_size) > cast(s32) vertices.size
+        || (all_idx_size + idx_size) > cast(s32) indices.size {
+            break;
         }
 
-        // Restore modified GL state
-        glUseProgram(last_program);
-        glBindTexture(GL_TEXTURE_2D, last_texture);
-        glBindSampler(0, last_sampler);
-        glActiveTexture(last_active_texture);
-        glBindVertexArray(last_vertex_array);
-        glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, last_element_array_buffer);
-        glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
-        glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha, last_blend_dst_alpha);
-        if last_enable_blend        glEnable(GL_BLEND);         else glDisable(GL_BLEND);
-        if last_enable_cull_face    glEnable(GL_CULL_FACE);     else glDisable(GL_CULL_FACE);
-        if last_enable_depth_test   glEnable(GL_DEPTH_TEST);    else glDisable(GL_DEPTH_TEST);
-        if last_enable_scissor_test glEnable(GL_SCISSOR_TEST);  else glDisable(GL_SCISSOR_TEST);
-        glPolygonMode(GL_FRONT_AND_BACK, last_polygon_mode[0]);
-        glViewport(last_viewport[0], last_viewport[1], xx last_viewport[2], xx last_viewport[3]);
-        glScissor(last_scissor_box[0], last_scissor_box[1], xx last_scissor_box[2], xx last_scissor_box[3]);
+        if vtx_size > 0 {
+            src_vtx := cmd_list.VtxBuffer.Data;
+            dst_vtx := vertices.ptr + all_vtx_size;
+            memcpy(dst_vtx, src_vtx, vtx_size);
+        }
+        if idx_size > 0 {
+            src_idx := cmd_list.IdxBuffer.Data;
+            dst_idx := indices.ptr + all_idx_size;
+            memcpy(dst_idx, src_idx, idx_size);
+        }
+        all_vtx_size += vtx_size;
+        all_idx_size += idx_size;
     }
+
+    sg_push_debug_group("ImGui");
+    if all_vtx_size > 0 {
+        vtx_data := vertices;
+        vtx_data.size = xx all_vtx_size;
+        sg_update_buffer(vertex_buffer, *vtx_data);
+    }
+    if all_idx_size > 0 {
+        idx_data := indices;
+        idx_data.size = xx all_idx_size;
+        sg_update_buffer(index_buffer, *idx_data);
+    }
+
+    draw_data.ScaleClipRects(draw_data, io.DisplayFramebufferScale);
+    
+    sg_apply_viewport(0, 0, fb_width, fb_height, true);
+    sg_apply_scissor_rect(0, 0, fb_width, fb_height, true);
+
+    sg_apply_pipeline(pipe);
+    vs_params: ImGui_VS_Params;
+    vs_params.display_size = io.DisplaySize; 
+    sg_apply_uniforms(.VS, 0, *sg_range.{*vs_params, size_of(ImGui_VS_Params)});
+    bind: sg_bindings;
+    bind.vertex_buffers[0] = vertex_buffer;
+    bind.index_buffer      = index_buffer;
+    tex_id := io.Fonts.TexID;
+    bind.fs_images[0] = cast(sg_image) tex_id;
+    vb_offset, ib_offset: s32;
+    for cl_index: 0..draw_data.CmdListsCount-1 {
+        cmd_list := draw_data.CmdLists[cl_index];
+        bind.vertex_buffer_offsets[0] = vb_offset;
+        bind.index_buffer_offset      = ib_offset;
+        sg_apply_bindings(*bind);
+
+        vtx_offset: u32;
+        for cmd_index: 0..cmd_list.CmdBuffer.Size-1 {
+            pcmd := *cmd_list.CmdBuffer.Data[cmd_index];
+            if pcmd.UserCallback {
+                pcmd.UserCallback(cmd_list, pcmd);
+                sg_apply_viewport(0, 0, fb_width, fb_height, true);
+                sg_apply_pipeline(pipe);
+                sg_apply_uniforms(.VS, 0, *sg_range.{*vs_params, size_of(ImGui_VS_Params)});
+                sg_apply_bindings(*bind);
+            } else {
+                if tex_id != pcmd.TextureId || vtx_offset != pcmd.VtxOffset {
+                    tex_id     = pcmd.TextureId;
+                    vtx_offset = pcmd.VtxOffset;
+                    bind.fs_images[0] = cast(sg_image) tex_id;
+                    bind.vertex_buffer_offsets[0] = vb_offset + (cast(s32) pcmd.VtxOffset * size_of(ImGui.ImDrawVert));
+                    sg_apply_bindings(*bind);
+                }
+                sg_apply_scissor_rect(
+                    xx pcmd.ClipRect.x,
+                    xx pcmd.ClipRect.y,
+                    xx (pcmd.ClipRect.z - pcmd.ClipRect.x),
+                    xx (pcmd.ClipRect.w - pcmd.ClipRect.y),
+                    true
+                );
+                sg_draw(xx pcmd.IdxOffset, xx pcmd.ElemCount, 1);
+            }
+        }
+        vb_offset += cmd_list.VtxBuffer.Size * size_of(ImGui.ImDrawVert);
+        ib_offset += cmd_list.IdxBuffer.Size * size_of(ImGui.ImDrawIdx);
+    }
+
+    sg_apply_viewport(0, 0, fb_width, fb_height, true);
+    sg_apply_scissor_rect(0, 0, fb_width, fb_height, true);
+
+    sg_pop_debug_group();
 }
 
 #scope_file
 
-Font_Awesome_Glyphs :: u16.[ICON_MIN_FA, ICON_MAX_FA, 0];
+ImGui_Init_Value :: 0xF8008135;
+
+ImGui_VS_Params :: struct {
+    display_size: Vector2;
+    // _padding: [8] u8; // @Note: Requires padding to align to 16 bytes for some backends.
+}
 
 UI_State :: struct {
     ctx:         *ImGui.ImGuiContext;
     io:          *ImGui.IO;
     handle:      *GLFWwindow;
-    initialized: bool;
     requested_frames: s64 = 2;
 
     mouse_pressed:              [3]bool = .[false, false, false];
     mouse_wheel:                float   = 0.0;
-    font_texture:               GLuint  = 0;
-    shader_handle:              GLuint  = 0;
-    vert_handle:                GLuint  = 0;
-    frag_handle:                GLuint  = 0;
-    attrib_location_tex:        GLint   = 0;
-    attrib_location_projection: GLint   = 0;
-    attrib_location_position:   GLuint  = 0;
-    attrib_location_uv:         GLuint  = 0;
-    attrib_location_color:      GLuint  = 0;
-    vbo_handle:                 GLuint  = 0;
-    vao_handle:                 GLuint  = 0;
-    elements_handle:            GLuint  = 0;
+
+    vertex_buffer: sg_buffer;
+    index_buffer:  sg_buffer;
+    font_image:    sg_image;
+    shader:   sg_shader;
+    pipe:     sg_pipeline;
+    vertices: sg_range;
+    indices:  sg_range;
+
+    init_value: u32;
 };
 ui: UI_State;
-
-// @Fix(sushi): This doesn't always seem to work...
 _imgui_context: Context;
-imgui_alloc :: (sz: u64, userdata: *void) -> *void #c_call {
-    push_context (<< cast(*Context) userdata) {
-        return alloc(cast(s64) sz);
-    }
-}
-imgui_free :: (ptr: *void, userdata: *void) #c_call {
-    push_context (<< cast(*Context) userdata) {
-        free(ptr);
-    }
-}
 
-#import "Basic";
-#import "Math";
-#import "glfw";
-#import "GL";
-ImGui :: #import "ImGuiDocking";
+ImGui_Vert_Shader :: #string ___glsl
+#version 330
+
+layout(location=0) in vec2 vPos;
+layout(location=1) in vec2 vUV;
+layout(location=2) in vec4 vColor;
+out vec2 fUV;
+out vec4 fColor;
+
+uniform vec2 display_size;
+
+void main() {
+    gl_Position = vec4(((vPos / display_size) - 0.5) * vec2(2.0, -2.0), 0.5, 1.0);
+    // gl_Position = vec4(vPos / display_size, 0.5, 1.0);
+    fUV = vUV;
+    fColor = vColor;
+}
+___glsl
+
+ImGui_Frag_Shader :: #string ___glsl
+#version 330
+
+in vec2 fUV;
+in vec4 fColor;
+out vec4 COLOR;
+
+uniform sampler2D TEXTURE;
+
+void main() {
+    COLOR = texture(TEXTURE, fUV) * fColor;
+    // COLOR = vec4(1.0);
+}
+___glsl
 
 #scope_export
 

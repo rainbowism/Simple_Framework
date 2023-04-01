@@ -44,7 +44,6 @@ load_msdf :: (msdf_filename: string, texture: Texture) -> *MSDF_Font, bool {
     msdf_data, success := read_entire_file(msdf_filename);
     if !success  return null, false;
 
-    defer free(msdf_data);
     magic_number: u32 = << cast(*u32) msdf_data.data;
 
     if magic_number != MSDF_MAGIC  return null, false;

@@ -27,6 +27,7 @@ SF_Result :: enum {
 }
 
 #import "Math";
+#import "File";
 #import "Hash";
 #import "Hash_Table";
 #import "Pool";
@@ -55,11 +56,10 @@ SF_Result :: enum {
     #load "render/msdf.jai";
     #load "render/render.jai";
     // #load "render/shader.jai";
-    #load "render/default_shader.jai";
+    #load "render/default_shaders.jai";
     // #load "render/render_layer.jai";
     // #load "render/render_target.jai";
     // #load "render/bloom.jai";
-    #load "render/draw.jai";
     // #load "render/particles.jai";
     #load "render/camera.jai";
 }

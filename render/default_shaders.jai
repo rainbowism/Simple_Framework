@@ -24,44 +24,6 @@ void main() {
 }
 ___glsl
 
-Globals_Vert_Shader :: #string ___glsl
-#version 330
-
-layout(location=0) in vec4 vPosUV;
-out vec2 fUV;
-
-uniform globals {
-    vec2 Screen_Size;
-    vec2 Screen_Pixel_Size;
-    float Time;
-};
-
-void main() {
-    gl_Position = vec4(vPosUV.xy, 0.0, 1.0);
-    fUV = vPosUV.zw;
-}
-___glsl
-
-Globals_Frag_Shader :: #string ___glsl
-#version 330
-
-in vec2 fUV;
-out vec4 COLOR;
-
-uniform globals {
-    vec2 Screen_Size;
-    vec2 Screen_Pixel_Size;
-    float Time;
-};
-
-uniform sampler2D TEXTURE;
-uniform vec4 color;
-
-void main() {
-    COLOR = texture(TEXTURE, fUV) * color;
-}
-___glsl
-
 Circle_Frag_Shader :: #string ___glsl
 #version 330 core
 
@@ -85,7 +47,7 @@ float circle(vec2 _position, float _inner_radius, float _outer_radius) {
 }
 
 void main() {
-    COLOR = vec4(color.rgb, circle(fUV, radius.x, radius.y));
+    COLOR = vec4(color.rgb, circle(fUV, radius.x, radius.y) * color.a);
 }
 ___glsl
 
