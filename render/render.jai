@@ -562,9 +562,9 @@ imm_rotate :: inline (theta: float) {
 
 imm_rotate_at :: inline (theta: float, offset: Vector2) {
     using render_ctx;
-    translate_by(*state.transform, -offset);
-    rotate_by(*state.transform, theta);
     translate_by(*state.transform, offset);
+    rotate_by(*state.transform, theta);
+    translate_by(*state.transform, -offset);
     state.mvp = state.projection * state.transform;
 }
 
@@ -576,9 +576,9 @@ imm_scale :: inline (scale: Vector2) {
 
 imm_scale_at :: inline (scale: Vector2, offset: Vector2) {
     using render_ctx;
-    translate_by(*state.transform, -offset);
-    scale_by(*state.transform, scale);
     translate_by(*state.transform, offset);
+    scale_by(*state.transform, scale);
+    translate_by(*state.transform, -offset);
     state.mvp = state.projection * state.transform;
 }
 
@@ -590,9 +590,9 @@ imm_scale :: inline (scale: float) {
 
 imm_scale_at :: inline (scale: float, offset: Vector2) {
     using render_ctx;
-    translate_by(*state.transform, -offset);
-    scale_by(*state.transform, scale);
     translate_by(*state.transform, offset);
+    scale_by(*state.transform, scale);
+    translate_by(*state.transform, -offset);
     state.mvp = state.projection * state.transform;
 }
 
@@ -862,47 +862,51 @@ imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, col
     num_vertices: u32;
 
     origin := position;
-    last_char: u8 = 0;
+    last_codepoint: u32;
 
     imm_set_image(0, msdf.texture.id);
-    for 0..text.count-1 {
-        if text[it] < msdf.starting_glyph || text[it] >= (msdf.starting_glyph + msdf.glyphs.count)  continue;
-        origin.x += get_kerning(msdf, text[it], last_char) * size;
-        glyph := msdf.glyphs[text[it] - msdf.starting_glyph];
-
-        source := glyph.atlas;
-        dest   := glyph.plane * size + origin;
-
-        quad: [4] Vector2 = ---;
-        quad[0] = .{dest.x,              dest.y + dest.height}; // bottom left
-        quad[1] = .{dest.x + dest.width, dest.y + dest.height}; // bottom right
-        quad[2] = .{dest.x + dest.width, dest.y};               // top right
-        quad[3] = .{dest.x,              dest.y};               // top left
-        quad_uvs: [4] Vector2 = ---;
-        quad_uvs[0] = .{source.tl.x, source.br.y}; // bottom left
-        quad_uvs[1] =   source.br;                 // bottom right
-        quad_uvs[2] = .{source.br.x, source.tl.y}; // top right
-        quad_uvs[3] =   source.tl;                 // top left
-
-        xform_many(mvp, quad);
-        for point: quad {
-            region.x1 = min(region.x1, point.x);
-            region.y1 = min(region.y1, point.y);
-            region.x2 = max(region.x2, point.x);
-            region.y2 = max(region.y2, point.y);
+    head := text.data;
+    while head < text.data + text.count {
+        codepoint, continuation := one_utf32_codepoint(head);
+        glyph, success := find_glyph(msdf, codepoint);
+        if success {
+            origin.x += get_kerning(msdf, codepoint, last_codepoint) * size;
+    
+            source := glyph.atlas;
+            dest   := glyph.plane * size + origin;
+    
+            quad: [4] Vector2 = ---;
+            quad[0] = .{dest.x,              dest.y + dest.height}; // bottom left
+            quad[1] = .{dest.x + dest.width, dest.y + dest.height}; // bottom right
+            quad[2] = .{dest.x + dest.width, dest.y};               // top right
+            quad[3] = .{dest.x,              dest.y};               // top left
+            quad_uvs: [4] Vector2 = ---;
+            quad_uvs[0] = .{source.tl.x, source.br.y}; // bottom left
+            quad_uvs[1] =   source.br;                 // bottom right
+            quad_uvs[2] = .{source.br.x, source.tl.y}; // top right
+            quad_uvs[3] =   source.tl;                 // top left
+    
+            xform_many(mvp, quad);
+            for point: quad {
+                region.x1 = min(region.x1, point.x);
+                region.y1 = min(region.y1, point.y);
+                region.x2 = max(region.x2, point.x);
+                region.y2 = max(region.y2, point.y);
+            }
+    
+            base_vertices[0].position = quad[0]; base_vertices[0].uv = quad_uvs[0];
+            base_vertices[1].position = quad[1]; base_vertices[1].uv = quad_uvs[1];
+            base_vertices[2].position = quad[2]; base_vertices[2].uv = quad_uvs[2];
+            base_vertices[3].position = quad[3]; base_vertices[3].uv = quad_uvs[3];
+            base_vertices[4].position = quad[0]; base_vertices[4].uv = quad_uvs[0];
+            base_vertices[5].position = quad[2]; base_vertices[5].uv = quad_uvs[2];
+            base_vertices += 6;
+            num_vertices  += 6;
+    
+            origin.x += glyph.advance_x * size;
+            last_codepoint = codepoint;
         }
-
-        base_vertices[0].position = quad[0]; base_vertices[0].uv = quad_uvs[0];
-        base_vertices[1].position = quad[1]; base_vertices[1].uv = quad_uvs[1];
-        base_vertices[2].position = quad[2]; base_vertices[2].uv = quad_uvs[2];
-        base_vertices[3].position = quad[3]; base_vertices[3].uv = quad_uvs[3];
-        base_vertices[4].position = quad[0]; base_vertices[4].uv = quad_uvs[0];
-        base_vertices[5].position = quad[2]; base_vertices[5].uv = quad_uvs[2];
-        base_vertices += 6;
-        num_vertices  += 6;
-
-        origin.x += glyph.advance_x * size;
-        last_char = text[it];
+        head += continuation;
     }
 
     cur_vertex += num_vertices;
