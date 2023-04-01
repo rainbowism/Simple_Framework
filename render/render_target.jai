@@ -1,62 +1,59 @@
 Render_Target :: struct {
-    fbo:   GLuint;
-    rbo:   GLuint;
-    color: GLuint;
+    pass:  sg_pass;
+    color: sg_image;
+    depth: sg_image;
 }
 
-create_render_target :: () -> Render_Target, bool {
+create_render_target :: () -> Render_Target, bool #expand {
+    render_target, success := create_render_target(window.size_i.x, window.size_i.y);
+    return render_target, success;
+}
+
+create_render_target :: (width: s32, height: s32) -> Render_Target, bool {
     render_target: Render_Target = ---;
 
-    glGenFramebuffers(1, *render_target.fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, render_target.fbo);
-    defer glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    offscreen_sample_count := cast(s32) (ifx sg_query_features().msaa_render_targets then 4 else 1);
+    target_image_desc := sg_image_desc.{
+        render_target = true,
+        width  = width,
+        height = height,
+        min_filter = .LINEAR,
+        mag_filter = .LINEAR,
+        wrap_u = .CLAMP_TO_EDGE,
+        wrap_v = .CLAMP_TO_EDGE,
+        sample_count = offscreen_sample_count,
+        label = "Render Target Color Image",
+    };
+    render_target.color = sg_make_image(*target_image_desc);
+    target_image_desc.pixel_format = .DEPTH;
+    target_image_desc.label = "Render Target Depth Image";
+    render_target.depth = sg_make_image(*target_image_desc);
+    pass_desc: sg_pass_desc;
+    pass_desc.color_attachments[0].image     = render_target.color;
+    pass_desc.depth_stencil_attachment.image = render_target.depth;
+    pass_desc.label = "Render Target Pass";
+    render_target.pass = sg_make_pass(*pass_desc);
 
-    glGenTextures(1, *render_target.color);
-    glBindTexture(GL_TEXTURE_2D, render_target.color);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx window.size_i.x, xx window.size_i.y, 0, GL_RGBA, GL_FLOAT, null);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_target.color, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glGenRenderbuffers(1, *render_target.rbo);
-    glBindRenderbuffer(GL_RENDERBUFFER, render_target.rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, xx window.size_i.x, xx window.size_i.y);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, render_target.rbo);
-
-    if glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE {
-        return render_target, true;
-    }
-
-    destroy(render_target);
-    return .{}, false;
+    return render_target, true;
 }
 
-destroy :: (render_target: Render_Target) {
-    glDeleteTextures(1, *render_target.color);
-    glDeleteRenderbuffers(1, *render_target.rbo);
-    glDeleteFramebuffers(1, *render_target.fbo);
+free :: (using render_target: Render_Target) {
+    sg_destroy_pass(pass);
+    sg_destroy_image(depth);
+    sg_destroy_image(color);
 }
 
-resize_render_target :: (render_target: Render_Target, width: s32, height: s32) {
-    glBindFramebuffer(GL_FRAMEBUFFER, render_target.fbo);
-    glBindTexture(GL_TEXTURE_2D, render_target.color);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, xx width, xx height, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glBindRenderbuffer(GL_RENDERBUFFER, render_target.rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, xx width, xx height);
+rt_pass_begin :: (render_target: Render_Target) #expand {
+    sg_begin_pass(render_target.pass, *default_pass_action);
 }
 
-draw_render_texture :: (render_target: Render_Target, $additive := false) {
-    #if additive {
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-        defer glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    }
-    glUseProgram(render_ctx.shaders.data[DEFAULT_SHADER_FRAMEBUFFER].program);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, render_target.color);
-    render_quad();
-    render_ctx.draw_calls += 1;
+rt_pass_begin :: (render_target: Render_Target, pass_action: *sg_pass_action) #expand {
+    sg_begin_pass(render_target.pass, pass_action);
+}
+
+rt_pass_end :: sg_end_pass;
+
+resize :: (render_target: *Render_Target, width: s32, height: s32) {
+    free(render_target);
+    << render_target = create_render_target(width,  height);
 }

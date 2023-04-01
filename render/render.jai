@@ -21,6 +21,8 @@ Imm_Blend_Mode :: enum s32 {
 
 Imm_Circle :: Circle;
 
+Imm_Pass_Action :: sg_pass_action;
+
 Text_Align :: struct {
     TL :: Top_Left;
     TC :: Top_Center;
@@ -61,11 +63,11 @@ test_log :: (tag: *u8, slog_level: u32, log_item_id: u32, message: *u8, line_nr:
     }
 }
 
-render_init :: () {
+render_init :: (msaa: bool) {
     render_desc: sg_desc;
     render_desc._context.color_format = SG_Color_Format;
     render_desc._context.depth_format = .DEPTH_STENCIL;
-    render_desc._context.sample_count = 4; // @Todo: MSAA
+    render_desc._context.sample_count = cast(s32) (ifx msaa then 4 else 1);
     render_desc.logger.func = test_log;
     sg_setup(*render_desc);
     if !sg_isvalid() {
@@ -181,14 +183,22 @@ render_deinit :: () {
 render_begin :: () {
     gpu_begin_frame();
     _profiler_draw_task = gpu_begin_task("Draw", Colors8.Medium_Purple);
-    sg_begin_default_pass(*default_pass_action, window.size_i.x, window.size_i.y);
 }
 
 render_end :: () {
-    sg_end_pass();
-    sg_commit();
     gpu_end_task(_profiler_draw_task);
+    sg_commit();
 }
+
+default_pass_begin :: () #expand {
+    sg_begin_default_pass(*default_pass_action, window.size_i.x, window.size_i.y);
+}
+
+pass_begin :: (pass_action: *sg_pass_action) #expand {
+    sg_begin_default_pass(pass_action, window.size_i.x, window.size_i.y);
+}
+
+default_pass_end :: sg_end_pass;
 
 imm_begin :: () {
     using render_ctx;
@@ -920,7 +930,7 @@ imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, col
     render_queue_draw(text_pipeline, region, vertex_index, num_vertices);
 }
 
-imm_text_aligned :: inline (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, color := Colors.White) -> Vector2 #expand {
+imm_text_aligned :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, color := Colors.White) -> Vector2 #expand {
     text_size := measure_text(msdf, text, size);
     offset    := text_size * origin;
     imm_text(msdf, text, position - offset, size, color);
@@ -933,7 +943,7 @@ imm_text_outlined :: (msdf: *MSDF_Font, text: string, position: Vector2, size: f
     imm_text(msdf, text, position, size, fill);
 }
 
-imm_text_outlined_aligned :: inline (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, outline := 2.0, fill := Colors.White, stroke := Colors.Black) -> Vector2 #expand {
+imm_text_outlined_aligned :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, outline := 2.0, fill := Colors.White, stroke := Colors.Black) -> Vector2 #expand {
     text_size := measure_text(msdf, text, size);
     offset    := text_size * origin;
     imm_text_outlined(msdf, text, position - offset, size, outline, fill, stroke);
@@ -942,11 +952,11 @@ imm_text_outlined_aligned :: inline (msdf: *MSDF_Font, text: string, position: V
 
 // -Utility
 
-make_projection :: inline (width: s32, height: s32) -> Transform {
+make_projection :: (width: s32, height: s32) -> Transform #expand {
     return make_projection(cast(float) width, cast(float) height);
 }
 
-make_projection :: inline (width: float, height: float) -> Transform {
+make_projection :: (width: float, height: float) -> Transform #expand {
     return .{
         2.0 / width, 0.0,
         0.0, -2.0 / height,

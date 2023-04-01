@@ -50,7 +50,7 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     }
     glfwMakeContextCurrent(window.handle);
 
-    #if !Disable_Render { if modules_to_init & .Render  render_init(); }
+    #if !Disable_Render { if modules_to_init & .Render  render_init(flags * .MSAA != 0); }
     #if !Disable_Audio  { if modules_to_init & .Audio   audio_init();  }
     #if !Disable_ImGui  { if modules_to_init & .ImGui   imgui_init();  }
 
@@ -339,23 +339,6 @@ set_drop_callback :: (callback: Drop_Callback) {
     window.callbacks.drop = callback;
 }
 
-draw_clear :: inline (color: Color, $only_depth := false) {
-    glClearColor(color.r, color.g, color.b, color.a);
-    #if only_depth {
-        glClear(GL_DEPTH_BUFFER_BIT);
-    } else {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    }
-}
-
-draw_clear :: (color: Color8, $only_depth := false) #expand {
-    draw_clear(to_color(color), only_depth);
-}
-
-draw_clear :: ($only_depth := false) #expand {
-    draw_clear(window.clear_color, only_depth);
-}
-
 set_clear_color :: inline (color: Color) {
     default_pass_action.colors[0].value = color;
 }
@@ -380,11 +363,6 @@ get_mouse_pos :: ($cached := false) -> Vector2 {
         glfwGetCursorPos(window.handle, *x, *y);
         return .{cast(float) x, cast(float) y};
     }
-}
-
-reset_viewport :: inline () {
-    glViewport(0, 0, xx window.size_i.x, xx window.size_i.y);
-    #if !Disable_Render  push_custom_screen_size(window.size_i.x, window.size_i.y);
 }
 
 sf_time: struct {

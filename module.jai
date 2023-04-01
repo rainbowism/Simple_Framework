@@ -57,8 +57,7 @@ SF_Result :: enum {
     #load "render/render.jai";
     // #load "render/shader.jai";
     #load "render/default_shaders.jai";
-    // #load "render/render_layer.jai";
-    // #load "render/render_target.jai";
+    #load "render/render_target.jai";
     // #load "render/bloom.jai";
     // #load "render/particles.jai";
     #load "render/camera.jai";

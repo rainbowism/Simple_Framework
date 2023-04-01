@@ -1,5 +1,3 @@
-ImGui :: #import "ImGuiDocking";
-
 imgui_init :: () {
     assert(ui.init_value != ImGui_Init_Value, "Trying to initialize ImGui module again!");
     ImGui_Impl_CreateContext();
@@ -534,6 +532,8 @@ ImGui_Impl_RenderDrawData :: (draw_data: *ImGui.ImDrawData) {
 
 #scope_file
 
+ImGui :: #import "ImGuiDocking";
+
 ImGui_Init_Value :: 0xF8008135;
 
 ImGui_VS_Params :: struct {
@@ -596,6 +596,8 @@ void main() {
     // COLOR = vec4(1.0);
 }
 ___glsl
+
+Font_Awesome_Glyphs :: u16.[ICON_MIN_FA, ICON_MAX_FA, 0];
 
 #scope_export
 
