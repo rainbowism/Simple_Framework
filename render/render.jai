@@ -179,12 +179,15 @@ render_deinit :: () {
 }
 
 render_begin :: () {
+    gpu_begin_frame();
+    _profiler_draw_task = gpu_begin_task("Draw", Colors8.Medium_Purple);
     sg_begin_default_pass(*default_pass_action, window.size_i.x, window.size_i.y);
 }
 
 render_end :: () {
     sg_end_pass();
     sg_commit();
+    gpu_end_task(_profiler_draw_task);
 }
 
 imm_begin :: () {
@@ -953,6 +956,7 @@ Max_Stack_Depth      :: 64;
 Max_Texture_Slots    :: 4;
 
 render_pool: Pool;
+_profiler_draw_task: int;
 
 Imm_Images_Uniform :: struct {
     count: u32;
