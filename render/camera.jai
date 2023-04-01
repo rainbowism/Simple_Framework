@@ -17,7 +17,7 @@ get_camera_bounds :: (using camera: Camera, canvas_size: Vector2) -> SAT_Rect {
 
 get_xform :: inline (using camera: Camera) -> Transform {
     transform := make_xform(offset, rotation, Vector2.{zoom, zoom});
-    translate(*transform, -position);
+    translate_by(*transform, -position);
     return transform;
 }
 

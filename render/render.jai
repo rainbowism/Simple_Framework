@@ -550,35 +550,49 @@ imm_reset_project :: inline () {
 
 imm_translate :: inline (offset: Vector2) {
     using render_ctx;
-    translate(*state.transform, offset);
+    translate_by(*state.transform, offset);
     state.mvp = state.projection * state.transform;
 }
 
 imm_rotate :: inline (theta: float) {
     using render_ctx;
-    rotate(*state.transform, theta);
+    rotate_by(*state.transform, theta);
     state.mvp = state.projection * state.transform;
 }
 
 imm_rotate_at :: inline (theta: float, offset: Vector2) {
     using render_ctx;
-    translate(*state.transform, -offset);
-    rotate(*state.transform, theta);
-    translate(*state.transform, offset);
+    translate_by(*state.transform, -offset);
+    rotate_by(*state.transform, theta);
+    translate_by(*state.transform, offset);
     state.mvp = state.projection * state.transform;
 }
 
 imm_scale :: inline (scale: Vector2) {
     using render_ctx;
-    scale(*state.transform, theta);
+    scale_by(*state.transform, scale);
     state.mvp = state.projection * state.transform;
 }
 
 imm_scale_at :: inline (scale: Vector2, offset: Vector2) {
     using render_ctx;
-    translate(*state.transform, -offset);
-    scale(*state.transform, theta);
-    translate(*state.transform, offset);
+    translate_by(*state.transform, -offset);
+    scale_by(*state.transform, scale);
+    translate_by(*state.transform, offset);
+    state.mvp = state.projection * state.transform;
+}
+
+imm_scale :: inline (scale: float) {
+    using render_ctx;
+    scale_by(*state.transform, scale);
+    state.mvp = state.projection * state.transform;
+}
+
+imm_scale_at :: inline (scale: float, offset: Vector2) {
+    using render_ctx;
+    translate_by(*state.transform, -offset);
+    scale_by(*state.transform, scale);
+    translate_by(*state.transform, offset);
     state.mvp = state.projection * state.transform;
 }
 

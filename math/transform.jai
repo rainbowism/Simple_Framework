@@ -128,13 +128,13 @@ xform_many :: (transform: Transform, v: [] Vector2) {
     }
 }
 
-translate :: inline (transform: *Transform, offset: Vector2) {
+translate_by :: inline (transform: *Transform, offset: Vector2) {
     using transform;
     _31 += tdotx(transform, offset);
     _32 += tdoty(transform, offset);
 }
 
-rotate :: inline (transform: *Transform, theta: float) {
+rotate_by :: inline (transform: *Transform, theta: float) {
     using transform;
     cost := tcos(theta);
     sint := tsin(theta);
@@ -142,10 +142,16 @@ rotate :: inline (transform: *Transform, theta: float) {
     y_basis = .{cost * _21 + sint * _22, -sint * _21 + cost * _22};
 }
 
-scale :: inline (transform: *Transform, scale: Vector2) {
+scale_by :: inline (transform: *Transform, scale: Vector2) {
     using transform;
     x_basis *= scale.x;
     y_basis *= scale.y;
+}
+
+scale_by :: inline (transform: *Transform, scale: float) {
+    using transform;
+    x_basis *= scale;
+    y_basis *= scale;
 }
 
 set_rotation_scale :: (transform: *Transform, theta: float, scale: Vector2) {
