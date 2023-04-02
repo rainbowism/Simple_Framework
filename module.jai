@@ -31,6 +31,7 @@ SF_Result :: enum {
 #import "Hash";
 #import "Hash_Table";
 #import "Pool";
+#import "Unicode";
 
 #load "utils.jai";
 #load "color.jai";

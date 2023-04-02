@@ -129,7 +129,40 @@ measure_text :: (msdf: *MSDF_Font, text: string, size: float) -> Vector2 {
     return text_size;
 }
 
-measure_text_wrapped_em :: (msdf: *MSDF_Font, text: string, size: float, max_width: float) -> Vector2, s64, float, float {
+split_line_em :: (msdf: *MSDF_Font, text: string, size: float, starting_width: float, max_width: float) -> string, string, bool {
+    if text.count == 0  return "", "", false;
+    wrap_width: float;
+    wrap_index: s64;
+    text_width := starting_width;
+    last_codepoint: u32;
+    head := text.data;
+    while head < text.data + text.count {
+        codepoint, continuation := one_utf32_codepoint(head);
+        glyph, success := find_glyph(msdf, codepoint);
+        if success {
+            advance_x := get_kerning(msdf, codepoint, last_codepoint);
+            advance_x += glyph.advance_x;
+            advance_x *= size;
+            if codepoint == Unicode_Space {
+                wrap_width = text_width;
+                wrap_index = head - text.data;
+            }
+            text_width += advance_x;
+            if text_width > max_width {
+                line := text;
+                advance(*text, wrap_index + 1);
+                line.count = wrap_index;
+                return line, text, true;
+            }
+            last_codepoint = codepoint;
+        }
+        head += continuation;
+    }
+
+    return text, "", false;
+}
+
+measure_text_wrapped :: (msdf: *MSDF_Font, text: string, size: float, max_width: float) -> Vector2, s64, float, float {
     // @Incomplete(sushi): This doesn't support wrapping more than 1 line.
     text_size := Vector2.{0, msdf.line_height * size};
     if text.count == 0  return text_size, -1, 0.0, 0.0;
@@ -147,23 +180,23 @@ measure_text_wrapped_em :: (msdf: *MSDF_Font, text: string, size: float, max_wid
             advance_x := get_kerning(msdf, codepoint, last_codepoint);
             advance_x += glyph.advance_x;
             advance_x *= size;
-            if codepoint == 0x20 && !has_wrapped {
+            if codepoint == Unicode_Space && !has_wrapped {
                 wrap_width  = text_width;
                 wrap_index  = head - text.data;
                 wrap_margin = advance_x;
             }
             text_width += advance_x;
-            last_codepoint = codepoint;
             if text_width > max_width {
                 text_size.x = wrap_width;
                 text_width -= wrap_width + wrap_margin;
                 has_wrapped = true;
             }
+            last_codepoint = codepoint;
         }
         head += continuation;
     }
     if text_width > text_size.x  text_size.x = text_width;
-    if !has_wrapped  wrap_index= -1;
+    if !has_wrapped  wrap_index = -1;
 
     return text_size, wrap_index, wrap_width, text_width;
 }
@@ -178,4 +211,6 @@ find_glyph :: (msdf: *MSDF_Font, codepoint: u32) -> *MSDF_Glyph, bool #expand {
     return glyph, success;
 }
 
-#import "Unicode";
+#scope_file
+
+Unicode_Space :: 0x00000020;
