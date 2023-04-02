@@ -4,12 +4,12 @@ Render_Target :: struct {
     depth: sg_image;
 }
 
-create_render_target :: () -> Render_Target, bool #expand {
-    render_target, success := create_render_target(window.size_i.x, window.size_i.y);
+make_render_target :: () -> Render_Target, bool #expand {
+    render_target, success := make_render_target(window.size_i.x, window.size_i.y);
     return render_target, success;
 }
 
-create_render_target :: (width: s32, height: s32) -> Render_Target, bool {
+make_render_target :: (width: s32, height: s32) -> Render_Target, bool {
     render_target: Render_Target = ---;
 
     offscreen_sample_count := cast(s32) (ifx sg_query_features().msaa_render_targets then 4 else 1);
@@ -17,6 +17,7 @@ create_render_target :: (width: s32, height: s32) -> Render_Target, bool {
         render_target = true,
         width  = width,
         height = height,
+        pixel_format = .RGBA8,
         min_filter = .LINEAR,
         mag_filter = .LINEAR,
         wrap_u = .CLAMP_TO_EDGE,
@@ -25,7 +26,7 @@ create_render_target :: (width: s32, height: s32) -> Render_Target, bool {
         label = "Render Target Color Image",
     };
     render_target.color = sg_make_image(*target_image_desc);
-    target_image_desc.pixel_format = .DEPTH;
+    target_image_desc.pixel_format = .DEPTH_STENCIL;
     target_image_desc.label = "Render Target Depth Image";
     render_target.depth = sg_make_image(*target_image_desc);
     pass_desc: sg_pass_desc;
@@ -55,5 +56,5 @@ rt_pass_end :: sg_end_pass;
 
 resize :: (render_target: *Render_Target, width: s32, height: s32) {
     free(render_target);
-    << render_target = create_render_target(width,  height);
+    << render_target = make_render_target(width,  height);
 }

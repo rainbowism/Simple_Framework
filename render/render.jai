@@ -200,15 +200,19 @@ pass_begin :: (pass_action: *sg_pass_action) #expand {
 
 default_pass_end :: sg_end_pass;
 
-imm_begin :: () {
+imm_begin :: (width: s32, height: s32) {
     using render_ctx;
     state_stack[cur_state] = state;
     cur_state += 1;
 
-    inline imm_reset_state();
+    inline imm_reset_state(width, height);
     state.base_vertex = cur_vertex;
     state.base_uniform = cur_uniform;
     state.base_command = cur_command;
+}
+
+imm_begin :: () #expand {
+    imm_begin(window.size_i.x, window.size_i.y);
 }
 
 imm_end :: () {
@@ -484,17 +488,17 @@ imm_reset_scissor :: () #expand {
     imm_scissor(0, 0, -1, -1);
 }
 
-imm_reset_state :: () {
+imm_reset_state :: (width: s32, height: s32) {
     using render_ctx;
-    state.frame_size = window.size_i;
+    state.frame_size = .{width, height};
     state.viewport.position = .{0, 0};
-    state.viewport.size = window.size_i;
+    state.viewport.size = .{width, height};
     state.scissor.position = .{0, 0};
     state.scissor.size = .{-1, -1};
-    state.projection = make_projection(window.size.x, window.size.y);
+    state.projection = make_projection(width, height);
     state.transform  = Transform_Identity;
     state.mvp        = state.projection;
-    state.thickness  = max(1.0 / cast(float) window.size.x, 1.0 / cast(float) window.size.y);
+    state.thickness  = max(1.0 / cast(float) width, 1.0 / cast(float) height);
     state.color      = Colors.White;
     state.uniform.size = size_of(Color);
     state.uniform.data[0] = Colors.White.r;
@@ -534,6 +538,7 @@ imm_pop_transform :: inline () {
 }
 
 imm_reset_transform :: inline () {
+    using render_ctx;
     state.transform = Transform_Identity;
     state.mvp       = state.projection * state.transform;
 }
@@ -855,7 +860,7 @@ imm_subrect :: (source: Rect, dest: Rect) #expand {
     imm_subrects(source, dest);
 }
 
-imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, color := Colors.White, outline: float = 0.0) {
+imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, color := Colors.White, outline: float = 0.0, $force_batch := false) {
     using render_ctx;
 
     // @Incomplete: This isn't using index buffers at the moment.
@@ -927,26 +932,26 @@ imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, col
     state.uniform.data[3] = color.a;
     state.uniform.data[4] = msdf.pixel_range;
     state.uniform.data[5] = outline;
-    render_queue_draw(text_pipeline, region, vertex_index, num_vertices);
+    render_queue_draw(text_pipeline, region, vertex_index, num_vertices, force_batch);
 }
 
-imm_text_aligned :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, color := Colors.White) -> Vector2 #expand {
+imm_text_aligned :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, color := Colors.White, $force_batch := false) -> Vector2 #expand {
     text_size := measure_text(msdf, text, size);
     offset    := text_size * origin;
-    imm_text(msdf, text, position - offset, size, color);
+    imm_text(msdf, text, position - offset, size, color, force_batch = force_batch);
     return text_size;
 }
 
-imm_text_outlined :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, outline := 2.0, fill := Colors.White, stroke := Colors.Black) #expand {
+imm_text_outlined :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, outline := 2.0, fill := Colors.White, stroke := Colors.Black, $force_batch := false) #expand {
     // @Speed: Fix this so it doesn't calculate each glyph twice.
-    imm_text(msdf, text, position, size, stroke, outline);
-    imm_text(msdf, text, position, size, fill);
+    imm_text(msdf, text, position, size, stroke, outline, force_batch);
+    imm_text(msdf, text, position, size, fill, force_batch = force_batch);
 }
 
-imm_text_outlined_aligned :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, outline := 2.0, fill := Colors.White, stroke := Colors.Black) -> Vector2 #expand {
+imm_text_outlined_aligned :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, origin := Text_Align.C, outline := 2.0, fill := Colors.White, stroke := Colors.Black, $force_batch := false) -> Vector2 #expand {
     text_size := measure_text(msdf, text, size);
     offset    := text_size * origin;
-    imm_text_outlined(msdf, text, position - offset, size, outline, fill, stroke);
+    imm_text_outlined(msdf, text, position - offset, size, outline, fill, stroke, force_batch);
     return text_size;
 }
 
@@ -1153,6 +1158,7 @@ make_pipeline :: (target_primitive_type: sg_primitive_type, blend_mode: Imm_Blen
     pipe_desc.layout.attrs[0].format = .FLOAT4;
     pipe_desc.colors[0].pixel_format = SG_Color_Format;
     pipe_desc.colors[0].blend = blend;
+    // pipe_desc.depth.pixel_format = .DEPTH;
     pipe_desc.primitive_type = primitive_type;
 
     pipe := sg_make_pipeline(*pipe_desc);
@@ -1269,7 +1275,7 @@ next_command :: () -> *Imm_Command #must #expand {
 
 Invalid_Vertex :: 0xFFFFFFFF;
 
-render_queue_draw :: (pipe: sg_pipeline, region: Rect, vertex_index: u32, num_vertices: u32) -> u32 {
+render_queue_draw :: (pipe: sg_pipeline, region: Rect, vertex_index: u32, num_vertices: u32, $force_batch := false) -> u32 {
     using render_ctx;
     if state.pipeline != SG_INVALID_ID  pipe = state.pipeline;
 
@@ -1284,7 +1290,7 @@ render_queue_draw :: (pipe: sg_pipeline, region: Rect, vertex_index: u32, num_ve
     }
 
     #if Batch_Optimizer_Depth > 0 {
-        batch_result := merge_batch_command(pipe, state.images, state.uniform, region, vertex_index, num_vertices);
+        batch_result := merge_batch_command(pipe, state.images, state.uniform, region, vertex_index, num_vertices, force_batch);
         if batch_result != Invalid_Vertex  return batch_result;
     }
 
@@ -1317,7 +1323,7 @@ render_queue_draw :: (pipe: sg_pipeline, region: Rect, vertex_index: u32, num_ve
     return vertex_index;
 }
 
-merge_batch_command :: (pipe: sg_pipeline, images: Imm_Images_Uniform, uniform: Imm_Uniform, region: Rect, vertex_index: u32, num_vertices: u32) -> u32 {
+merge_batch_command :: (pipe: sg_pipeline, images: Imm_Images_Uniform, uniform: Imm_Uniform, region: Rect, vertex_index: u32, num_vertices: u32, $force_batch := false) -> u32 {
     previous: *Imm_Command;
     intermediates: [Batch_Optimizer_Depth] *Imm_Command;
     intermediate_count: s64;
@@ -1350,15 +1356,17 @@ merge_batch_command :: (pipe: sg_pipeline, images: Imm_Images_Uniform, uniform: 
 
     overlaps_next, overlaps_prev: bool;
     prev_region := previous.draw.region;
-    for 0..intermediate_count-1 {
-        intermediate_region := intermediates[it].draw.region;
-        if overlaps(region, intermediate_region) {
-            overlaps_next = true;
-            if overlaps_prev  return Invalid_Vertex;
-        }
-        if overlaps(prev_region, intermediate_region) {
-            overlaps_prev = true;
-            if overlaps_next  return Invalid_Vertex;
+    #if !force_batch {
+        for 0..intermediate_count-1 {
+            intermediate_region := intermediates[it].draw.region;
+            if overlaps(region, intermediate_region) {
+                overlaps_next = true;
+                if overlaps_prev  return Invalid_Vertex;
+            }
+            if overlaps(prev_region, intermediate_region) {
+                overlaps_prev = true;
+                if overlaps_next  return Invalid_Vertex;
+            }
         }
     }
 
