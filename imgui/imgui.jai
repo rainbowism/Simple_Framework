@@ -473,13 +473,13 @@ ImGui_Impl_RenderDrawData :: (draw_data: *ImGui.ImDrawData) {
     }
 
     draw_data.ScaleClipRects(draw_data, io.DisplayFramebufferScale);
-    
+
     sg_apply_viewport(0, 0, fb_width, fb_height, true);
     sg_apply_scissor_rect(0, 0, fb_width, fb_height, true);
 
     sg_apply_pipeline(pipe);
     vs_params: ImGui_VS_Params;
-    vs_params.display_size = io.DisplaySize; 
+    vs_params.display_size = io.DisplaySize;
     sg_apply_uniforms(.VS, 0, *sg_range.{*vs_params, size_of(ImGui_VS_Params)});
     bind: sg_bindings;
     bind.vertex_buffers[0] = vertex_buffer;

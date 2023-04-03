@@ -1,114 +1,114 @@
 #if !Disable_Render {
-    generate_fractal :: (seed: s64, size: s32,
-        octaves := 3,
-        period := 64.0,
-        persistence := 0.5,
-        lacunarity := 2.0
-    ) -> Texture {
-        contexts := NewArray(octaves, *osn_context);
-        defer free(contexts.data);
-        for 0..octaves-1  open_simplex_noise(seed + it * 2, *contexts[it]);
-    
-        bitmap := NewArray(size * size, float);
-        defer free(bitmap.data);
-    
-        inv_period := 1.0 / period;
-    
-        index: int;
-        for y: 0..size-1 {
-            for x: 0..size-1 {
-                bitmap[index] = get_fractal_2d(contexts, xx x, xx y, inv_period, persistence, lacunarity) * 0.5 + 0.5;
-                index += 1;
-            }
-        }
-    
-        for 0..octaves-1  open_simplex_noise_free(contexts[it]);
-        return create_grayscale_texture(bitmap, size, size, .Repeat, true);
-    }
-    
-    generate_seamless_fractal :: (seed: s64, size: s32,
-        octaves := 3,
-        period := 64.0,
-        persistence := 0.5,
-        lacunarity := 2.0
-    ) -> Texture {
-        contexts := NewArray(octaves, *osn_context);
-        defer free(contexts.data);
-        for 0..octaves-1  open_simplex_noise(seed + it * 2, *contexts[it]);
-    
-        bitmap := NewArray(size * size, float);
-        defer free(bitmap.data);
-    
-        inv_size := 1.0 / cast(float) size;
-        inv_period := 1.0 / period;
-    
-        index: int;
-        for i: 0..size-1 {
-            for j: 0..size-1 {
-                ii := cast(float) i * inv_size;
-                jj := cast(float) j * inv_size;
-    
-                ii *= 2.0 * PI;
-                jj *= 2.0 * PI;
-    
-                INV_2PI :: #run 1.0 / (2.0 * PI);
-                radius := cast(float) size * INV_2PI;
-                x := radius * sin(jj);
-                y := radius * cos(jj);
-                z := radius * sin(ii);
-                w := radius * cos(ii);
-    
-                bitmap[index] = get_fractal_4d(contexts, x, y, z, w, inv_period, persistence, lacunarity) * 0.5 + 0.5;
-    
-                index += 1;
-            }
-        }
-    
-        for 0..octaves-1  open_simplex_noise_free(contexts[it]);
-        return create_grayscale_texture(bitmap, size, size, .Repeat, true);
-    }
-    
-    get_fractal_2d :: inline (contexts: [] *osn_context, x: float, y: float, inv_period: float, persistence: float, lacunarity: float) -> float {
-        x *= inv_period;
-        y *= inv_period;
-    
-        amplitude := 1.0;
-        max_value := 1.0;
-        sum: float64 = open_simplex_noise2(contexts[0], x, y);
-    
-        for 1..contexts.count-1 {
-            x *= lacunarity;
-            y *= lacunarity;
-            amplitude *= persistence;
-            max_value += amplitude;
-            sum += open_simplex_noise2(contexts[it], x, y) * amplitude;
-        }
-    
-        return xx (sum / max_value);
-    }
-    
-    get_fractal_4d :: inline (contexts: [] *osn_context, x: float, y: float, z: float, w: float, inv_period: float, persistence: float, lacunarity: float) -> float {
-        x *= inv_period;
-        y *= inv_period;
-        z *= inv_period;
-        w *= inv_period;
-    
-        amplitude := 1.0;
-        max_value := 1.0;
-        sum: float64 = open_simplex_noise4(contexts[0], x, y, z, w);
-    
-        for 1..contexts.count-1 {
-            x *= lacunarity;
-            y *= lacunarity;
-            z *= lacunarity;
-            w *= lacunarity;
-            amplitude *= persistence;
-            max_value += amplitude;
-            sum += open_simplex_noise4(contexts[it], x, y, z, w) * amplitude;
-        }
-    
-        return xx (sum / max_value);
-    }
+    // generate_fractal :: (seed: s64, size: s32,
+    //     octaves := 3,
+    //     period := 64.0,
+    //     persistence := 0.5,
+    //     lacunarity := 2.0
+    // ) -> Texture {
+    //     contexts := NewArray(octaves, *osn_context);
+    //     defer free(contexts.data);
+    //     for 0..octaves-1  open_simplex_noise(seed + it * 2, *contexts[it]);
+
+    //     bitmap := NewArray(size * size, float);
+    //     defer free(bitmap.data);
+
+    //     inv_period := 1.0 / period;
+
+    //     index: int;
+    //     for y: 0..size-1 {
+    //         for x: 0..size-1 {
+    //             bitmap[index] = get_fractal_2d(contexts, xx x, xx y, inv_period, persistence, lacunarity) * 0.5 + 0.5;
+    //             index += 1;
+    //         }
+    //     }
+
+    //     for 0..octaves-1  open_simplex_noise_free(contexts[it]);
+    //     return create_grayscale_texture(bitmap, size, size, .Repeat, true);
+    // }
+
+    // generate_seamless_fractal :: (seed: s64, size: s32,
+    //     octaves := 3,
+    //     period := 64.0,
+    //     persistence := 0.5,
+    //     lacunarity := 2.0
+    // ) -> Texture {
+    //     contexts := NewArray(octaves, *osn_context);
+    //     defer free(contexts.data);
+    //     for 0..octaves-1  open_simplex_noise(seed + it * 2, *contexts[it]);
+
+    //     bitmap := NewArray(size * size, float);
+    //     defer free(bitmap.data);
+
+    //     inv_size := 1.0 / cast(float) size;
+    //     inv_period := 1.0 / period;
+
+    //     index: int;
+    //     for i: 0..size-1 {
+    //         for j: 0..size-1 {
+    //             ii := cast(float) i * inv_size;
+    //             jj := cast(float) j * inv_size;
+
+    //             ii *= 2.0 * PI;
+    //             jj *= 2.0 * PI;
+
+    //             INV_2PI :: #run 1.0 / (2.0 * PI);
+    //             radius := cast(float) size * INV_2PI;
+    //             x := radius * sin(jj);
+    //             y := radius * cos(jj);
+    //             z := radius * sin(ii);
+    //             w := radius * cos(ii);
+
+    //             bitmap[index] = get_fractal_4d(contexts, x, y, z, w, inv_period, persistence, lacunarity) * 0.5 + 0.5;
+
+    //             index += 1;
+    //         }
+    //     }
+
+    //     for 0..octaves-1  open_simplex_noise_free(contexts[it]);
+    //     return create_grayscale_texture(bitmap, size, size, .Repeat, true);
+    // }
+
+    // get_fractal_2d :: inline (contexts: [] *osn_context, x: float, y: float, inv_period: float, persistence: float, lacunarity: float) -> float {
+    //     x *= inv_period;
+    //     y *= inv_period;
+
+    //     amplitude := 1.0;
+    //     max_value := 1.0;
+    //     sum: float64 = open_simplex_noise2(contexts[0], x, y);
+
+    //     for 1..contexts.count-1 {
+    //         x *= lacunarity;
+    //         y *= lacunarity;
+    //         amplitude *= persistence;
+    //         max_value += amplitude;
+    //         sum += open_simplex_noise2(contexts[it], x, y) * amplitude;
+    //     }
+
+    //     return xx (sum / max_value);
+    // }
+
+    // get_fractal_4d :: inline (contexts: [] *osn_context, x: float, y: float, z: float, w: float, inv_period: float, persistence: float, lacunarity: float) -> float {
+    //     x *= inv_period;
+    //     y *= inv_period;
+    //     z *= inv_period;
+    //     w *= inv_period;
+
+    //     amplitude := 1.0;
+    //     max_value := 1.0;
+    //     sum: float64 = open_simplex_noise4(contexts[0], x, y, z, w);
+
+    //     for 1..contexts.count-1 {
+    //         x *= lacunarity;
+    //         y *= lacunarity;
+    //         z *= lacunarity;
+    //         w *= lacunarity;
+    //         amplitude *= persistence;
+    //         max_value += amplitude;
+    //         sum += open_simplex_noise4(contexts[it], x, y, z, w) * amplitude;
+    //     }
+
+    //     return xx (sum / max_value);
+    // }
 }
 
 // @Todo(sushi): Reimplement u64 hashing with better primes
@@ -196,5 +196,5 @@ PRIME_V :: 0x3F8A6FC7;
 RANDRANGE : u32 : 1 << 24;
 MASK :: RANDRANGE - 1;
 
-#import "Random";
-#import "OpenSimplexNoise";
+// #import "Random";
+// #import "OpenSimplexNoise";

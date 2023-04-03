@@ -79,7 +79,7 @@ load_texture :: (
 
     texture: Texture = ---;
     width, height: s32 = ---;
-    image_data := stbi_load(path, *width, *height, cast,no_check(*s32) *texture.format, cast,no_check(s32) pixel_format);
+    image_data := stbi_load(path, *width, *height, xx,no_check *texture.format, xx,no_check pixel_format);
     defer stbi_image_free(image_data);
     texture.width  = cast(float) width;
     texture.height = cast(float) height;
@@ -94,6 +94,51 @@ load_texture :: (
         return .{}, false;
     case;
         warn(.Render, "Parsed invalid texture format for file: %", filepath);
+        return .{}, false;
+    }
+
+    // @Todo: Generate mipmaps
+    image_desc: sg_image_desc;
+    image_desc.width  = width;
+    image_desc.height = height;
+    image_desc.pixel_format = target_format;
+    image_desc.min_filter   = cast(sg_filter) min_sampling;
+    image_desc.mag_filter   = cast(sg_filter) mag_sampling;
+    image_desc.wrap_u       = xx,no_check wrap_mode;
+    image_desc.wrap_v       = xx,no_check wrap_mode;
+    image_desc.data.subimage[0][0] = sg_range.{image_data, xx,no_check (width * height * xx texture.format)};
+#if Debug_Render {
+    label := sprint("%\0", filepath);
+    image_desc.label = label.data;
+}
+    texture.id = sg_make_image(*image_desc);
+    return texture, sg_query_image_state(texture.id) == .VALID;
+}
+
+load_texture_from_memory :: (
+    buffer: string,
+    min_sampling  := Sampling_Mode.Linear,
+    mag_sampling  := Sampling_Mode.Linear,
+    wrap_mode     := Wrap_Mode.Clamp_To_Edge,
+    $pixel_format := Pixel_Format.RGBA
+) -> Texture, bool {
+    texture: Texture = ---;
+    width, height: s32 = ---;
+    image_data := stbi_load_from_memory(buffer.data, xx,no_check buffer.count, *width, *height, xx,no_check *texture.format, xx,no_check pixel_format);
+    defer stbi_image_free(image_data);
+    texture.width  = cast(float) width;
+    texture.height = cast(float) height;
+
+    target_format: sg_pixel_format = ---;
+    if #complete pixel_format == {
+    case .Gray;       target_format = .R8;
+    case .GrayAlpha;  target_format = .RG8;
+    case .RGBA;       target_format = .RGBA8;
+    case .None;
+        warn(.Render, "Failed to load image file.");
+        return .{}, false;
+    case;
+        warn(.Render, "Parsed invalid texture format for file.");
         return .{}, false;
     }
 
