@@ -127,19 +127,20 @@ render_init :: (msaa: bool) {
         }
     }
 
-    base_shader := make_default_shader(Default_Frag_Shader);
+    backend := sg_query_backend();
+    base_shader := sg_make_shader(*default_shader_desc(backend));
     if sg_query_shader_state(base_shader) != .VALID {
         warn(.Render, "Failed to initialize base shader.");
         return;
     }
 
-    circle_shader := make_circle_shader();
+    circle_shader := sg_make_shader(*circle_shader_desc(backend));
     if sg_query_shader_state(circle_shader) != .VALID {
         warn(.Render, "Failed to initialize circle shader.");
         return;
     }
 
-    text_shader := make_text_shader();
+    text_shader := sg_make_shader(*text_shader_desc(backend));
     if sg_query_shader_state(text_shader) != .VALID {
         warn(.Render, "Failed to initialize text shader.");
         return;
@@ -727,7 +728,7 @@ imm_circles :: (circles: [] Imm_Circle, inner_radius := 0.0, outer_radius := 1.0
         base_vertices += 6;
     }
 
-    state.uniform.size = size_of(Color) + size_of(Vector2);
+    state.uniform.size = size_of(Circle_Data);
     state.uniform.data[0] = state.color.r;
     state.uniform.data[1] = state.color.g;
     state.uniform.data[2] = state.color.b;
@@ -1021,7 +1022,7 @@ imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, col
     }
 
     cur_vertex += num_vertices;
-    state.uniform.size = size_of(Color) + size_of(Vector2);
+    state.uniform.size = size_of(Text_Data);
     state.uniform.data[0] = color.r;
     state.uniform.data[1] = color.g;
     state.uniform.data[2] = color.b;
@@ -1179,67 +1180,6 @@ Render_Context :: struct {
     cur_state:     u32;
     transform_stack: [Max_Stack_Depth] Transform;
     state_stack:     [Max_Stack_Depth] Render_State;
-}
-
-make_default_shader :: (frag_shader: string) -> sg_shader {
-    shader_desc: sg_shader_desc;
-    shader_desc.attrs[0].name = "vPosUV";
-    shader_desc.attrs[0].sem_name = "Position";
-    shader_desc.attrs[0].sem_index = 0;
-
-    shader_desc.vs.source = Default_Vert_Shader;
-
-    shader_desc.fs.source = frag_shader.data;
-    shader_desc.fs.uniform_blocks[0].size = size_of(Color);
-    shader_desc.fs.uniform_blocks[0].uniforms[0].name = "color";
-    shader_desc.fs.uniform_blocks[0].uniforms[0].type = .FLOAT4;
-
-    shader_desc.fs.images[0].name = "TEXTURE";
-    shader_desc.fs.images[0].image_type = ._2D;
-
-    return sg_make_shader(*shader_desc);
-}
-
-make_circle_shader :: () -> sg_shader {
-    shader_desc: sg_shader_desc;
-    shader_desc.attrs[0].name = "vPosUV";
-    shader_desc.attrs[0].sem_name = "Position";
-    shader_desc.attrs[0].sem_index = 0;
-
-    shader_desc.vs.source = Default_Vert_Shader;
-
-    shader_desc.fs.source = Circle_Frag_Shader;
-    shader_desc.fs.uniform_blocks[0].size = size_of(Color) + size_of(Vector2);
-    shader_desc.fs.uniform_blocks[0].uniforms[0].name = "color";
-    shader_desc.fs.uniform_blocks[0].uniforms[0].type = .FLOAT4;
-    shader_desc.fs.uniform_blocks[0].uniforms[1].name = "radius";
-    shader_desc.fs.uniform_blocks[0].uniforms[1].type = .FLOAT2;
-
-    shader_desc.fs.images[0].name = "TEXTURE";
-    shader_desc.fs.images[0].image_type = ._2D;
-
-    return sg_make_shader(*shader_desc);
-}
-
-make_text_shader :: () -> sg_shader {
-    shader_desc: sg_shader_desc;
-    shader_desc.attrs[0].name = "vPosUV";
-    shader_desc.attrs[0].sem_name = "Position";
-    shader_desc.attrs[0].sem_index = 0;
-
-    shader_desc.vs.source = Default_Vert_Shader;
-
-    shader_desc.fs.source = Text_Frag_Shader;
-    shader_desc.fs.uniform_blocks[0].size = size_of(Color) + size_of(Vector2);
-    shader_desc.fs.uniform_blocks[0].uniforms[0].name = "color";
-    shader_desc.fs.uniform_blocks[0].uniforms[0].type = .FLOAT4;
-    shader_desc.fs.uniform_blocks[0].uniforms[1].name = "text_params";
-    shader_desc.fs.uniform_blocks[0].uniforms[1].type = .FLOAT2;
-
-    shader_desc.fs.images[0].name = "TEXTURE";
-    shader_desc.fs.images[0].image_type = ._2D;
-
-    return sg_make_shader(*shader_desc);
 }
 
 make_pipeline :: (target_primitive_type: sg_primitive_type, blend_mode: Imm_Blend_Mode, shader: sg_shader) -> sg_pipeline {
