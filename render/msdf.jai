@@ -28,26 +28,32 @@ MSDF_Glyph :: struct {
 
 MSDF_Kerning :: float;
 
-load_msdf :: inline (msdf_filename: string, texture_filename: string) -> *MSDF_Font, bool {
+load_msdf :: inline (msdf_filepath: string, texture_filepath: string) -> *MSDF_Font, bool {
     font: *MSDF_Font;
     font_texture: Texture = ---;
     success: bool = ---;
-    font_texture, success = load_texture(texture_filename, min_sampling = .Linear, mag_sampling = .Linear);
+    font_texture, success = load_texture(texture_filepath, min_sampling = .Linear, mag_sampling = .Linear);
     if !success  return null, false;
-    font, success = load_msdf(msdf_filename, font_texture);
+    font, success = load_msdf(msdf_filepath, font_texture);
     if !success  return null, false;
     return font, true;
 }
 
-load_msdf :: (msdf_filename: string, texture: Texture) -> *MSDF_Font, bool {
-    msdf_data, success := read_entire_file(msdf_filename);
+load_msdf :: (filepath: string, texture: Texture) -> *MSDF_Font, bool {
+    msdf_data, success := read_entire_file(filepath);
     if !success  return null, false;
     defer free(msdf_data);
 
-    magic_number: u32 = << cast(*u32) msdf_data.data;
+    font: *MSDF_Font;
+    font, success = load_msdf_from_memory(msdf_data, texture);
+    return font, success;
+}
+
+load_msdf_from_memory :: (buffer: string, texture: Texture) -> *MSDF_Font, bool {
+    magic_number: u32 = << cast(*u32) buffer.data;
     if magic_number != MSDF_MAGIC  return null, false;
 
-    offset := msdf_data.data + size_of(u32);
+    offset := buffer.data + size_of(u32);
 
     msdf := New(MSDF_Font);
     memcpy(*msdf.data, offset, size_of(MSDF_Data));
@@ -109,23 +115,29 @@ get_kerning :: (msdf: *MSDF_Font, codepoint1: u32, codepoint2: u32) -> float #ex
     // return msdf.kerning[((cast,no_check(s32) codepoint1) - msdf.starting_glyph) * msdf.glyphs.count + ((cast,no_check(s32) codepoint2) - msdf.starting_glyph)];
 }
 
-measure_text :: (msdf: *MSDF_Font, text: string, size: float) -> Vector2 {
-    text_size := Vector2.{0, msdf.line_height * size};
-    if text.count == 0  return text_size;
+measure_width :: (msdf: *MSDF_Font, text: string, size: float) -> float {
+    if text.count == 0  return 0.0;
+    text_width: float;
     last_codepoint: u32;
     head := text.data;
     while head < text.data + text.count {
         codepoint, continuation := one_utf32_codepoint(head);
         glyph, success := find_glyph(msdf, codepoint);
         if success {
-            text_size.x += get_kerning(msdf, codepoint, last_codepoint);
-            text_size.x += glyph.advance_x;
+            text_width += get_kerning(msdf, codepoint, last_codepoint);
+            text_width += glyph.advance_x;
             last_codepoint = codepoint;
         }
         head += continuation;
     }
-    text_size.x *= size;
+    text_width *= size;
+    return text_width;
+}
 
+measure_text :: inline (msdf: *MSDF_Font, text: string, size: float) -> Vector2 {
+    text_size: Vector2 = ---;
+    text_size.x = measure_width(msdf, text, size);
+    text_size.y = msdf.line_height * size;
     return text_size;
 }
 
