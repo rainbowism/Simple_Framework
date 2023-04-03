@@ -150,8 +150,12 @@ should_exit :: () -> bool {
     return exit;
 }
 
-swap_buffers :: inline () {
+swap_buffers :: () #expand {
     glfwSwapBuffers(window.handle);
+}
+
+wait_for_events :: (timeout: float64) #expand {
+    glfwWaitEventsTimeout(timeout);
 }
 
 center_window :: () {
