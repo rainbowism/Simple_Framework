@@ -11,6 +11,11 @@
     Enable_Profiler := false,
 
     Debug_Render := false,
+    Render_Backend: enum {
+        GLCore33;
+        D3D11;
+        Metal;
+    } = .GLCore33,
     Uniform_Size := 2,
     Batch_Optimizer_Depth := 8
 );
@@ -26,13 +31,22 @@ SF_Result :: enum {
     Failed_To_Init_Miniaudio;
 }
 
+#import "Basic";
 #import "Math";
 #import "File";
 #import "Hash";
 #import "Hash_Table";
 #import "Pool";
 #import "Unicode";
-
+#if OS == .WINDOWS {
+    #import "Windows";
+    #import "glfw" (GLFW_EXPOSE_NATIVE_WIN32 = true);
+} else {
+    #import "glfw";
+}
+#if OS != .WINDOWS && Render_Backend == .D3D11 {
+    #assert false "Can't use D3D11 on this platform.";
+}
 #load "utils.jai";
 #load "color.jai";
 #load "window.jai";
@@ -52,6 +66,11 @@ SF_Result :: enum {
 #load "data/cache.jai";
 
 #if !Disable_Render {
+    #if OS == .WINDOWS && Render_Backend == .D3D11 {
+        #import "d3d11";
+        #import "dxgi";
+        #load "render/d3d11.jai";
+    }
     #load "render/texture.jai";
     #load "render/font.jai";
     #load "render/msdf.jai";

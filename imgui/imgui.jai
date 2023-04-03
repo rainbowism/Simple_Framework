@@ -334,31 +334,7 @@ ImGui_Impl_CreateDeviceObjects :: () -> bool {
 
     ImGui_Impl_CreateFontsTexture();
 
-    shader_desc: sg_shader_desc;
-    shader_desc.attrs[0].name = "vPos";
-    shader_desc.attrs[1].name = "vUV";
-    shader_desc.attrs[2].name = "vColor";
-    shader_desc.attrs[0].sem_name = "TEXCOORD";
-    shader_desc.attrs[0].sem_index = 0;
-    shader_desc.attrs[1].sem_name = "TEXCOORD";
-    shader_desc.attrs[1].sem_index = 1;
-    shader_desc.attrs[2].sem_name = "TEXCOORD";
-    shader_desc.attrs[2].sem_index = 2;
-    ub := *shader_desc.vs.uniform_blocks[0];
-    ub.size = size_of(ImGui_VS_Params);
-    ub.uniforms[0].name = "display_size";
-    ub.uniforms[0].type = .FLOAT2;
-    ub.uniforms[0].array_count = 1;
-    shader_desc.fs.images[0].name = "TEXTURE";
-    shader_desc.fs.images[0].image_type = ._2D;
-    shader_desc.fs.images[0].sampler_type = .FLOAT;
-    shader_desc.label = "ImGui Shader";
-
-    // @Todo: Implement other backends.
-    shader_desc.vs.source = ImGui_Vert_Shader;
-    shader_desc.fs.source = ImGui_Frag_Shader;
-
-    shader = sg_make_shader(*shader_desc);
+    shader = sg_make_shader(*ImGui_default_shader_desc(Sokol_Backend));
 
     pipe_desc: sg_pipeline_desc;
     pipe_desc.layout.buffers[0].stride = size_of(ImGui.ImDrawVert);
@@ -480,7 +456,7 @@ ImGui_Impl_RenderDrawData :: (draw_data: *ImGui.ImDrawData) {
     sg_apply_pipeline(pipe);
     vs_params: ImGui_VS_Params;
     vs_params.display_size = io.DisplaySize;
-    sg_apply_uniforms(.VS, 0, *sg_range.{*vs_params, size_of(ImGui_VS_Params)});
+    sg_apply_uniforms(.VS, 0, *sg_range.{*vs_params, size_of(ImGui_Data)});
     bind: sg_bindings;
     bind.vertex_buffers[0] = vertex_buffer;
     bind.index_buffer      = index_buffer;
@@ -500,7 +476,7 @@ ImGui_Impl_RenderDrawData :: (draw_data: *ImGui.ImDrawData) {
                 pcmd.UserCallback(cmd_list, pcmd);
                 sg_apply_viewport(0, 0, fb_width, fb_height, true);
                 sg_apply_pipeline(pipe);
-                sg_apply_uniforms(.VS, 0, *sg_range.{*vs_params, size_of(ImGui_VS_Params)});
+                sg_apply_uniforms(.VS, 0, *sg_range.{*vs_params, size_of(ImGui_Data)});
                 sg_apply_bindings(*bind);
             } else {
                 if tex_id != pcmd.TextureId || vtx_offset != pcmd.VtxOffset {
@@ -547,7 +523,7 @@ UI_State :: struct {
     handle:      *GLFWwindow;
     requested_frames: s64 = 2;
 
-    mouse_pressed:              [3]bool = .[false, false, false];
+    mouse_pressed:              [3] bool = .[false, false, false];
     mouse_wheel:                float   = 0.0;
 
     vertex_buffer: sg_buffer;
@@ -563,41 +539,9 @@ UI_State :: struct {
 ui: UI_State;
 _imgui_context: Context;
 
-ImGui_Vert_Shader :: #string ___glsl
-#version 330
-
-layout(location=0) in vec2 vPos;
-layout(location=1) in vec2 vUV;
-layout(location=2) in vec4 vColor;
-out vec2 fUV;
-out vec4 fColor;
-
-uniform vec2 display_size;
-
-void main() {
-    gl_Position = vec4(((vPos / display_size) - 0.5) * vec2(2.0, -2.0), 0.5, 1.0);
-    // gl_Position = vec4(vPos / display_size, 0.5, 1.0);
-    fUV = vUV;
-    fColor = vColor;
-}
-___glsl
-
-ImGui_Frag_Shader :: #string ___glsl
-#version 330
-
-in vec2 fUV;
-in vec4 fColor;
-out vec4 COLOR;
-
-uniform sampler2D TEXTURE;
-
-void main() {
-    COLOR = texture(TEXTURE, fUV) * fColor;
-    // COLOR = vec4(1.0);
-}
-___glsl
-
 Font_Awesome_Glyphs :: u16.[ICON_MIN_FA, ICON_MAX_FA, 0];
+
+#load "imgui_shaders.jai";
 
 #scope_export
 

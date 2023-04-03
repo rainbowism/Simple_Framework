@@ -1,5 +1,13 @@
-#import "GL";
-#import "sokol_gfx" (Color);
+#if Render_Backend == .GLCore33 {
+    #import "sokol_gfx" (Color_Type = Color, Backend = .GLCore33);
+    Sokol_Backend :: sg_backend.GLCORE33;
+} else #if Render_Backend == .D3D11 {
+    #import "sokol_gfx" (Color_Type = Color, Backend = .D3D11);
+    Sokol_Backend :: sg_backend.D3D11;
+} else #if Render_Backend == .Metal {
+    #import "sokol_gfx" (Color_Type = Color, Backend = .Metal);
+    Sokol_Backend :: sg_backend.METAL_MACOS;
+}
 
 Imm_Blend_Mode :: enum s32 {
     None     :: 0; /* No blending.
@@ -68,6 +76,13 @@ render_init :: (msaa: bool) {
     render_desc._context.color_format = SG_Color_Format;
     render_desc._context.depth_format = .DEPTH_STENCIL;
     render_desc._context.sample_count = cast(s32) (ifx msaa then 4 else 1);
+    #if Render_Backend == .D3D11 {
+        render_desc._context.d3d11.device = d3d_device;
+        render_desc._context.d3d11.device_context = d3d_context;
+        render_desc._context.d3d11.render_target_view_userdata_cb = d3d11_render_target_view;
+        render_desc._context.d3d11.depth_stencil_view_userdata_cb = d3d11_depth_stencil_view;
+        render_desc._context.d3d11.user_data = xx 0xDEADBEEF;
+    }
     render_desc.logger.func = test_log;
     sg_setup(*render_desc);
     if !sg_isvalid() {
@@ -127,20 +142,19 @@ render_init :: (msaa: bool) {
         }
     }
 
-    backend := sg_query_backend();
-    base_shader := sg_make_shader(*default_shader_desc(backend));
+    base_shader := sg_make_shader(*base_default_shader_desc(Sokol_Backend));
     if sg_query_shader_state(base_shader) != .VALID {
         warn(.Render, "Failed to initialize base shader.");
         return;
     }
 
-    circle_shader := sg_make_shader(*circle_shader_desc(backend));
+    circle_shader := sg_make_shader(*base_circle_shader_desc(Sokol_Backend));
     if sg_query_shader_state(circle_shader) != .VALID {
         warn(.Render, "Failed to initialize circle shader.");
         return;
     }
 
-    text_shader := sg_make_shader(*text_shader_desc(backend));
+    text_shader := sg_make_shader(*base_text_shader_desc(Sokol_Backend));
     if sg_query_shader_state(text_shader) != .VALID {
         warn(.Render, "Failed to initialize text shader.");
         return;
@@ -728,7 +742,7 @@ imm_circles :: (circles: [] Imm_Circle, inner_radius := 0.0, outer_radius := 1.0
         base_vertices += 6;
     }
 
-    state.uniform.size = size_of(Circle_Data);
+    state.uniform.size = size_of(Base_Circle_Data);
     state.uniform.data[0] = state.color.r;
     state.uniform.data[1] = state.color.g;
     state.uniform.data[2] = state.color.b;
@@ -745,7 +759,7 @@ imm_circle :: (position: Vector2, radius: float, inner_radius := 0.0, outer_radi
     imm_circles(circles, inner_radius, outer_radius);
 }
 
-imm_texture_rects :: (rects: [] Rect) {
+imm_texture_rects :: (rects: [] Rect, $flip_y := false) {
     using render_ctx;
     assert(rects.count != 0);
 
@@ -773,12 +787,21 @@ imm_texture_rects :: (rects: [] Rect) {
             region.y2 = max(region.y2, quad[quad_index].y);
         }
 
-        Quad_UVs :: Vector2.[
-            .{0.0, 1.0},
-            .{1.0, 1.0},
-            .{1.0, 0.0},
-            .{0.0, 0.0},
-        ];
+        #if flip_y {
+            Quad_UVs :: Vector2.[
+                .{0.0, 0.0},
+                .{1.0, 0.0},
+                .{1.0, 1.0},
+                .{0.0, 1.0},
+            ];
+        } else {
+            Quad_UVs :: Vector2.[
+                .{0.0, 1.0},
+                .{1.0, 1.0},
+                .{1.0, 0.0},
+                .{0.0, 0.0},
+            ];
+        }
 
         base_vertices[0].position = quad[0]; base_vertices[0].uv = Quad_UVs[0];
         base_vertices[1].position = quad[1]; base_vertices[1].uv = Quad_UVs[1];
@@ -793,14 +816,14 @@ imm_texture_rects :: (rects: [] Rect) {
     render_queue_draw(pipe, region, vertex_index, num_vertices);
 }
 
-imm_texture_rect :: (rect: Rect) #expand {
+imm_texture_rect :: (rect: Rect, $flip_y := false) #expand {
     rects: [] Rect;
     rects.count = 1;
     rects.data  = *rect;
-    imm_texture_rects(rects);
+    imm_texture_rects(rects, flip_y);
 }
 
-imm_texture_quads :: (quads: [] Quad) {
+imm_texture_quads :: (quads: [] Quad, $flip_y := false) {
     using render_ctx;
     assert(quads.count != 0);
 
@@ -822,12 +845,21 @@ imm_texture_quads :: (quads: [] Quad) {
             region.y2 = max(region.y2, point.y);
         }
 
-        Quad_UVs :: Vector2.[
-            .{0.0, 0.0},
-            .{1.0, 0.0},
-            .{1.0, 1.0},
-            .{0.0, 1.0},
-        ];
+        #if flip_y {
+            Quad_UVs :: Vector2.[
+                .{0.0, 1.0},
+                .{1.0, 1.0},
+                .{1.0, 0.0},
+                .{0.0, 0.0},
+            ];
+        } else {
+            Quad_UVs :: Vector2.[
+                .{0.0, 0.0},
+                .{1.0, 0.0},
+                .{1.0, 1.0},
+                .{0.0, 1.0},
+            ];
+        }
 
         base_vertices[0].position = quad.points[0]; base_vertices[0].uv = Quad_UVs[0];
         base_vertices[1].position = quad.points[1]; base_vertices[1].uv = Quad_UVs[1];
@@ -842,11 +874,11 @@ imm_texture_quads :: (quads: [] Quad) {
     render_queue_draw(pipe, region, vertex_index, num_vertices);
 }
 
-imm_texture_quad :: (quad: Quad) #expand {
+imm_texture_quad :: (quad: Quad, $flip_y := false) #expand {
     quads: [] Quad;
     quads.count = 1;
     quads.data  = *quad;
-    imm_texture_quads(quads);
+    imm_texture_quads(quads, flip_y);
 }
 
 imm_texture_subrects :: (sources: [] Rect, dests: [] Rect) {
@@ -1022,7 +1054,7 @@ imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, col
     }
 
     cur_vertex += num_vertices;
-    state.uniform.size = size_of(Text_Data);
+    state.uniform.size = size_of(Base_Text_Data);
     state.uniform.data[0] = color.r;
     state.uniform.data[1] = color.g;
     state.uniform.data[2] = color.b;

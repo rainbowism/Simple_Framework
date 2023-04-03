@@ -30,10 +30,14 @@ sf_init :: () -> SF_Result {
 
 create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.None, modules_to_init: Module_Flags) -> SF_Result {
     glfwDefaultWindowHints();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+    #if Render_Backend == .GLCore33 {
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+    } else {
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    }
     glfwWindowHint(GLFW_VISIBLE, 0);
     if flags & .MSAA glfwWindowHint(GLFW_SAMPLES, 4);
 
@@ -48,9 +52,12 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     if window.handle == null {
         return .Failed_To_Create_Window;
     }
-    glfwMakeContextCurrent(window.handle);
-
-    #if !Disable_Render { if modules_to_init & .Render  render_init(flags * .MSAA != 0); }
+    #if Render_Backend == .GLCore33 {
+        glfwMakeContextCurrent(window.handle);
+    } else #if Render_Backend == .D3D11 {
+        init_d3d11_device(width, height, flags & .MSAA != 0);
+    }
+    #if !Disable_Render { if modules_to_init & .Render  render_init(flags & .MSAA != 0); }
     #if !Disable_Audio  { if modules_to_init & .Audio   audio_init();  }
     #if !Disable_ImGui  { if modules_to_init & .ImGui   imgui_init();  }
 
@@ -106,7 +113,11 @@ should_exit :: () -> bool {
     #if !Manually_Swap_Buffer {
         {
             gpu_scoped_task("Present", Colors8.Red);
-            glfwSwapBuffers(window.handle);
+            #if Render_Backend == .GLCore33 {
+                glfwSwapBuffers(window.handle);
+            } else #if Render_Backend == .D3D11 {
+                d3d11_present(xx,no_check window.time.vsync);
+            }
         }
     }
     glfwPollEvents();
@@ -198,10 +209,12 @@ get_vsync :: () -> bool {
 
 set_vsync :: (enable: bool) {
     window.time.vsync = enable;
-    if enable {
-        glfwSwapInterval(1);
-    } else {
-        glfwSwapInterval(0);
+    #if Render_Backend == .GLCore33 {
+        if enable {
+            glfwSwapInterval(1);
+        } else {
+            glfwSwapInterval(0);
+        }
     }
 }
 
@@ -369,6 +382,12 @@ get_mouse_pos :: ($cached := false) -> Vector2 {
     }
 }
 
+#if OS == .WINDOWS {
+    get_hwnd :: () -> HWND {
+        return glfwGetWin32Window(window.handle);
+    }
+}
+
 sf_time: struct {
     total:   float64;
     last:    float64;
@@ -395,7 +414,6 @@ Mouse_Cursor :: enum {
 
 update_viewport :: (width: s32, height: s32) {
     if width == 0 && height == 0  return;
-    glViewport(0, 0, xx width, xx height);
     window.size.x = xx width;
     window.size.y = xx height;
     window.size_i.x = width;
@@ -542,7 +560,3 @@ glfw_drop_callback :: (glfw_win: *GLFWwindow, count: s32, paths: **u8) #c_call {
         if window.callbacks.drop != null  window.callbacks.drop(count, paths);
     }
 }
-
-#import "Basic";
-#import "Math";
-#import "glfw";

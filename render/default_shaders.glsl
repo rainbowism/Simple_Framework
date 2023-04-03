@@ -1,5 +1,6 @@
+@module base
+
 @vs vs
-@hlsl_options flip_vert_y
 in vec4 vPosUV;
 out vec2 fUV;
 
