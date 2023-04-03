@@ -848,16 +848,112 @@ imm_texture_quad :: (quad: Quad) #expand {
     imm_texture_quads(quads);
 }
 
-imm_subrects :: (sources: [] Rect, dests: [] Rect) {
+imm_texture_subrects :: (sources: [] Rect, dests: [] Rect) {
+    using render_ctx;
+    assert(sources.count != 0);
+    assert(sources.count == dests.count);
+
+    // @Incomplete: This isn't using index buffers at the moment.
+    num_vertices  := cast,no_check(u32) sources.count * 6;
+    vertex_index  := cur_vertex;
+    base_vertices := advance_vertices(num_vertices);
+    assert(base_vertices != null);
+
+    mvp := state.mvp;
+    region := Rect.{FLOAT32_MAX, FLOAT32_MAX, -FLOAT32_MAX, -FLOAT32_MAX};
+
+    for 0..sources.count-1 {
+        quad: [4] Vector2 = ---;
+        quad[0] = .{dests[it].x,                   dests[it].y + dests[it].height}; // bottom left
+        quad[1] = .{dests[it].x + dests[it].width, dests[it].y + dests[it].height}; // bottom right
+        quad[2] = .{dests[it].x + dests[it].width, dests[it].y};                    // top right
+        quad[3] = .{dests[it].x,                   dests[it].y};                    // top left
+        quad_uvs: [4] Vector2 = ---;
+        quad_uvs[0] = .{sources[it].tl.x, sources[it].br.y}; // bottom left
+        quad_uvs[1] =   sources[it].br;                 // bottom right
+        quad_uvs[2] = .{sources[it].br.x, sources[it].tl.y}; // top right
+        quad_uvs[3] =   sources[it].tl;                 // top left
+        xform_many(mvp, quad);
+
+        for quad_index: 0..quad.count-1 {
+            region.x1 = min(region.x1, quad[quad_index].x);
+            region.y1 = min(region.y1, quad[quad_index].y);
+            region.x2 = max(region.x2, quad[quad_index].x);
+            region.y2 = max(region.y2, quad[quad_index].y);
+        }
+
+        base_vertices[0].position = quad[0]; base_vertices[0].uv = quad_uvs[0];
+        base_vertices[1].position = quad[1]; base_vertices[1].uv = quad_uvs[1];
+        base_vertices[2].position = quad[2]; base_vertices[2].uv = quad_uvs[2];
+        base_vertices[3].position = quad[3]; base_vertices[3].uv = quad_uvs[3];
+        base_vertices[4].position = quad[0]; base_vertices[4].uv = quad_uvs[0];
+        base_vertices[5].position = quad[2]; base_vertices[5].uv = quad_uvs[2];
+        base_vertices += 6;
+    }
+
+    pipe := lookup_pipeline(.TRIANGLES, state.blend_mode);
+    render_queue_draw(pipe, region, vertex_index, num_vertices);
 }
 
-imm_subrect :: (source: Rect, dest: Rect) #expand {
+imm_texture_subrect :: (source: Rect, dest: Rect) #expand {
     sources, dests: [] Rect;
     sources.count = 1;
     sources.data  = *source;
     dests.count   = 1;
     dests.data    = *dest;
-    imm_subrects(source, dest);
+    imm_texture_subrects(sources, dests);
+}
+
+imm_texture_subquads :: (sources: [] Rect, dests: [] Quad) {
+    using render_ctx;
+    assert(sources.count != 0);
+    assert(sources.count == dests.count);
+
+    // @Incomplete: This isn't using index buffers at the moment.
+    num_vertices  := cast,no_check(u32) sources.count * 6;
+    vertex_index  := cur_vertex;
+    base_vertices := advance_vertices(num_vertices);
+    assert(base_vertices != null);
+
+    mvp := state.mvp;
+    region := Rect.{FLOAT32_MAX, FLOAT32_MAX, -FLOAT32_MAX, -FLOAT32_MAX};
+
+    for quad: dests {
+        quad_uvs: [4] Vector2 = ---;
+        quad_uvs[0] = .{sources[it_index].tl.x, sources[it_index].br.y}; // bottom left
+        quad_uvs[1] =   sources[it_index].br;                 // bottom right
+        quad_uvs[2] = .{sources[it_index].br.x, sources[it_index].tl.y}; // top right
+        quad_uvs[3] =   sources[it_index].tl;                 // top left
+        xform_many(mvp, quad.points);
+
+        for point: quad.points {
+            region.x1 = min(region.x1, point.x);
+            region.y1 = min(region.y1, point.y);
+            region.x2 = max(region.x2, point.x);
+            region.y2 = max(region.y2, point.y);
+        }
+
+        base_vertices[0].position = quad.points[0]; base_vertices[0].uv = quad_uvs[0];
+        base_vertices[1].position = quad.points[1]; base_vertices[1].uv = quad_uvs[1];
+        base_vertices[2].position = quad.points[2]; base_vertices[2].uv = quad_uvs[2];
+        base_vertices[3].position = quad.points[3]; base_vertices[3].uv = quad_uvs[3];
+        base_vertices[4].position = quad.points[0]; base_vertices[4].uv = quad_uvs[0];
+        base_vertices[5].position = quad.points[2]; base_vertices[5].uv = quad_uvs[2];
+        base_vertices += 6;
+    }
+
+    pipe := lookup_pipeline(.TRIANGLES, state.blend_mode);
+    render_queue_draw(pipe, region, vertex_index, num_vertices);
+}
+
+imm_texture_subquad :: (source: Rect, dest: Quad) #expand {
+    sources: [] Rect;
+    dests:   [] Quad;
+    sources.count = 1;
+    sources.data  = *source;
+    dests.count   = 1;
+    dests.data    = *dest;
+    imm_texture_subquads(sources, dests);
 }
 
 imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, color := Colors.White, outline: float = 0.0, $force_batch := false) {
@@ -886,10 +982,10 @@ imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, col
         glyph, success := find_glyph(msdf, codepoint);
         if success {
             origin.x += get_kerning(msdf, codepoint, last_codepoint) * size;
-    
+
             source := glyph.atlas;
             dest   := glyph.plane * size + origin;
-    
+
             quad: [4] Vector2 = ---;
             quad[0] = .{dest.x,              dest.y + dest.height}; // bottom left
             quad[1] = .{dest.x + dest.width, dest.y + dest.height}; // bottom right
@@ -900,7 +996,7 @@ imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, col
             quad_uvs[1] =   source.br;                 // bottom right
             quad_uvs[2] = .{source.br.x, source.tl.y}; // top right
             quad_uvs[3] =   source.tl;                 // top left
-    
+
             xform_many(mvp, quad);
             for point: quad {
                 region.x1 = min(region.x1, point.x);
@@ -908,7 +1004,7 @@ imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, col
                 region.x2 = max(region.x2, point.x);
                 region.y2 = max(region.y2, point.y);
             }
-    
+
             base_vertices[0].position = quad[0]; base_vertices[0].uv = quad_uvs[0];
             base_vertices[1].position = quad[1]; base_vertices[1].uv = quad_uvs[1];
             base_vertices[2].position = quad[2]; base_vertices[2].uv = quad_uvs[2];
@@ -917,7 +1013,7 @@ imm_text :: (msdf: *MSDF_Font, text: string, position: Vector2, size: float, col
             base_vertices[5].position = quad[2]; base_vertices[5].uv = quad_uvs[2];
             base_vertices += 6;
             num_vertices  += 6;
-    
+
             origin.x += glyph.advance_x * size;
             last_codepoint = codepoint;
         }
