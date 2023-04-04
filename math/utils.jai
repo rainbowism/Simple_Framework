@@ -138,3 +138,15 @@ cross_product :: inline (a: Vector2, b: Vector2) -> float #must {
 angle_to :: (a: Vector2, b: Vector2) -> float #must {
     return tatan2(cross(a, b), dot(a, b));
 }
+
+gcd :: (numerator: s32, denominator: s32) -> s32 {
+    r: s32 = ---;
+    a := numerator;
+    b := denominator;
+    while b != 0 {
+        r = a % b;
+        a = b;
+        b = r;
+    }
+    return a;
+}

@@ -318,6 +318,10 @@ get_window_resolutions :: () -> [] Point2 {
     return resolutions;
 }
 
+set_window_size :: inline (width: s32, height: s32) {
+    glfwSetWindowSize(window.handle, width, height);
+}
+
 set_window_size_limits :: inline (min_width: s32, min_height: s32, max_width: s32, max_height: s32) {
     glfwSetWindowSizeLimits(window.handle, min_width, min_height, max_width, max_height);
 }
