@@ -48,9 +48,9 @@ Text_Align :: struct {
     Left          :: Vector2.{0.0, 0.5};
     Center        :: Vector2.{0.5, 0.5};
     Right         :: Vector2.{1.0, 0.5};
-    Bottom_Left   :: Vector2.{0.0, 0.5};
-    Bottom_Center :: Vector2.{0.5, 0.5};
-    Bottom_Right  :: Vector2.{1.0, 0.5};
+    Bottom_Left   :: Vector2.{0.0, 1.0};
+    Bottom_Center :: Vector2.{0.5, 1.0};
+    Bottom_Right  :: Vector2.{1.0, 1.0};
 }
 
 test_log :: (tag: *u8, slog_level: u32, log_item_id: u32, message: *u8, line_nr: u32, filename: *u8, user_data: *void) -> void #c_call {
