@@ -5,6 +5,7 @@ d3d_context:        *ID3D11DeviceContext;
 swap_chain:         *IDXGISwapChain;
 render_target_view: *ID3D11RenderTargetView;
 depth_stencil_view: *ID3D11DepthStencilView;
+depth_stencil_desc: D3D11_TEXTURE2D_DESC;
 
 init_d3d11_device :: (width: s32, height: s32, msaa: bool) -> bool {
     hwnd := get_hwnd();
@@ -95,8 +96,27 @@ init_d3d11_device :: (width: s32, height: s32, msaa: bool) -> bool {
 
     if FAILED(hr) return false;
 
+    {
+        depth_stencil_desc.MipLevels = 1;
+        depth_stencil_desc.ArraySize = 1;
+        depth_stencil_desc.Format = .DXGI_FORMAT_D24_UNORM_S8_UINT;
+        if msaa {
+            depth_stencil_desc.SampleDesc.Count = 4;
+            depth_stencil_desc.SampleDesc.Quality = xx D3D11_STANDARD_MULTISAMPLE_QUALITY_LEVELS.STANDARD_MULTISAMPLE_PATTERN;
+        } else {
+            depth_stencil_desc.SampleDesc.Count = 1;
+            depth_stencil_desc.SampleDesc.Quality = 0;
+        }
+        depth_stencil_desc.Usage = .D3D11_USAGE_DEFAULT;
+        depth_stencil_desc.BindFlags = .D3D11_BIND_DEPTH_STENCIL;
+    }
+
+    return d3d11_init_targets(width, height);
+}
+
+d3d11_init_targets :: (width: s32, height: s32) -> bool {
     back_buffer: *ID3D11Texture2D;
-    hr = IDXGISwapChain_GetBuffer(swap_chain, 0, *uid(ID3D11Texture2D_UUID), xx *back_buffer);
+    hr := IDXGISwapChain_GetBuffer(swap_chain, 0, *uid(ID3D11Texture2D_UUID), xx *back_buffer);
     if FAILED(hr) {
         log_error("GetBuffer failed: %", hr);
         return false;
@@ -110,21 +130,8 @@ init_d3d11_device :: (width: s32, height: s32, msaa: bool) -> bool {
     }
 
     {
-        depth_stencil_desc: D3D11_TEXTURE2D_DESC;
         depth_stencil_desc.Width = xx width;
         depth_stencil_desc.Height = xx height;
-        depth_stencil_desc.MipLevels = 1;
-        depth_stencil_desc.ArraySize = 1;
-        depth_stencil_desc.Format = .DXGI_FORMAT_D24_UNORM_S8_UINT;
-        if msaa {
-            depth_stencil_desc.SampleDesc.Count = 4;
-            depth_stencil_desc.SampleDesc.Quality = xx D3D11_STANDARD_MULTISAMPLE_QUALITY_LEVELS.STANDARD_MULTISAMPLE_PATTERN;
-        } else {
-            depth_stencil_desc.SampleDesc.Count = 1;
-            depth_stencil_desc.SampleDesc.Quality = 0;
-        }
-        depth_stencil_desc.Usage = .D3D11_USAGE_DEFAULT;
-        depth_stencil_desc.BindFlags = .D3D11_BIND_DEPTH_STENCIL;
 
         depth_stencil_buffer: *ID3D11Texture2D;
         hr = ID3D11Device_CreateTexture2D(d3d_device, *depth_stencil_desc, null, *depth_stencil_buffer);
@@ -140,8 +147,20 @@ init_d3d11_device :: (width: s32, height: s32, msaa: bool) -> bool {
     }
 
     ID3D11DeviceContext_OMSetRenderTargets(d3d_context, 1, *render_target_view, depth_stencil_view);
-
     return true;
+}
+
+d3d11_resize_targets :: (width: s32, height: s32) -> bool {
+    ID3D11DeviceContext_OMSetRenderTargets(d3d_context, 0, null, null);
+    IUnknown_Release(render_target_view);
+    IUnknown_Release(depth_stencil_view);
+    hr := IDXGISwapChain_ResizeBuffers(swap_chain, 0, xx width, xx height, .UNKNOWN, 0);
+    if FAILED(hr) {
+        panic("ID3D11Device_CreateRenderTargetView failed: %", hr);
+        return false;
+    }
+
+    return d3d11_init_targets(width, height);
 }
 
 d3d11_render_target_view :: (user_data: *void) -> *void #c_call {

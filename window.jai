@@ -419,6 +419,7 @@ update_viewport :: (width: s32, height: s32) {
     window.size_i.x = width;
     window.size_i.y = height;
     // #if !Disable_Render  push_screen_size(width, height);
+    #if Render_Backend == .D3D11  d3d11_resize_targets(width, height);
     if window.callbacks.resize != null  window.callbacks.resize(width, height);
 }
 
