@@ -301,6 +301,29 @@ set_window_focused :: ($clear_input := false) {
     #if clear_input  clear_input_buffers();
 }
 
+get_window_resolutions :: () -> [] Point2 {
+    monitor := glfwGetPrimaryMonitor();
+    video_modes: [] GLFWvidmode;
+    video_modes.data = glfwGetVideoModes(monitor, xx *video_modes.count);
+    resolutions: [..] Point2;
+    for video_mode: video_modes {
+        if video_mode.width < video_mode.height / 10 * 16  continue video_mode;
+        for res: resolutions {
+            if res.x == video_mode.width && res.y == video_mode.height  continue video_mode;
+        }
+        array_add(*resolutions, .{video_mode.width, video_mode.height});
+    }
+    return resolutions;
+}
+
+set_window_size_limits :: inline (min_width: s32, min_height: s32, max_width: s32, max_height: s32) {
+    glfwSetWindowSizeLimits(window.handle, min_width, min_height, max_width, max_height);
+}
+
+set_window_aspect_ratio :: inline (numerator: s32, denominator: s32) {
+    glfwSetWindowAspectRatio(window.handle, numerator, denominator);
+}
+
 #if !Disable_Render {
     set_window_icons :: (images: [] Image) {
         glfw_images := NewArray(images.count, GLFWimage, allocator = temp);
