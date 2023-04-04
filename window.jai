@@ -9,6 +9,7 @@ Module_Flags :: enum_flags {
 Window_Flags :: enum_flags {
     None;
     Maximized;
+    Resizable;
     Fullscreen;
     Centered;
     VSync;
@@ -38,7 +39,8 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
     } else {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     }
-    glfwWindowHint(GLFW_VISIBLE, 0);
+    glfwWindowHint(GLFW_VISIBLE,   0);
+    glfwWindowHint(GLFW_RESIZABLE, xx (ifx flags & .Resizable));
     if flags & .MSAA glfwWindowHint(GLFW_SAMPLES, 4);
 
     window.size.x = xx width;
