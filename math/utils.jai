@@ -139,14 +139,31 @@ angle_to :: (a: Vector2, b: Vector2) -> float #must {
     return tatan2(cross(a, b), dot(a, b));
 }
 
-gcd :: (numerator: s32, denominator: s32) -> s32 {
-    r: s32 = ---;
-    a := numerator;
+gcd :: (numerator: s32, denominator: s32) -> s32 #must {
+    assert(numerator > denominator, "`numerator` must be larger than `denominator`!");
+    if numerator   == 0  return denominator;
+    if denominator == 0  return numerator;
+
+    shift: s32 = ---;
+    a := numerator | denominator;
     b := denominator;
-    while b != 0 {
-        r = a % b;
-        a = b;
-        b = r;
+    #asm {
+        tzcnt.d shift, a;
+        tzcnt.d a, numerator;
     }
-    return a;
+    a = numerator >> a;
+
+    while b != 0 {
+        m: s32 = ---;
+        #asm {
+            tzcnt.d m, b;
+        }
+        b >>=  m;
+        b  -=  a;
+        m   =  b >> 31;
+        a  +=  b & m;
+        b   = (b + m) ^ m;
+    }
+
+    return a << shift;
 }
