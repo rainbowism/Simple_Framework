@@ -462,8 +462,8 @@ TRACK_FPS_STEP            :: TRACK_FPS_SAMPLE_DURATION / TRACK_FPS_SAMPLES;
 
 Cursor_Position_Callback :: #type (x: float64, y: float64);
 Focus_Callback  :: #type (focused: bool);
-Key_Callback    :: #type (key: s32, scancode: s32, action: s32, mods: s32);
-Mouse_Callback  :: #type (button: s32, action: s32, mods: s32);
+Key_Callback    :: #type (key: Key, scancode: s32, action: Event_Action_Type, mods: Modifier);
+Mouse_Callback  :: #type (button: Mouse, action: Event_Action_Type, mods: Modifier);
 Text_Callback   :: #type (codepoint: u32);
 Scroll_Callback :: #type (x_offset: float64, y_offset: float64);
 Resize_Callback :: #type (width: s32, height: s32);
@@ -559,7 +559,7 @@ glfw_key_callback :: (glfw_win: *GLFWwindow, key: s32, scancode: s32, action: s3
     #if !Disable_ImGui  ImGui_Impl_KeyCallback(key, scancode, action, mods);
     input_state.key_cur[key] = action != GLFW_RELEASE;
     push_context window.ctx {
-        if window.callbacks.key != null  window.callbacks.key(key, scancode, action, mods);
+        if window.callbacks.key != null  window.callbacks.key(xx,no_check key, scancode, xx,no_check action, xx,no_check mods);
     }
 }
 
@@ -567,7 +567,7 @@ glfw_mouse_callback :: (glfw_win: *GLFWwindow, button: s32, action: s32, mods: s
     #if !Disable_ImGui  ImGui_Impl_MouseCallback(button, action, mods);
     input_state.mouse_cur[button] = action != GLFW_RELEASE;
     push_context window.ctx {
-        if window.callbacks.mouse != null  window.callbacks.mouse(button, action, mods);
+        if window.callbacks.mouse != null  window.callbacks.mouse(xx,no_check button, xx,no_check action, xx,no_check mods);
     }
 }
 

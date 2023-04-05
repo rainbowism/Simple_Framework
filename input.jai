@@ -43,7 +43,20 @@ is_mouse_just_released :: (mouse: Mouse) -> bool {
 
 mouse_pos: Vector2;
 
-Key :: enum {
+Event_Action_Type :: enum s32 {
+    Release :: GLFW_RELEASE;
+    Press   :: GLFW_PRESS;
+    Repeat  :: GLFW_REPEAT;
+}
+
+Modifier :: enum_flags s32 {
+    Shift   :: GLFW_MOD_SHIFT;
+    Control :: GLFW_MOD_CONTROL;
+    Alt     :: GLFW_MOD_ALT;
+    Super   :: GLFW_MOD_SUPER;
+}
+
+Key :: enum s32 {
     Unknown       :: GLFW_KEY_UNKNOWN;
     Space         :: GLFW_KEY_SPACE;
     Apostrophe    :: GLFW_KEY_APOSTROPHE;  /* ' */
@@ -168,7 +181,7 @@ Key :: enum {
     Last          :: GLFW_KEY_LAST;
 }
 
-Mouse :: enum {
+Mouse :: enum s32 {
     Button_1      :: GLFW_MOUSE_BUTTON_1;
     Button_2      :: GLFW_MOUSE_BUTTON_2;
     Button_3      :: GLFW_MOUSE_BUTTON_3;
