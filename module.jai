@@ -37,7 +37,6 @@ SF_Result :: enum {
 #import "Hash";
 #import "Hash_Table";
 #import "Pool";
-#import "Unicode";
 #if OS == .WINDOWS {
     #import "Windows";
     #import "glfw" (GLFW_EXPOSE_NATIVE_WIN32 = true);
@@ -51,6 +50,7 @@ SF_Result :: enum {
 #load "color.jai";
 #load "window.jai";
 #load "input.jai";
+#load "unicode.jai";
 #load "profiler.jai";
 
 #load "math/cephes.jai";
