@@ -686,12 +686,10 @@ imm_triangle_strip :: (points: [] Vector2) {
 }
 
 imm_filled_rects :: (rects: [] Rect) #expand {
-    imm_set_default_image(0);
     imm_texture_rects(rects);
 }
 
 imm_filled_rect :: (rect: Rect) #expand {
-    imm_set_default_image(0);
     rects: [] Rect;
     rects.count = 1;
     rects.data  = *rect;
