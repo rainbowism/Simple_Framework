@@ -159,13 +159,19 @@ split_line_em :: (msdf: *MSDF_Font, text: string, size: float, starting_width: f
                 wrap_width = text_width;
                 wrap_index = head - text.data;
             }
-            text_width += advance_x;
-            if text_width > max_width {
+            if text_width + advance_x > max_width {
                 line := text;
+                if wrap_index == 0 {
+                    line.count = head - text.data;
+                    advance(*text, line.count + 1);
+                    return line, text, true;
+                }
+                text_width += advance_x;
                 advance(*text, wrap_index + 1);
                 line.count = wrap_index;
                 return line, text, true;
             }
+            text_width += advance_x;
             last_codepoint = codepoint;
         }
         head += continuation;
