@@ -163,7 +163,7 @@ split_line_em :: (msdf: *MSDF_Font, text: string, size: float, starting_width: f
                 line := text;
                 if wrap_index == 0 {
                     line.count = head - text.data;
-                    advance(*text, line.count + 1);
+                    advance(*text, line.count);
                     return line, text, true;
                 }
                 text_width += advance_x;
