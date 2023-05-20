@@ -411,6 +411,14 @@ get_mouse_pos :: ($cached := false) -> Vector2 {
     }
 }
 
+get_clipboard :: () -> string {
+    return to_string(glfwGetClipboardString(window.handle));
+}
+
+set_clipboard :: (s: string) {
+    glfwSetClipboardString(window.handle, temp_c_string(s));
+}
+
 #if OS == .WINDOWS {
     get_hwnd :: () -> HWND {
         return glfwGetWin32Window(window.handle);
