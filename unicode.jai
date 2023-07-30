@@ -29,7 +29,7 @@ UTF8_Trailing_Bytes :: u8.[
 UTF8_Inital_Byte_Mask :: u8.[ 0x7F, 0x1F, 0x0F, 0x07, 0x03, 0x01 ];
 
 Offsets_From_UTF8 : [6] u32 : .[
-    0x00000000, 0x00003080, 0x000E2080, 
+    0x00000000, 0x00003080, 0x000E2080,
     0x03C82080, 0xFA082080, 0x82082080,
 ];
 
@@ -85,7 +85,7 @@ character_utf32_to_utf8 :: (ch: u32) -> string {
     s := Basic.alloc_string(count);
 
     Byte_Mask :: 0xBF;
-    Byte_Mark :: 0x80; 
+    Byte_Mark :: 0x80;
 
     if count == {
         case 4; s.data[3] = xx (ch | byteMark) & byteMask; ch = ch >> 6; #through;

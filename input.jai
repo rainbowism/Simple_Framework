@@ -9,6 +9,10 @@ swap_input_buffers :: () {
     memcpy(input_state.mouse_last.data, input_state.mouse_cur.data, GLFW_MOUSE_BUTTON_LAST + 1);
 }
 
+get_key :: (key: Key) -> Event_Action_Type {
+    return xx,no_check glfwGetKey(window.handle, xx,no_check key);
+}
+
 is_key_pressed :: (key: Key) -> bool {
     return input_state.key_cur[key];
 }

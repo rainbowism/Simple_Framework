@@ -1,9 +1,9 @@
 circle_intersecting :: inline (a: Vector2, b: Vector2, radius: float) -> bool {
-    return inside_radius(a - b, radius);
+    return inline inside_radius(a - b, radius);
 }
 
 circle_not_intersecting :: inline (a: Vector2, b: Vector2, radius: float) -> bool {
-    return outside_radius(a - b, radius);
+    return inline outside_radius(a - b, radius);
 }
 
 inside_radius :: inline (v: Vector2, radius: float) -> bool {
@@ -14,7 +14,7 @@ outside_radius :: inline (v: Vector2, radius: float) -> bool {
     return v.x * v.x + v.y * v.y >= radius * radius;
 }
 
-point_in_rect :: inline (point: Vector2, a: Vector2, b: Vector2, c: Vector2) -> bool {
+point_in_rect :: (point: Vector2, a: Vector2, b: Vector2, c: Vector2) -> bool {
     ab := b - a;
     am := point - a;
     bc := c - b;
@@ -73,13 +73,13 @@ operator + :: (a: Rect, b: Vector2) -> Rect {
 }
 
 intersect :: inline (v: Vector2, r: Rect) -> bool {
-    return r.x <= v.x && r.width  >= v.x &&
-           r.y <= v.y && r.height >= v.y;
+    return r.x <= v.x && r.width  >= v.x
+        && r.y <= v.y && r.height >= v.y;
 }
 
 overlaps :: inline (a: Rect, b:Rect) -> bool {
-    return a.x1 <= b.x2 && a.x2 >= b.x1 &&
-           a.y1 <= b.y2 && a.y2 >= b.y1;
+    return a.x1 <= b.x2 && a.x2 >= b.x1
+        && a.y1 <= b.y2 && a.y2 >= b.y1;
 }
 
 Point2 :: struct {
@@ -88,37 +88,22 @@ Point2 :: struct {
 
 xy :: make_point2;
 make_point2 :: (x: s32) -> Point2 {
-    p: Point2 = ---;
-    p.x = x;
-    p.y = x;
-    return p;
+    return .{x, x};
 }
 make_point2 :: (x: s32, y: s32) -> Point2 {
-    p: Point2 = ---;
-    p.x = x;
-    p.y = y;
-    return p;
+    return .{x, y};
 }
 
 operator - :: (a: Point2) -> Point2 {
-    r: Point2 = ---;
-    r.x = -a.x;
-    r.y = -a.y;
-    return r;
+    return .{-a.x, -a.y};
 }
 
 operator / :: (a: Point2, b: s32) -> Point2 {
-    r: Point2 = ---;
-    r.x = a.x / b;
-    r.y = a.y / b;
-    return r;
+    return .{a.x / b, a.y / b};
 }
 
 operator / :: (a: s32, b: Point2) -> Point2 {
-    r: Point2 = ---;
-    r.x = a / b.x;
-    r.y = a / b.y;
-    return r;
+    return .{a / b.x, a / b.y};
 }
 
 Recti :: struct {
@@ -136,6 +121,45 @@ intersect :: inline (p: Point2, r: Recti) -> bool {
            r.y <= p.y && r.height >= p.y;
 }
 
+angle_to :: inline (a: Vector2, b: Vector2) -> float #must {
+    return tatan2(b.y-a.y, b.x-a.x);
+}
+
+from_angle :: inline (theta: float) -> Vector2 #must {
+    return .{tcos(theta), tsin(theta)};
+}
+
+from_angle :: inline (theta: float, length: float) -> Vector2 #must {
+    return from_angle(theta) * length;
+}
+
+side_of_line :: inline (p: Vector2, a: Vector2, b: Vector2) -> float #must {
+    return (p.x - a.x) * (a.y - b.y) + (p.y - a.y) * (b.x - a.x);
+}
+
+is_on_left_side_of_line :: inline (p: Vector2, a: Vector2, b: Vector2) -> bool #must {
+    return (p.x - a.x) * (b.y - a.y) < (p.y - a.y) * (b.x - a.x);
+}
+
+distance_to_line :: inline (p: Vector2, a: Vector2, b: Vector2) -> float #must {
+    perp := Vector2.{a.y - b.y, b.x - a.x};
+    return abs((p.x - a.x) * perp.x + (p.y - a.y) * perp.y) / length(perp);
+}
+
+// This doesn't give the actual distance to the line, but it's fast and useful for sorting.
+distance_to_line_fast :: inline (p: Vector2, a: Vector2, b: Vector2) -> float {
+    return abs((p.x - a.x) * (-b.y + a.y) + (p.y - a.y) * (b.x - a.x));
+}
+
+ortho_project :: inline (direction: Vector2, v: Vector2) -> Vector2 {
+    normalize_or_zero(*direction);
+    return direction * dot(v, direction);
+}
+
+ortho_project :: inline (a: Vector2, b: Vector2, v: Vector2) -> Vector2 {
+    return inline ortho_project(b - a, v);
+}
+
 // @Note(sushi): The determinant in all intersect_line procedures are the
 //  winding direction of the collision.
 intersect_line :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool, float {
@@ -145,10 +169,10 @@ intersect_line :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool, floa
     determinant := cross(ab, cd);
     if determinant == 0  return false, 0; // lines are collinear
 
-    ac          := c - a;             // direction of a to c
     determinant  = 1.0 / determinant; // cache `1.0 / determinant` for below
-    u := cross(ac, ab) * determinant;
-    t := cross(ac, cd) * determinant;
+    ac := c - a;                      // direction of a to c
+    u  := cross(ac, ab) * determinant;
+    t  := cross(ac, cd) * determinant;
     return u >= 0 && u <= 1 && t >= 0 && t <= 1, determinant; // all true if segments are intersecting
 }
 
@@ -159,10 +183,10 @@ intersect_line_pos :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool, 
     determinant := cross(ab, cd);
     if determinant == 0  return false, .{}, 0; // lines are collinear
 
-    ac          := c - a;             // direction of a to c
     determinant  = 1.0 / determinant; // cache `1.0 / determinant` for below
-    u := cross(ac, ab) * determinant;
-    t := cross(ac, cd) * determinant;
+    ac := c - a;                      // direction of a to c
+    u  := cross(ac, ab) * determinant;
+    t  := cross(ac, cd) * determinant;
     if u < 0 || u > 1 || t < 0 || t > 1  return false, .{}, 0; // segments aren't intersecting
 
     cd.x = a.x + t * ab.x;
@@ -178,41 +202,28 @@ intersect_line_toi :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> float,
     determinant := cross(ab, cd);
     if determinant == 0  return 1, 0; // lines are collinear
 
-    ac          := c - a;             // direction of a to c
     determinant  = 1.0 / determinant; // cache `1.0 / determinant` for below
-    u := cross(ac, ab) * determinant;
-    t := cross(ac, cd) * determinant;
+    ac := c - a;                      // direction of a to c
+    u  := cross(ac, ab) * determinant;
+    t  := cross(ac, cd) * determinant;
     if u < 0 || u > 1 || t < 0 || t > 1  return 1, 0; // segments aren't intersecting
 
     return t, determinant;
 }
 
-side_of_line :: (position: Vector2, a: Vector2, b: Vector2) -> float {
-    product := (position.x - a.x) * (-b.y + a.y) + (position.y - a.y) * (b.x - a.x);
-    if product < 0  return -1;
-    if product > 0  return  1;
-    return 0;
-}
+// returns the time of impact of a ray with success
+intersect_line_toi_success :: (a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool, float, float {
+    ab := b - a; // direction of a to b
+    cd := d - c; // direction of c to d
 
-distance_to_line :: (position: Vector2, a: Vector2, b: Vector2) -> float {
-    perp: Vector2 = ---;
-    perp.x = -b.y + a.y;
-    perp.y =  b.x - a.x;
-    return abs((position.x - a.x) * perp.x + (position.y - a.y) * perp.y) / length(perp);
-}
+    determinant := cross(ab, cd);
+    if determinant == 0  return false, 1, 0; // lines are collinear
 
-// This doesn't give the actual distance to the line, but it's fast and useful for sorting.
-distance_to_line_fast :: (position: Vector2, a: Vector2, b: Vector2) -> float {
-    return abs((position.x - a.x) * (-b.y + a.y) + (position.y - a.y) * (b.x - a.x));
-}
-
-ortho_project :: (direction: Vector2, v: Vector2) -> Vector2 {
-    normalize_or_zero(*direction);
-    return direction * dot(v, direction);
-}
-
-ortho_project :: (a: Vector2, b: Vector2, v: Vector2) -> Vector2 {
-    return inline ortho_project(b - a, v);
+    determinant  = 1.0 / determinant; // cache `1.0 / determinant` for below
+    ac := c - a;                      // direction of a to c
+    u  := cross(ac, ab) * determinant;
+    t  := cross(ac, cd) * determinant;
+    return u >= 0 && u <= 1 && t >= 0 && t <= 1, t, determinant;
 }
 
 Circle :: struct {

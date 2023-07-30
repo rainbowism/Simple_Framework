@@ -96,6 +96,8 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 
     sf_time.last = get_time();
 
+    profiler_init(*_cpu_profiler);
+    profiler_init(*_gpu_profiler);
     return .Ok;
 }
 
@@ -112,13 +114,19 @@ sf_exit :: inline () {
 should_exit :: () -> bool {
     reset_temporary_storage();
 
+    gpu_end_frame();
+
     #if !Manually_Swap_Buffer {
         {
-            gpu_scoped_task("Present", Colors8.Red);
-            #if Render_Backend == .GLCore33 {
-                glfwSwapBuffers(window.handle);
-            } else #if Render_Backend == .D3D11 {
-                d3d11_present(xx,no_check window.time.vsync);
+            // gpu_scoped_task("Present", Colors8.Red);
+            if get_window_minimized() {
+                glfwWaitEventsTimeout(Max_Delta_Time * 0.5);
+            } else {
+                #if Render_Backend == .GLCore33 {
+                    glfwSwapBuffers(window.handle);
+                } else #if Render_Backend == .D3D11 {
+                    d3d11_present(xx,no_check window.time.vsync);
+                }
             }
         }
     }
@@ -129,10 +137,12 @@ should_exit :: () -> bool {
     {
         new_time := get_time();
         sf_time.delta64 = new_time - sf_time.last;
-        if sf_time.delta64 > MAX_DELTA_TIME  sf_time.delta64 = MAX_DELTA_TIME;
+        #if Max_Delta_Time < FLOAT64_MAX {
+            if sf_time.delta64 > Max_Delta_Time  sf_time.delta64 = Max_Delta_Time;
+        }
 
         if !window.time.vsync && window.time.target_fps > 0 && sf_time.delta64 > 0 {
-            gpu_scoped_task("WaitForFence", Colors8.Light_Salmon);
+            // gpu_scoped_task("WaitForFence", Colors8.Light_Salmon);
 
             remaining_time := window.time.target_fps_inv - sf_time.delta64;
             if remaining_time > 0 {
@@ -158,7 +168,6 @@ should_exit :: () -> bool {
             fps_index = (fps_index + 1) % TRACK_FPS_SAMPLES;
         }
     }
-    gpu_end_frame();
 
     return exit;
 }
@@ -303,6 +312,10 @@ set_window_focused :: ($clear_input := false) {
     #if clear_input  clear_input_buffers();
 }
 
+get_window_minimized :: inline () -> bool {
+    return xx glfwGetWindowAttrib(window.handle, GLFW_ICONIFIED);
+}
+
 get_window_resolutions :: () -> [] Point2 {
     monitor := glfwGetPrimaryMonitor();
     video_modes: [] GLFWvidmode;
@@ -419,6 +432,10 @@ set_clipboard :: (s: string) {
     glfwSetClipboardString(window.handle, temp_c_string(s));
 }
 
+set_clipboard :: (s: *u8) {
+    glfwSetClipboardString(window.handle, s);
+}
+
 #if OS == .WINDOWS {
     get_hwnd :: () -> HWND {
         return glfwGetWin32Window(window.handle);
@@ -461,8 +478,6 @@ update_viewport :: (width: s32, height: s32) {
 }
 
 initialized: bool;
-
-MAX_DELTA_TIME :: 0.25;
 
 TRACK_FPS_SAMPLES         :: 120;
 TRACK_FPS_SAMPLE_DURATION :: 4.0;

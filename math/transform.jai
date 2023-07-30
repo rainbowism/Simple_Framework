@@ -18,11 +18,11 @@ Transform :: struct {
 
 Transform_Identity :: Transform.{1, 0, 0, 1, 0, 0};
 
-tdotx :: (using transform: Transform, v: Vector2)  -> float #must #expand { return _11 * v.x + _21 * v.y; }
-tdoty :: (using transform: Transform, v: Vector2)  -> float #must #expand { return _12 * v.x + _22 * v.y; }
-tdotx :: (using transform: *Transform, v: Vector2) -> float #must #expand { return _11 * v.x + _21 * v.y; }
-tdoty :: (using transform: *Transform, v: Vector2) -> float #must #expand { return _12 * v.x + _22 * v.y; }
-basis_determinant :: (using transform: Transform)  -> float #must #expand { return _11 * _22 - _12 * _21; }
+tdotx :: inline (using transform: Transform, v: Vector2)  -> float #must { return _11 * v.x + _21 * v.y; }
+tdoty :: inline (using transform: Transform, v: Vector2)  -> float #must { return _12 * v.x + _22 * v.y; }
+tdotx :: inline (using transform: *Transform, v: Vector2) -> float #must { return _11 * v.x + _21 * v.y; }
+tdoty :: inline (using transform: *Transform, v: Vector2) -> float #must { return _12 * v.x + _22 * v.y; }
+basis_determinant :: inline (using transform: Transform)  -> float #must { return _11 * _22 - _12 * _21; }
 
 make_xform :: (position: Vector2, x_basis: Vector2, y_basis: Vector2) -> Transform #must {
     r: Transform = ---;

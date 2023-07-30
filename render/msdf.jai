@@ -28,15 +28,15 @@ MSDF_Glyph :: struct {
 
 MSDF_Kerning :: float;
 
-load_msdf :: inline (msdf_filepath: string, texture_filepath: string) -> *MSDF_Font, bool {
+load_msdf :: inline (msdf_filepath: string, texture_filepath: string) -> *MSDF_Font, Texture, bool {
     font: *MSDF_Font;
     font_texture: Texture = ---;
     success: bool = ---;
     font_texture, success = load_texture(texture_filepath, min_sampling = .Linear, mag_sampling = .Linear);
-    if !success  return null, false;
+    if !success  return null, .{}, false;
     font, success = load_msdf(msdf_filepath, font_texture);
-    if !success  return null, false;
-    return font, true;
+    if !success  return null, .{}, false;
+    return font, font_texture, true;
 }
 
 load_msdf :: (filepath: string, texture: Texture) -> *MSDF_Font, bool {

@@ -51,7 +51,7 @@ Colors :: struct #type_info_none {
     Dark_Blue               :: Color.{0, 0, 0.5451, 1};           // #00008B
     Dark_Cyan               :: Color.{0, 0.5451, 0.5451, 1};      // #008B8B
     Dark_Golden_Rod         :: Color.{0.7216, 0.5255, 0.0431, 1}; // #B8860B
-    Dark_Grey               :: Color.{0.6627, 0.6627, 0.6627, 1}; // #A9A9A9
+    Dark_Grey               :: Color.{0.3627, 0.3627, 0.3627, 1}; // #A9A9A9
     Dark_Green              :: Color.{0, 0.3922, 0, 1};           // #006400
     Dark_Khaki              :: Color.{0.7412, 0.7176, 0.4196, 1}; // #BDB76B
     Dark_Magenta            :: Color.{0.5451, 0, 0.5451, 1};      // #8B008B
@@ -388,8 +388,8 @@ to_color8 :: (in: Color) -> Color8 {
 
 color_to_laba :: (c: Color) -> LabA {
     l: float = 0.41222147 * c.r + 0.53633253 * c.g + 0.05144599 * c.b;
-	m: float = 0.21190349 * c.r + 0.68069954 * c.g + 0.10739695 * c.b;
-	s: float = 0.08830246 * c.r + 0.28171883 * c.g + 0.62997870 * c.b;
+    m: float = 0.21190349 * c.r + 0.68069954 * c.g + 0.10739695 * c.b;
+    s: float = 0.08830246 * c.r + 0.28171883 * c.g + 0.62997870 * c.b;
 
     l_: float = pow(l, 1.0 / 3.0);
     m_: float = pow(m, 1.0 / 3.0);

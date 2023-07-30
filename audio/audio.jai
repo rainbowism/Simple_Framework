@@ -1,5 +1,7 @@
+using miniaudio :: #import "miniaudio" (NO_SSE_41 = Disable_SIMD);
+
 create_sound_channel :: (parent: *Sound_Channel = null) -> *Sound_Channel {
-    assert(audio_ctx.is_ready, "Tried to create a sound channel before initializing the audio module.");
+    assert(audio_ctx.init_value == Audio_Init_Value, "Tried to create a sound channel before initializing the audio module.");
 
     sound_channel := New(Sound_Channel);
     result := ma_sound_group_init(*audio_ctx.engine, 0, parent, sound_channel);
@@ -14,27 +16,41 @@ free_sound_channel :: (sound_channel: *Sound_Channel) #expand {
     free(sound_channel);
 }
 
-get_volume :: () -> float #expand {
+get_sample_rate :: () -> u32 #expand {
+    return ma_engine_get_sample_rate(*audio_ctx.engine);
+}
+
+channel_get_volume :: () -> float #expand {
     return ma_node_get_output_bus_volume(ma_node_graph_get_endpoint(*audio_ctx.engine.nodeGraph), 0);
 }
 
-get_volume :: (sound_channel: *Sound_Channel) -> float #expand {
+channel_get_volume :: (sound_channel: *Sound_Channel) -> float #expand {
     return ma_sound_group_get_volume(sound_channel);
 }
 
-set_volume :: (volume: float) -> float #expand {
+channel_set_volume :: (volume: float) -> float #expand {
     ma_engine_set_volume(*audio_ctx.engine, volume);
 }
 
-set_volume :: (sound_channel: *Sound_Channel, volume: float) -> float #expand {
+channel_set_volume :: (sound_channel: *Sound_Channel, volume: float) -> float #expand {
     ma_sound_group_set_volume(sound_channel, volume);
 }
 
-play_sound :: (sound: *Sound, $restart := true) {
-    #if restart {
-        ma_sound_seek_to_pcm_frame(sound, 0);
-    }
+channel_set_pitch :: (channel: *Sound_Channel, pitch: float) #expand {
+    ma_sound_group_set_pitch(channel, pitch);
+}
+
+channel_reset_pitch :: (channel: *Sound_Channel) #expand {
+    ma_sound_group_set_pitch(channel, 1.0);
+}
+
+play_sound :: (sound: *Sound, $restart := true) #expand {
+    #if restart  ma_sound_seek_to_pcm_frame(sound, 0);
     ma_sound_start(sound);
+}
+
+stop_sound :: (sound: *Sound) #expand {
+    ma_sound_stop(sound);
 }
 
 Sound_Channel :: ma_sound_group;
@@ -87,24 +103,13 @@ audio_init :: () -> SF_Result {
     return .Ok;
 }
 
-audio_deinit :: () {
+audio_deinit :: () {
     ma_device_uninit(*audio_ctx.device);
     ma_engine_uninit(*audio_ctx.engine);
     audio_ctx = Audio_Context.{};
 }
 
 audio_ctx: Audio_Context;
-
-#import "miniaudio" (NO_SSE_41 = Disable_SIMD);
-
-#scope_file
-
-Audio_Init_Value :: 0x28008135;
-
-audio_data_callback :: (device: *ma_device, output: *void, input: *void, frame_count: u32) #c_call {
-    engine: *ma_engine = xx device.pUserData;
-    ma_engine_read_pcm_frames(engine, output, xx frame_count, null);
-}
 
 Audio_Context :: struct {
     engine: ma_engine;
@@ -114,4 +119,13 @@ Audio_Context :: struct {
     master_channel: *Sound_Channel;
 
     init_value: u32;
+}
+
+#scope_file
+
+Audio_Init_Value :: 0x28008135;
+
+audio_data_callback :: (device: *ma_device, output: *void, input: *void, frame_count: u32) #c_call {
+    engine: *ma_engine = xx device.pUserData;
+    ma_engine_read_pcm_frames(engine, output, xx frame_count, null);
 }

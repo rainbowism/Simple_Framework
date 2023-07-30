@@ -1,20 +1,14 @@
 INV_PI :: 1.0 / PI;
 
 operator / :: (a: Vector2, b: int) -> Vector2 {
-    r: Vector2 = ---;
-    r.x = a.x / b;
-    r.y = a.y / b;
-    return r;
+    return .{a.x / b, a.y / b};
 }
 
 operator / :: (a: int, b: Vector2) -> Vector2 {
-    r: Vector2 = ---;
-    r.x = a / b.x;
-    r.y = a / b.y;
-    return r;
+    return .{a / b.x, a / b.y};
 }
 
-is_approx_equal :: inline (a: float, b: float) -> bool #must {
+is_approx_equal :: (a: float, b: float) -> bool #must {
     EPSILON :: 0.00001;
     if a == b  return true; // Handle infinity cases.
     tolerance := EPSILON * abs(a);
@@ -22,21 +16,21 @@ is_approx_equal :: inline (a: float, b: float) -> bool #must {
     return abs(a - b) < tolerance;
 }
 
-is_approx_equal :: inline (a: float, b: float, $epsilon: float = 0.00001) -> bool #must {
+is_approx_equal :: (a: float, b: float, $epsilon: float = 0.00001) -> bool #must {
     if a == b  return true; // Handle infinity cases.
     return abs(a - b) < epsilon;
 }
 
-is_approx_zero :: inline (value: float, $epsilon: float = 0.00001) -> bool #must {
+is_approx_zero :: (value: float, $epsilon: float = 0.00001) -> bool #must {
     return abs(value) < epsilon;
 }
 
-is_approx_equal :: inline (a: Vector2, b: Vector2, $epsilon: float = 0.00001) -> bool #must {
+is_approx_equal :: (a: Vector2, b: Vector2, $epsilon: float = 0.00001) -> bool #must {
     if a == b  return true; // Handle infinity cases.
     return length_squared(abs(a - b)) < epsilon;
 }
 
-is_approx_zero :: inline (value: Vector2, $epsilon: float = 0.00001) -> bool #must {
+is_approx_zero :: (value: Vector2, $epsilon: float = 0.00001) -> bool #must {
     return abs(value.x) < epsilon && abs(value.y) < epsilon;
 }
 
@@ -49,11 +43,8 @@ sign :: inline (v: float) -> float #must {
     return -1;
 }
 
-floor :: inline (v: Vector2) -> Vector2 #must {
-    r: Vector2 = ---;
-    r.x = floor(v.x);
-    r.y = floor(v.y);
-    return r;
+floor :: (v: Vector2) -> Vector2 #must {
+    return .{floor(v.x), floor(v.y)};
 }
 
 clamp :: (x: float, min_value: float, max_value: float) -> float #must {
@@ -78,13 +69,10 @@ round :: inline (v: float) -> float #must {
 }
 
 round :: inline (v: Vector2) -> Vector2 #must {
-    r: Vector2 = ---;
-    r.x = round(v.x);
-    r.y = round(v.y);
-    return r;
+    return .{round(v.x), round(v.y)};
 }
 
-smoothstep :: inline (from: float, to: float, value: float) -> float #must {
+smoothstep :: (from: float, to: float, value: float) -> float #must {
     if is_approx_equal(from, to)  return from;
     s := inline saturate(inv_lerp(from, to, value));
     return s * s * (3.0 - 2.0 * s);
@@ -113,6 +101,23 @@ bezier :: (p1: Vector2, p2: Vector2, p3: Vector2, p4: Vector2, t: float) -> Vect
     return v;
 }
 
+bezier_curve :: (p1: Vector2, p2: Vector2, t: float) -> float {
+    u  := 1.0 - t;
+    w2 := 3.0 * u * u * t;
+    w3 := 3.0 * u * t * t;
+    w4 := t * t * t;
+    return w2 * p1.y + w3 * p2.y + w4;
+}
+
+Curve :: struct {
+    p1: Vector2;
+    p2: Vector2;
+}
+
+bezier_curve :: (curve: Curve, t: float) -> float {
+    return inline bezier_curve(curve.p1, curve.p2, t);
+}
+
 perpendicular :: (a: Vector2, $winding: enum { Clockwise; Counter_Clockwise; } = .Counter_Clockwise) -> Vector2 #must {
     r: Vector2 = ---;
     #if winding == .Clockwise {
@@ -133,10 +138,6 @@ cross :: cross_product;
 
 cross_product :: inline (a: Vector2, b: Vector2) -> float #must {
     return a.x * b.y - a.y * b.x;
-}
-
-angle_to :: (a: Vector2, b: Vector2) -> float #must {
-    return tatan2(cross(a, b), dot(a, b));
 }
 
 gcd :: (numerator: s32, denominator: s32) -> s32 #must {

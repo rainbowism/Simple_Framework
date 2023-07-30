@@ -62,16 +62,46 @@ free_sound :: (sound: *Sound) {
     ma_sound_uninit(sound);
 }
 
-get_length_in_seconds :: (sound: *Sound) -> float {
-    value: float;
+get_length_in_frames :: inline (sound: *Sound) -> s64 {
+    value: u64 = ---;
+    ma_data_source_get_length_in_pcm_frames(sound.pDataSource, *value);
+    return cast,no_check(s64) value;
+}
+
+get_cursor_in_frames :: inline (sound: *Sound) -> s64 {
+    value: u64 = ---;
+    ma_data_source_get_cursor_in_pcm_frames(sound.pDataSource, *value);
+    return cast,no_check(s64) value;
+}
+
+get_length_in_seconds :: inline (sound: *Sound) -> float {
+    value: float = ---;
     ma_data_source_get_length_in_seconds(sound.pDataSource, *value);
     return value;
 }
 
-get_length_in_frames :: (sound: *Sound) -> int {
-    value: u64;
-    ma_data_source_get_length_in_pcm_frames(sound.pDataSource, *value);
-    return cast,no_check(int) value;
+get_cursor_in_seconds :: inline (sound: *Sound) -> float {
+    value: float = ---;
+    ma_data_source_get_cursor_in_seconds(sound.pDataSource, *value);
+    return value;
+}
+
+get_volume :: (sound: *Sound) -> float {
+    value: float = ---;
+    ma_sound_get_volume(sound, *value);
+    return value;
+}
+
+set_volume :: (sound: *Sound, volume: float) {
+    ma_sound_set_volume(sound, volume);
+}
+
+set_pitch :: (sound: *Sound, pitch: float) {
+    ma_sound_set_pitch(sound, pitch);
+}
+
+reset_pitch :: (sound: *Sound) {
+    ma_sound_set_pitch(sound, 1.0);
 }
 
 Sound :: ma_sound;

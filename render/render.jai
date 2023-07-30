@@ -1,30 +1,34 @@
 #if Render_Backend == .GLCore33 {
-    #import "sokol_gfx" (Color_Type = Color, Backend = .GLCore33);
+    using sokol :: #import "sokol_gfx" (Color_Type = Color, Backend = .GLCore33);
     Sokol_Backend :: sg_backend.GLCORE33;
 } else #if Render_Backend == .D3D11 {
-    #import "sokol_gfx" (Color_Type = Color, Backend = .D3D11);
+    using sokol :: #import "sokol_gfx" (Color_Type = Color, Backend = .D3D11);
     Sokol_Backend :: sg_backend.D3D11;
 } else #if Render_Backend == .Metal {
-    #import "sokol_gfx" (Color_Type = Color, Backend = .Metal);
+    using sokol :: #import "sokol_gfx" (Color_Type = Color, Backend = .Metal);
     Sokol_Backend :: sg_backend.METAL_MACOS;
 }
 
 Imm_Blend_Mode :: enum s32 {
-    None     :: 0; /* No blending.
+    None; /* No blending.
                         dstRGBA = srcRGBA */
-    Blend    :: 1; /* Alpha blending.
+    Blend; /* Alpha blending.
                         dstRGB = (srcRGB * srcA) + (dstRGB * (1-srcA))
                         dstA = srcA + (dstA * (1-srcA)) */
-    Add      :: 2; /* Color add.
+    Blend_No_Premultiply;
+    Add; /* Color add.
                         dstRGB = (srcRGB * srcA) + dstRGB
                         dstA = dstA */
-    Modulate :: 3; /* Color modulate.
+    Modulate; /* Color modulate.
                         dstRGB = srcRGB * dstRGB
                         dstA = dstA */
-    Multiply :: 4; /* Color multiply.
+    Multiply; /* Color multiply.
                         dstRGB = (srcRGB * dstRGB) + (dstRGB * (1-srcA))
                         dstA = (srcA * dstA) + (dstA * (1-srcA)) */
-    Count :: 5;
+    Premultiply;
+    Min;
+    Max;
+    Count;
 }
 
 Imm_Circle :: Circle;
@@ -53,21 +57,23 @@ Text_Align :: struct {
     Bottom_Right  :: Vector2.{1.0, 1.0};
 }
 
-test_log :: (tag: *u8, slog_level: u32, log_item_id: u32, message: *u8, line_nr: u32, filename: *u8, user_data: *void) -> void #c_call {
-    new_context: Context;
-    push_context new_context {
-        log_level: Log_Level = ---;
-        if slog_level == {
-        case 0;  log_level = .Panic;
-        case 1;  log_level = .Error;
-        case 2;  log_level = .Warn;
-        case;    log_level = .Info;
+render_log :: (tag: *u8, slog_level: u32, log_item_id: u32, message: *u8, line_nr: u32, filename: *u8, user_data: *void) -> void #c_call {
+    #if Debug {
+        new_context: Context;
+        push_context new_context {
+            log_level: Log_Level = ---;
+            if slog_level == {
+            case 0;  log_level = .Panic;
+            case 1;  log_level = .Error;
+            case 2;  log_level = .Warn;
+            case;    log_level = .Info;
+            }
+            if tag       print("[%]", to_string(tag));
+            print("[%]", log_level);
+            print("[%]", log_item_id);
+            if filename  print("%(%): ", path_filename(to_string(filename)), line_nr);
+            if message   print("%\n",  to_string(message));
         }
-        if tag       print("[%]", to_string(tag));
-        print("[%]", log_level);
-        print("[%]", log_item_id);
-        if filename  print("%(%): ", path_filename(to_string(filename)), line_nr);
-        if message   print("%\n",  to_string(message));
     }
 }
 
@@ -83,7 +89,7 @@ render_init :: (msaa: bool) {
         render_desc._context.d3d11.depth_stencil_view_userdata_cb = d3d11_depth_stencil_view;
         render_desc._context.d3d11.user_data = xx 0xDEADBEEF;
     }
-    render_desc.logger.func = test_log;
+    render_desc.logger.func = render_log;
     sg_setup(*render_desc);
     if !sg_isvalid() {
         // @Todo: error handling
@@ -197,12 +203,35 @@ render_deinit :: () {
 
 render_begin :: () {
     gpu_begin_frame();
-    _profiler_draw_task = gpu_begin_task("Draw", Colors8.Medium_Purple);
+    // _profiler_draw_task = gpu_begin_task("Draw", Colors8.Medium_Purple);
 }
 
 render_end :: () {
-    gpu_end_task(_profiler_draw_task);
+    // gpu_end_task(_profiler_draw_task);
     sg_commit();
+}
+
+make_pipeline :: (target_primitive_type: sg_primitive_type, blend_mode: Imm_Blend_Mode, shader: sg_shader) -> sg_pipeline {
+    blend := get_blend_state(blend_mode);
+
+    primitive_type := target_primitive_type;
+    if primitive_type == .DEFAULT  primitive_type = .TRIANGLES;
+
+    pipe_desc: sg_pipeline_desc;
+    pipe_desc.shader = shader;
+    pipe_desc.layout.buffers[0].stride = size_of(Imm_Vertex);
+    pipe_desc.layout.attrs[0].format = .FLOAT4;
+    pipe_desc.colors[0].pixel_format = SG_Color_Format;
+    pipe_desc.colors[0].blend = blend;
+    // pipe_desc.depth.pixel_format = .DEPTH;
+    pipe_desc.primitive_type = primitive_type;
+
+    pipe := sg_make_pipeline(*pipe_desc);
+    if pipe != SG_INVALID_ID && sg_query_pipeline_state(pipe) != .VALID {
+        sg_destroy_pipeline(pipe);
+        pipe = SG_INVALID_ID;
+    }
+    return pipe;
 }
 
 default_pass_begin :: () #expand {
@@ -338,19 +367,22 @@ imm_flush :: () {
 
 // -State
 
-imm_set_pipeline :: (pipeline: sg_pipeline) {
+imm_set_pipeline :: (pipeline: sg_pipeline, $skip_clear := false) {
     using render_ctx;
     state.pipeline = pipeline;
-
-    if pipeline != SG_INVALID_ID {
-        state.uniform = .{};
+    #if skip_clear {
         return;
+    } else {
+        if pipeline != SG_INVALID_ID {
+            #if !skip_clear { state.uniform = .{}; }
+            return;
+        }
+        state.uniform.size = size_of(Color);
+        state.uniform.data[0] = state.color.r;
+        state.uniform.data[1] = state.color.g;
+        state.uniform.data[2] = state.color.b;
+        state.uniform.data[3] = state.color.a;
     }
-    state.uniform.size = size_of(Color);
-    state.uniform.data[0] = state.color.r;
-    state.uniform.data[1] = state.color.g;
-    state.uniform.data[2] = state.color.b;
-    state.uniform.data[3] = state.color.a;
 }
 
 imm_reset_pipeline :: () #expand {
@@ -362,12 +394,36 @@ imm_set_uniform :: (data: *void, size: u64) {
     assert(size <= size_of(float) * Uniform_Size * 4);
     assert(size > 0);
     assert(data != null);
-    memcpy(state.uniform.data.data, data, size);
+    memcpy(state.uniform.data.data, data, xx,no_check size);
     if size < state.uniform.size {
         memset(state.uniform.data.data + size, 0, xx,no_check (state.uniform.size - size));
     }
     state.uniform.size = size;
 }
+
+imm_set_uniform_with_size :: (data: *void, size: u64, full_size: u64) {
+    using render_ctx;
+    assert(size <= size_of(float) * Uniform_Size * 4);
+    assert(size > 0);
+    assert(data != null);
+    memcpy(state.uniform.data.data, data, xx,no_check size);
+    if size < state.uniform.size {
+        memset(state.uniform.data.data + size, 0, xx,no_check (state.uniform.size - size));
+    }
+    state.uniform.size = full_size;
+}
+
+// imm_set_uniform :: (data: *void, size: u64, offset: s64) {
+//     using render_ctx;
+//     assert(size <= size_of(float) * Uniform_Size * 4);
+//     assert(size > 0);
+//     assert(data != null);
+//     memcpy(state.uniform.data.data + offset, data, xx,no_check size - offset);
+//     if size < state.uniform.size {
+//         memset(state.uniform.data.data + size, 0, xx,no_check (state.uniform.size - size));
+//     }
+//     state.uniform.size = size;
+// }
 
 imm_reset_uniform :: () {
     using render_ctx;
@@ -424,7 +480,10 @@ imm_set_color :: (color: Color) {
     using render_ctx;
     state.color = color;
 
-    if state.pipeline != SG_INVALID_ID  return;
+    if state.pipeline != SG_INVALID_ID {
+        warn(.Render, "imm_set_color isn't callable with a custom pipeline.");
+        return;
+    }
     state.uniform.size = size_of(Color);
     state.uniform.data[0] = state.color.r;
     state.uniform.data[1] = state.color.g;
@@ -1096,6 +1155,9 @@ make_projection :: (width: float, height: float) -> Transform #expand {
     };
 }
 
+Default_Max_Vertices :: 65536;
+Default_Max_Commands :: 16384;
+
 #scope_module
 
 render_ctx: Render_Context;
@@ -1110,8 +1172,6 @@ SG_Color_Format :: sg_pixel_format.RGBA8;
 #scope_file
 
 Render_Init_Value    :: 0x18008135;
-Default_Max_Vertices :: 65536;
-Default_Max_Commands :: 16384;
 Max_Stack_Depth      :: 64;
 Max_Texture_Slots    :: 4;
 
@@ -1212,29 +1272,6 @@ Render_Context :: struct {
     state_stack:     [Max_Stack_Depth] Render_State;
 }
 
-make_pipeline :: (target_primitive_type: sg_primitive_type, blend_mode: Imm_Blend_Mode, shader: sg_shader) -> sg_pipeline {
-    blend := get_blend_state(blend_mode);
-
-    primitive_type := target_primitive_type;
-    if primitive_type == .DEFAULT  primitive_type = .TRIANGLES;
-
-    pipe_desc: sg_pipeline_desc;
-    pipe_desc.shader = shader;
-    pipe_desc.layout.buffers[0].stride = size_of(Imm_Vertex);
-    pipe_desc.layout.attrs[0].format = .FLOAT4;
-    pipe_desc.colors[0].pixel_format = SG_Color_Format;
-    pipe_desc.colors[0].blend = blend;
-    // pipe_desc.depth.pixel_format = .DEPTH;
-    pipe_desc.primitive_type = primitive_type;
-
-    pipe := sg_make_pipeline(*pipe_desc);
-    if pipe != SG_INVALID_ID && sg_query_pipeline_state(pipe) != .VALID {
-        sg_destroy_pipeline(pipe);
-        pipe = SG_INVALID_ID;
-    }
-    return pipe;
-}
-
 init_pipeline :: (primitive_type: sg_primitive_type, blend_mode: Imm_Blend_Mode, shader: sg_shader) -> bool {
     pipe := make_pipeline(primitive_type, blend_mode, shader);
     pipe_index := (cast(s64) primitive_type * cast(s64) Imm_Blend_Mode.Count) + cast(s64) blend_mode;
@@ -1267,14 +1304,22 @@ get_blend_state :: (blend_mode: Imm_Blend_Mode) -> sg_blend_state {
         blend.src_factor_alpha = .ONE;
         blend.dst_factor_alpha = .ONE_MINUS_SRC_ALPHA;
         blend.op_alpha = .ADD;
+    case .Blend_No_Premultiply;
+        blend.enabled = true;
+        blend.src_factor_rgb = .ONE;
+        blend.dst_factor_rgb = .ONE_MINUS_SRC_ALPHA;
+        blend.op_rgb = .ADD;
+        blend.src_factor_alpha = .ONE;
+        blend.dst_factor_alpha = .ONE_MINUS_SRC_ALPHA;
+        blend.op_alpha = .ADD;
     case .Add;
         blend.enabled = true;
         blend.src_factor_rgb = .SRC_ALPHA;
         blend.dst_factor_rgb = .ONE;
         blend.op_rgb = .ADD;
-        blend.src_factor_alpha = .ZERO;
-        blend.dst_factor_alpha = .ONE;
-        blend.op_alpha = .ADD;
+        blend.src_factor_alpha = .SRC_ALPHA;
+        blend.dst_factor_alpha = .DST_ALPHA;
+        blend.op_alpha = .MAX;
     case .Modulate;
         blend.enabled = true;
         blend.src_factor_rgb = .DST_COLOR;
@@ -1291,6 +1336,30 @@ get_blend_state :: (blend_mode: Imm_Blend_Mode) -> sg_blend_state {
         blend.src_factor_alpha = .DST_ALPHA;
         blend.dst_factor_alpha = .ONE_MINUS_SRC_ALPHA;
         blend.op_alpha = .ADD;
+    case .Premultiply;
+        blend.enabled = true;
+        blend.src_factor_rgb = .ONE;
+        blend.dst_factor_rgb = .ONE_MINUS_SRC_ALPHA;
+        blend.op_rgb = .ADD;
+        blend.src_factor_alpha = .ONE;
+        blend.dst_factor_alpha = .ONE_MINUS_SRC_ALPHA;
+        blend.op_alpha = .ADD;
+    case .Min;
+        blend.enabled = true;
+        blend.src_factor_rgb = .SRC_COLOR;
+        blend.dst_factor_rgb = .DST_COLOR;
+        blend.op_rgb = .MIN;
+        blend.src_factor_alpha = .SRC_ALPHA;
+        blend.dst_factor_alpha = .DST_ALPHA;
+        blend.op_alpha = .MIN;
+    case .Max;
+        blend.enabled = true;
+        blend.src_factor_rgb = .SRC_COLOR;
+        blend.dst_factor_rgb = .DST_COLOR;
+        blend.op_rgb = .MAX;
+        blend.src_factor_alpha = .SRC_ALPHA;
+        blend.dst_factor_alpha = .DST_ALPHA;
+        blend.op_alpha = .MAX;
     case;
         blend.enabled = false;
         blend.src_factor_rgb = .ONE;

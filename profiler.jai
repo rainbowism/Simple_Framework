@@ -17,6 +17,10 @@ Profiler :: struct {
 }
 
 #if Enable_Profiler {
+    profiler_init :: (using profiler: *Profiler) {
+        frames[index].start = FLOAT64_MAX;
+    }
+
     profiler_scoped_task :: (using profiler: *Profiler, name: string, color := Colors8.White) #expand {
         id := profiler_begin_task(name, color);
         defer profiler_end_task(id);
@@ -65,7 +69,7 @@ Profiler :: struct {
     }
 
     cpu_elapsed :: () -> float64 #expand {
-        profiler_elapsed(*_cpu_profiler);
+        profiler_frame_elapsed(*_cpu_profiler);
     }
 
     cpu_begin_task :: (name: string, color := Colors8.White) -> int #expand {
@@ -90,7 +94,7 @@ Profiler :: struct {
     }
 
     gpu_elapsed :: () -> float64 #expand {
-        profiler_elapsed(*_gpu_profiler);
+        profiler_frame_elapsed(*_gpu_profiler);
     }
 
     gpu_begin_task :: (name: string, color := Colors8.White) -> int #expand {
@@ -101,6 +105,7 @@ Profiler :: struct {
         profiler_end_task(*_gpu_profiler, id);
     }
 } else {
+    profiler_init        :: (using profiler: *Profiler) #expand {}
     profiler_begin_frame :: (profiler: *Profiler) #expand {}
     profiler_end_frame   :: (profiler: *Profiler) #expand {}
     profiler_elapsed     :: (profiler: *Profiler) -> float64 #expand {}

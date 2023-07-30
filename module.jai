@@ -4,6 +4,8 @@
     Log_File_Paths       := false,
     Manually_Swap_Buffer := false,
 
+    Max_Delta_Time: float64 = 0.25,
+
     Disable_Render  := false,
     Disable_Audio   := false,
     Disable_ImGui   := false,

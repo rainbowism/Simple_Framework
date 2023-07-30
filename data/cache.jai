@@ -18,7 +18,7 @@ free_cache :: (cache: *MD5_Cache($T)) {
 
 #if !Disable_Render {
     Texture_Cache :: MD5_Cache(Texture);
-    
+
     load_texture :: (cache: *Texture_Cache, filepath: string,
         min_sampling  := Sampling_Mode.Linear,
         mag_sampling  := Sampling_Mode.Linear,
@@ -31,13 +31,13 @@ free_cache :: (cache: *MD5_Cache($T)) {
             // trace("Texture_Cache hit: % counts", entry.refcount);
             return entry.value;
         }
-    
+
         texture := load_texture(filepath, min_sampling, mag_sampling, wrap_mode, pixel_format);
         entry.value = texture;
         // trace("Texture_Cache miss.");
         return texture;
     }
-    
+
     free_texture :: (cache: *Texture_Cache, filepath: string) {
         hash := get_hash(filepath);
         pointer := table_find_pointer(*cache.table, hash);

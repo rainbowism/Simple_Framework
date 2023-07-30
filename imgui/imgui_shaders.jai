@@ -37,21 +37,21 @@ ImGui_Data :: struct {
 #scope_file
 /*
    #version 330
-   
+
    uniform vec4 data[1];
    layout(location = 0) in vec2 vPos;
    out vec2 fUV;
    layout(location = 1) in vec2 vUV;
    out vec4 fColor;
    layout(location = 2) in vec4 vColor;
-   
+
    void main()
    {
        gl_Position = vec4(((vPos / data[0].xy) - vec2(0.5)) * vec2(2.0, -2.0), 0.5, 1.0);
        fUV = vUV;
        fColor = vColor;
    }
-   
+
 */
 ImGui_vs_source_glsl330 :: u8.[
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x33,0x30,0x0a,0x0a,0x75,0x6e,
@@ -77,18 +77,18 @@ ImGui_vs_source_glsl330 :: u8.[
 ];
 /*
    #version 330
-   
+
    uniform sampler2D TEXTURE;
-   
+
    layout(location = 0) out vec4 COLOR;
    in vec2 fUV;
    in vec4 fColor;
-   
+
    void main()
    {
        COLOR = texture(TEXTURE, fUV) * fColor;
    }
-   
+
 */
 ImGui_fs_source_glsl330 :: u8.[
     0x23,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x20,0x33,0x33,0x30,0x0a,0x0a,0x75,0x6e,
@@ -109,29 +109,29 @@ ImGui_fs_source_glsl330 :: u8.[
    {
        float2 _24_display_size : packoffset(c0);
    };
-   
-   
+
+
    static float4 gl_Position;
    static float2 vPos;
    static float2 fUV;
    static float2 vUV;
    static float4 fColor;
    static float4 vColor;
-   
+
    struct SPIRV_Cross_Input
    {
        float2 vPos : TEXCOORD0;
        float2 vUV : TEXCOORD1;
        float4 vColor : TEXCOORD2;
    };
-   
+
    struct SPIRV_Cross_Output
    {
        float2 fUV : TEXCOORD0;
        float4 fColor : TEXCOORD1;
        float4 gl_Position : SV_Position;
    };
-   
+
    #line 17 "..\third_party\Simple_Framework\imgui\imgui_shaders.glsl"
    void vert_main()
    {
@@ -142,7 +142,7 @@ ImGui_fs_source_glsl330 :: u8.[
    #line 20 "..\third_party\Simple_Framework\imgui\imgui_shaders.glsl"
        fColor = vColor;
    }
-   
+
    SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
    {
        vPos = stage_input.vPos;
@@ -224,29 +224,29 @@ ImGui_vs_bytecode_hlsl5 :: u8.[
 /*
    Texture2D<float4> TEXTURE : register(t0);
    SamplerState _TEXTURE_sampler : register(s0);
-   
+
    static float4 COLOR;
    static float2 fUV;
    static float4 fColor;
-   
+
    struct SPIRV_Cross_Input
    {
        float2 fUV : TEXCOORD0;
        float4 fColor : TEXCOORD1;
    };
-   
+
    struct SPIRV_Cross_Output
    {
        float4 COLOR : SV_Target0;
    };
-   
+
    #line 13 "..\third_party\Simple_Framework\imgui\imgui_shaders.glsl"
    void frag_main()
    {
    #line 13 "..\third_party\Simple_Framework\imgui\imgui_shaders.glsl"
        COLOR = TEXTURE.Sample(_TEXTURE_sampler, fUV) * fColor;
    }
-   
+
    SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
    {
        fUV = stage_input.fUV;
