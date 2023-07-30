@@ -31,8 +31,11 @@ Rect :: struct {
     x2, y2: float;
 
 #place x1;
-    x:      float = ---;
-    y:      float = ---;
+    x: float = ---;
+    y: float = ---;
+    w: float = ---;
+    h: float = ---;
+#place x2;
     width:  float = ---;
     height: float = ---;
 

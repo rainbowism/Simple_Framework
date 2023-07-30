@@ -149,6 +149,50 @@ load_texture_from_memory :: (
     return texture, sg_query_image_state(texture.id) == .VALID;
 }
 
+load_texture_from_memory :: (
+    data:   *void,
+    width:  s32,
+    height: s32,
+    min_sampling  := Sampling_Mode.Linear,
+    mag_sampling  := Sampling_Mode.Linear,
+    wrap_mode     := Wrap_Mode.Clamp_To_Edge,
+    $pixel_format := Pixel_Format.RGBA
+) -> Texture, bool {
+    texture: Texture = ---;
+    texture.width  = cast(float) width;
+    texture.height = cast(float) height;
+    texture.format = pixel_format;
+
+    target_format: sg_pixel_format = ---;
+    if #complete pixel_format == {
+    case .Gray;       target_format = .R8;
+    case .GrayAlpha;  target_format = .RG8;
+    case .RGBA;       target_format = .RGBA8;
+    case .None;
+        warn(.Render, "Failed to load image file.");
+        return .{}, false;
+    case;
+        warn(.Render, "Parsed invalid texture format for file.");
+        return .{}, false;
+    }
+
+    // @Todo: Generate mipmaps
+    image_desc: sg_image_desc;
+    image_desc.width  = width;
+    image_desc.height = height;
+    image_desc.pixel_format = target_format;
+    image_desc.min_filter   = cast(sg_filter) min_sampling;
+    image_desc.mag_filter   = cast(sg_filter) mag_sampling;
+    image_desc.wrap_u       = xx,no_check wrap_mode;
+    image_desc.wrap_v       = xx,no_check wrap_mode;
+    image_desc.data.subimage[0][0] = sg_range.{data, xx,no_check (width * height * xx texture.format)};
+#if Debug_Render {
+    image_desc.label = "Texture from memory";
+}
+    texture.id = sg_make_image(*image_desc);
+    return texture, sg_query_image_state(texture.id) == .VALID;
+}
+
 free_image :: (image: Image) {
     if image.data == null  return;
     free(image.data);
