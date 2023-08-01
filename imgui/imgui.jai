@@ -1,3 +1,11 @@
+ImGui_Font :: struct {
+    path: string;
+    size: float;
+
+#place path;
+    buffer: string;
+}
+
 imgui_init :: () {
     assert(ui.init_value != ImGui_Init_Value, "Trying to initialize ImGui module again!");
     ImGui_Impl_CreateContext();
@@ -77,6 +85,11 @@ imgui_want_text_input :: inline () -> bool {
     return ui.io.WantTextInput;
 }
 
+imgui_font :: inline (index: s32) -> *ImGui.ImFont {
+    if index >= ui.io.Fonts.Fonts.Size  return null;
+    return ui.io.Fonts.Fonts.Data[index];
+}
+
 imgui_load_font :: (filepath: string, font_size: float, oversample_h: s32 = 2, oversample_v: s32 = 2, icons_path: *u8 = null, icon_scale := 0.75) -> *ImGui.ImFont {
     config: ImGui.ImFontConfig;
     ImGui.ImFontConfig.Constructor(*config);
@@ -118,6 +131,44 @@ imgui_load_font_from_memory :: (font_buffer: string, font_size: float, oversampl
         ImGui.ImFontAtlas.AddFontFromFileTTF(ui.io.Fonts, icons_path, font_size * icon_scale, *config, Font_Awesome_Glyphs.data);
     }
 
+    ImGui.ImFontAtlas.Build(ui.io.Fonts);
+    ImGui_Impl_CreateFontsTexture();
+    ui.io.FontDefault = font;
+    return font;
+}
+
+imgui_load_fonts :: (fonts: [] ImGui_Font, oversample_h: s32 = 2, oversample_v: s32 = 2) -> *ImGui.ImFont {
+    if fonts.count == 0  return null;
+    if fonts.count == 1  return imgui_load_font(fonts[0].path, fonts[0].size, oversample_h, oversample_v);
+    config: ImGui.ImFontConfig;
+    ImGui.ImFontConfig.Constructor(*config);
+    config.OversampleH = oversample_h;
+    config.OversampleV = oversample_v;
+
+    ImGui.ImFontAtlas.Clear(ui.io.Fonts);
+    font := ImGui.ImFontAtlas.AddFontFromFileTTF(ui.io.Fonts, temp_c_string(fonts[0].path), fonts[0].size, *config);
+    for 1..fonts.count-1 {
+        ImGui.ImFontAtlas.AddFontFromFileTTF(ui.io.Fonts, temp_c_string(fonts[it].path), fonts[it].size, *config);
+    }
+    ImGui.ImFontAtlas.Build(ui.io.Fonts);
+    ImGui_Impl_CreateFontsTexture();
+    ui.io.FontDefault = font;
+    return font;
+}
+
+imgui_load_fonts_from_memory :: (fonts: [] ImGui_Font, oversample_h: s32 = 2, oversample_v: s32 = 2) -> *ImGui.ImFont {
+    if fonts.count == 0  return null;
+    if fonts.count == 1  return imgui_load_font_from_memory(fonts[0].buffer, fonts[0].size, oversample_h, oversample_v);
+    config: ImGui.ImFontConfig;
+    ImGui.ImFontConfig.Constructor(*config);
+    config.OversampleH = oversample_h;
+    config.OversampleV = oversample_v;
+
+    ImGui.ImFontAtlas.Clear(ui.io.Fonts);
+    font := ImGui.ImFontAtlas.AddFontFromMemoryTTF(ui.io.Fonts, fonts[0].buffer.data, xx fonts[0].buffer.count, fonts[0].size, *config);
+    for 1..fonts.count-1 {
+        ImGui.ImFontAtlas.AddFontFromMemoryTTF(ui.io.Fonts, fonts[it].buffer.data, xx fonts[it].buffer.count, fonts[it].size, *config);
+    }
     ImGui.ImFontAtlas.Build(ui.io.Fonts);
     ImGui_Impl_CreateFontsTexture();
     ui.io.FontDefault = font;
