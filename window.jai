@@ -176,10 +176,6 @@ swap_buffers :: () #expand {
     glfwSwapBuffers(window.handle);
 }
 
-wait_for_events :: (timeout: float64) #expand {
-    glfwWaitEventsTimeout(timeout);
-}
-
 center_window :: () {
     window_pos: Point2 = ---;
     glfwGetWindowPos(window.handle, *window_pos.x, *window_pos.y);
@@ -402,17 +398,9 @@ set_clear_color :: inline (color: Color) {
     default_pass_action.colors[0].value = color;
 }
 
-wait_for_events :: () #expand {
-    glfwWaitEvents();
-}
-
-wait_for_events :: (time: float) #expand {
-    glfwWaitEventsTimeout(time);
-}
-
-post_empty_event :: () #expand {
-    glfwPostEmptyEvent();
-}
+wait_for_events  :: glfwWaitEvents;
+wait_for_events  :: glfwWaitEventsTimeout;
+post_empty_event :: glfwPostEmptyEvent;
 
 get_mouse_pos :: ($cached := false) -> Vector2 {
     #if cached {
