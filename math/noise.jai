@@ -186,7 +186,87 @@ get_single_float :: (seed: u32, x: $T, y: T) -> float {
     return randint / cast(float) MASK;
 }
 
+// Adapted from SquirrelNoise5 by Squirrel Eiserloh under [CC-BY-3.0 US]
+//  - http://eiserloh.net/noise/SquirrelNoise5.hpp
+
+squirrel_noise :: (position: $T, seed: $S) -> u32 {
+    Bits_1 :: 0xD2A80A3F; // 0b11010010101010000000101000111111
+    Bits_2 :: 0xA884F197; // 0b10101000100001001111000110010111
+    Bits_3 :: 0x6C736F4B; // 0b01101100011100110110111101001011
+    Bits_4 :: 0xB79F3ABB; // 0b10110111100111110011101010111011
+    Bits_5 :: 0x1B56C4f5; // 0b00011011010101101100010011110101
+
+    mangled := (cast,no_check(*u32) *position).*;
+    mangled *= Bits_1;
+    mangled += (cast,no_check(*u32) *seed).*;
+    mangled ^= (mangled >> 9);
+    mangled += Bits_2;
+    mangled ^= (mangled >> 11);
+    mangled *= Bits_3;
+    mangled ^= (mangled >> 13);
+    mangled += Bits_4;
+    mangled ^= (mangled >> 15);
+    mangled *= Bits_5;
+    mangled ^= (mangled >> 17);
+    return mangled;
+}
+
+get_1d :: (position: $T, seed: $S, $R := u32) -> R {
+     return cast,no_check(R) squirrel_noise(position, seed);
+}
+
+get_2d :: (x: $T, y: T, seed: $S, $R := u32) -> R {
+     return cast,no_check(R) squirrel_noise(x + (PRIME_1 * y), seed);
+}
+
+get_3d :: (x: $T, y: T, z: T, seed: $S, $R := u32) -> R {
+     return cast,no_check(R) squirrel_noise(x + (PRIME_1 * y) + (PRIME_2 * z), seed);
+}
+
+get_4d :: (x: $T, y: T, z: T, w: T, seed: $S, $R := u32) -> R {
+     return cast,no_check(R) squirrel_noise(x + (PRIME_1 * y) + (PRIME_2 * z) + (PRIME_3 * w), seed);
+}
+
+get_1d_zto :: (position: $T, seed: $S) -> float {
+    return cast(float) (INV_U32_MAX * (cast(float64) squirrel_noise(position, seed)));
+}
+
+get_2d_zto :: (x: $T, y: T, seed: $S, $R := u32) -> R {
+    return cast(float) (INV_U32_MAX * (cast(float64) get_2d(x, y, seed)));
+}
+
+get_3d_zto :: (x: $T, y: T, z: T, seed: $S, $R := u32) -> R {
+    return cast(float) (INV_U32_MAX * (cast(float64) get_3d(x, y, z, seed)));
+}
+
+get_4d_zto :: (x: $T, y: T, z: T, w: T, seed: $S, $R := u32) -> R {
+    return cast(float) (INV_U32_MAX * (cast(float64) get_4d(x, y, z, w, seed)));
+}
+
+get_1d_noto :: (position: $T, seed: $S) -> float {
+    return cast(float) (INV_S32_MAX * (cast(float64) squirrel_noise(position, seed)));
+}
+
+get_2d_noto :: (x: $T, y: T, seed: $S, $R := u32) -> R {
+    return cast(float) (INV_S32_MAX * (cast(float64) get_2d(x, y, seed)));
+}
+
+get_3d_noto :: (x: $T, y: T, z: T, seed: $S, $R := u32) -> R {
+    return cast(float) (INV_S32_MAX * (cast(float64) get_3d(x, y, z, seed)));
+}
+
+get_4d_noto :: (x: $T, y: T, z: T, w: T, seed: $S, $R := u32) -> R {
+    return cast(float) (INV_S32_MAX * (cast(float64) get_4d(x, y, z, w, seed)));
+}
+
 #scope_file
+
+INV_U32_MAX :: (1.0 / cast(float64) U32_MAX);
+INV_S32_MAX :: (1.0 / cast(float64) S32_MAX);
+
+PRIME_1 :: 0x0BD4_BCB5;
+PRIME_2 :: 0x0063_D68D;
+PRIME_3 :: 0x0005_7377;
 
 PRIME_Y :: 0x1DDE90C9;
 PRIME_Z :: 0x43C42E4D;
