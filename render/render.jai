@@ -98,11 +98,8 @@ render_init :: (msaa: bool) {
         return;
     }
 
-    render_allocator: Allocator;
-    render_allocator.proc = pool_allocator_proc;
-    render_allocator.data = *render_pool;
     set_allocators(*render_pool);
-    push_allocator(render_allocator);
+    push_allocator(.{pool_allocator_proc, *render_pool});
 
     using render_ctx;
     max_vertices: u32 = Default_Max_Vertices;

@@ -14,11 +14,19 @@ Profiler_Frame :: struct {
 Profiler :: struct {
     frames: [MAX_PROFILER_FRAMES] Profiler_Frame;
     index: int;
+    pool: Pool;
 }
 
 #if Enable_Profiler {
     profiler_init :: (using profiler: *Profiler) {
         frames[index].start = FLOAT64_MAX;
+        set_allocators(*profiler.pool);
+        allocator := .{pool_allocator_proc, *profiler.pool};
+        for *frame: frames  frame.tasks.allocator = allocator;
+    }
+
+    profiler_deinit :: (using profiler: *Profiler) {
+        release(profiler.pool);
     }
 
     profiler_scoped_task :: (using profiler: *Profiler, name: string, color := Colors8.White) #expand {
@@ -106,6 +114,7 @@ Profiler :: struct {
     }
 } else {
     profiler_init        :: (using profiler: *Profiler) #expand {}
+    profiler_deinit      :: (using profiler: *Profiler) #expand {}
     profiler_begin_frame :: (profiler: *Profiler) #expand {}
     profiler_end_frame   :: (profiler: *Profiler) #expand {}
     profiler_elapsed     :: (profiler: *Profiler) -> float64 #expand {}
