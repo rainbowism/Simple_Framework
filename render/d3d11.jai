@@ -118,7 +118,7 @@ d3d11_init_targets :: (width: s32, height: s32) -> bool {
     back_buffer: *ID3D11Texture2D;
     hr := IDXGISwapChain_GetBuffer(swap_chain, 0, *uid(ID3D11Texture2D_UUID), xx *back_buffer);
     if FAILED(hr) {
-        log_error("GetBuffer failed: %", hr);
+        log_error("IDXGISwapChain_GetBuffer failed: %", hr);
         return false;
     }
     defer IUnknown_Release(back_buffer);
@@ -136,12 +136,13 @@ d3d11_init_targets :: (width: s32, height: s32) -> bool {
         depth_stencil_buffer: *ID3D11Texture2D;
         hr = ID3D11Device_CreateTexture2D(d3d_device, *depth_stencil_desc, null, *depth_stencil_buffer);
         if FAILED(hr) {
-            panic("ID3D11Device_CreateRenderTargetView failed: %", hr);
+            panic("ID3D11Device_CreateTexture2D failed: %", hr);
             return false;
         }
+        defer IUnknown_Release(depth_stencil_buffer);
         hr = ID3D11Device_CreateDepthStencilView(d3d_device, depth_stencil_buffer, null, *depth_stencil_view);
         if FAILED(hr) {
-            panic("ID3D11Device_CreateRenderTargetView failed: %", hr);
+            panic("ID3D11Device_CreateDepthStencilView failed: %", hr);
             return false;
         }
     }
@@ -151,9 +152,13 @@ d3d11_init_targets :: (width: s32, height: s32) -> bool {
 }
 
 d3d11_resize_targets :: (width: s32, height: s32) -> bool {
+#if 0 {
+    return false;
+} else {
     ID3D11DeviceContext_OMSetRenderTargets(d3d_context, 0, null, null);
     IUnknown_Release(render_target_view);
     IUnknown_Release(depth_stencil_view);
+    ID3D11DeviceContext_Flush(d3d_context);
     hr := IDXGISwapChain_ResizeBuffers(swap_chain, 0, xx width, xx height, .UNKNOWN, 0);
     if FAILED(hr) {
         panic("ID3D11Device_CreateRenderTargetView failed: %", hr);
@@ -161,6 +166,7 @@ d3d11_resize_targets :: (width: s32, height: s32) -> bool {
     }
 
     return d3d11_init_targets(width, height);
+}
 }
 
 d3d11_render_target_view :: (user_data: *void) -> *void #c_call {
