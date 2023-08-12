@@ -14,6 +14,7 @@ imgui_init :: () {
 }
 
 imgui_deinit :: () {
+    if ui.init_value != ImGui_Init_Value  return;
     ImGui_Impl_Shutdown();
 }
 
@@ -317,9 +318,7 @@ ImGui_Impl_Init :: (native_window_handle: *void) -> bool {
 }
 
 ImGui_Impl_Shutdown :: () {
-    if ui.ctx == null {
-        return;
-    }
+    if ui.ctx == null  return;
     ImGui.SetCurrentContext(ui.ctx);
     ImGui_Impl_InvalidateDeviceObjects();
     ImGui.DestroyContext();
@@ -412,11 +411,12 @@ ImGui_Impl_CreateDeviceObjects :: () -> bool {
 
 ImGui_Impl_InvalidateDeviceObjects :: () {
     using ui;
-    if font_texture {
-        sg_destroy_image(font_image);
-        io.Fonts.TexID = null;
-        font_image = SG_INVALID_ID;
-    }
+    if vertices.ptr  free(vertices.ptr);
+    if indices.ptr   free(indices.ptr);
+    if font_image == SG_INVALID_ID  return;
+    sg_destroy_image(font_image);
+    io.Fonts.TexID = null;
+    font_image = SG_INVALID_ID;
 }
 
 ImGui_Impl_NewFrame :: (native_window_handle: *void, display_width: s32, display_height: s32, delta: float64, $frame_requested := false) {

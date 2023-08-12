@@ -102,7 +102,9 @@ create_window :: (title: string, width: s32, height: s32, flags := Window_Flags.
 }
 
 destroy_window :: () {
-    render_deinit();
+    #if !Disable_ImGui  { imgui_deinit();  }
+    #if !Disable_Audio  { audio_deinit();  }
+    #if !Disable_Render { render_deinit(); }
     glfwDestroyWindow(window.handle);
     glfwTerminate();
 }

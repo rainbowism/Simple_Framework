@@ -164,19 +164,19 @@ d3d11_resize_targets :: (width: s32, height: s32) -> bool {
 }
 
 d3d11_render_target_view :: (user_data: *void) -> *void #c_call {
-    new_context: Context;
-    push_context new_context{
-        assert(user_data == cast(*void) 0xDEADBEEF);
-        return render_target_view;
-    }
+    // new_context: Context;
+    // push_context new_context {
+    //     assert(user_data == cast(*void) 0xDEADBEEF);
+    return render_target_view;
+    // }
 }
 
 d3d11_depth_stencil_view :: (user_data: *void) -> *void #c_call {
-    new_context: Context;
-    push_context new_context{
-        assert(user_data == cast(*void) 0xDEADBEEF);
-        return depth_stencil_view;
-    }
+    // new_context: Context;
+    // push_context new_context {
+    //     assert(user_data == cast(*void) 0xDEADBEEF);
+    return depth_stencil_view;
+    // }
 }
 
 d3d11_present :: (vsync: u32) {

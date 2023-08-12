@@ -100,10 +100,12 @@ load_msdf_from_memory :: (buffer: string, texture: Texture) -> *MSDF_Font, bool 
     return msdf, true;
 }
 
-free_msdf :: (msdf: *MSDF_Font) {
+destroy :: (msdf: *MSDF_Font) {
+    if !msdf  return;
     free_texture(msdf.texture);
+    deinit(*msdf.glyph_lookup);
+    deinit(*msdf.kerning_lookup);
     free(msdf.glyphs.data);
-    free(msdf.kerning.data);
     free(msdf);
 }
 

@@ -104,6 +104,7 @@ audio_init :: () -> SF_Result {
 }
 
 audio_deinit :: () {
+    if audio_ctx.init_value != Audio_Init_Value  return;
     ma_device_uninit(*audio_ctx.device);
     ma_engine_uninit(*audio_ctx.engine);
     audio_ctx = Audio_Context.{};

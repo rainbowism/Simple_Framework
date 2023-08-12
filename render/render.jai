@@ -78,6 +78,7 @@ render_log :: (tag: *u8, slog_level: u32, log_item_id: u32, message: *u8, line_n
 }
 
 render_init :: (msaa: bool) {
+    assert(render_ctx.init_value != Render_Init_Value, "Trying to initialize render module again!");
     render_desc: sg_desc;
     render_desc._context.color_format = SG_Color_Format;
     render_desc._context.depth_format = .DEPTH_STENCIL;
@@ -196,8 +197,9 @@ render_init :: (msaa: bool) {
 }
 
 render_deinit :: () {
+    if render_ctx.init_value != Render_Init_Value  return;
     sg_shutdown();
-    reset(*render_pool);
+    release(*render_pool);
     render_ctx = Render_Context.{};
 }
 
