@@ -38,7 +38,7 @@ inv_lerp :: inline (a: float, b: float, value: float) -> float #must {
     return (value - a) / (b - a);
 }
 
-sign :: inline (v: float) -> float #must {
+sign :: inline (v: $T) -> T #must {
     if v >= 0  return 1;
     return -1;
 }
